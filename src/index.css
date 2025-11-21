@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-surface-dark text-slate-100 antialiased;
+  font-size: clamp(14px, 0.7vw + 0.5rem, 18px);
+}
+
+#app {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  @apply bg-gradient-to-br from-[#0a0f19] via-[#0c1424] to-[#071628];
+}
+
+.glass {
+  @apply bg-surface-panel/80 backdrop-blur border border-white/5 shadow-panel;
+}
+
+#app::before {
+  content: '';
+  position: absolute;
+  inset: -20% 0;
+  background: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.15), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.1), transparent 25%),
+    radial-gradient(circle at 50% 80%, rgba(14, 165, 233, 0.12), transparent 30%);
+  filter: blur(10px);
+  animation: floatGlow 12s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+#app::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 0.4), transparent 45%);
+  z-index: 0;
+}
+
+.logistics-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.logistics-lanes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8%;
+  height: 180px;
+  background: linear-gradient(
+      90deg,
+      rgba(59, 130, 246, 0.14) 0%,
+      rgba(59, 130, 246, 0.04) 60%,
+      transparent 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(34, 211, 238, 0.14) 0%,
+      rgba(34, 211, 238, 0.05) 50%,
+      transparent 90%
+    );
+  mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.7), transparent);
+  filter: blur(0.5px);
+}
+
+.truck-convoy {
+  position: absolute;
+  left: -40%;
+  bottom: 10%;
+  height: 60px;
+  width: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='60' viewBox='0 0 160 60'%3E%3Crect x='0' y='25' width='90' height='22' rx='4' fill='%2328bdef' fill-opacity='0.25'/%3E%3Crect x='90' y='32' width='35' height='15' rx='3' fill='%2328bdef' fill-opacity='0.35'/%3E%3Crect x='52' y='18' width='38' height='8' rx='2' fill='%2399e6ff' fill-opacity='0.5'/%3E%3Ccircle cx='24' cy='50' r='7' fill='%2366d1ff'/%3E%3Ccircle cx='70' cy='50' r='7' fill='%2366d1ff'/%3E%3Ccircle cx='110' cy='50' r='7' fill='%2366d1ff'/%3E%3Crect x='5' y='22' width='12' height='6' fill='%238fd8ff' fill-opacity='0.4'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  animation: convoy 18s linear infinite;
+  opacity: 0.45;
+}
+
+.truck-convoy.small {
+  bottom: 16%;
+  height: 48px;
+  animation-duration: 26s;
+  opacity: 0.3;
+  filter: blur(1px);
+}
+
+@keyframes floatGlow {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+@keyframes convoy {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+
+@keyframes floatGlow {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -12px, 0);
+  }
+}
