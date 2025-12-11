@@ -44,4 +44,9 @@ export interface Truck {
   delayReason?: string;
   guidePhotoUrl?: string;
   history: TruckHistoryEntry[];
+  pallets?: number;
+  boxes?: number;
+  kilos?: number;
+  price?: number;
+  cargoItems?: string[];
 }

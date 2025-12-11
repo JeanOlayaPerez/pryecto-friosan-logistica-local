@@ -32,6 +32,11 @@ export type CreateTruckInput = {
   delayReason?: string;
   guidePhotoUrl?: string;
   initialStatus?: TruckStatus;
+  pallets?: number;
+  boxes?: number;
+  kilos?: number;
+  price?: number;
+  cargoItems?: string[];
 };
 
 type Actor = { userId: string; role: UserRole | null };
@@ -77,6 +82,11 @@ const mapTruck = (snap: any): Truck => {
     notes: data.notes,
     delayReason: data.delayReason,
     guidePhotoUrl: data.guidePhotoUrl,
+    pallets: data.pallets,
+    boxes: data.boxes,
+    kilos: data.kilos,
+    price: data.price,
+    cargoItems: data.cargoItems ?? [],
     history: (data.history ?? []).map((h: any) => ({
       status: h.status,
       changedAt: asDate(h.changedAt) ?? new Date(),
@@ -149,6 +159,11 @@ export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {
     notes: input.notes ?? '',
     delayReason: input.delayReason ?? '',
     guidePhotoUrl: input.guidePhotoUrl ?? '',
+    pallets: input.pallets ?? null,
+    boxes: input.boxes ?? null,
+    kilos: input.kilos ?? null,
+    price: input.price ?? null,
+    cargoItems: input.cargoItems ?? [],
     checkInGateAt: status === 'en_porteria' ? now : null,
     checkInTime: status === 'en_espera' || status === 'en_curso' ? now : null,
     processStartTime: status === 'en_curso' ? now : null,
@@ -216,6 +231,11 @@ export const updateTruckDetails = async (
   if (update.notes !== undefined) payload.notes = update.notes;
   if (update.loadType !== undefined) payload.loadType = update.loadType;
   if (update.guidePhotoUrl !== undefined) payload.guidePhotoUrl = update.guidePhotoUrl;
+  if (update.pallets !== undefined) payload.pallets = update.pallets;
+  if (update.boxes !== undefined) payload.boxes = update.boxes;
+  if (update.kilos !== undefined) payload.kilos = update.kilos;
+  if (update.price !== undefined) payload.price = update.price;
+  if (update.cargoItems !== undefined) payload.cargoItems = update.cargoItems;
 
   await updateDoc(ref, payload);
 };

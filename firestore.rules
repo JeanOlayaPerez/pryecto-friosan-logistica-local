@@ -27,7 +27,7 @@ service cloud.firestore {
       allow read: if request.auth != null;
       // Porteria crea, Recepcion actualiza estados, Admin todo.
       allow create: if hasRole(['porteria', 'admin']);
-      allow update: if hasRole(['recepcion', 'admin']);
+      allow update: if hasRole(['recepcion', 'comercial', 'admin']);
       allow delete: if hasRole(['admin', 'recepcion']);
     }
 
