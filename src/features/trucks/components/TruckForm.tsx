@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createTruck, updateTruckDetails } from '../services/trucksApi';
 import type { DockType, Truck } from '../types';
+import { useAuth } from '../../auth/AuthProvider';
 
 type TruckFormProps = {
   open: boolean;
@@ -10,32 +11,43 @@ type TruckFormProps = {
 };
 
 const initialState = {
+  companyName: '',
   clientName: '',
   plate: '',
   driverName: '',
+  driverRut: '',
   dockType: 'recepcion' as DockType,
   dockNumber: '',
+  entryType: 'anden' as 'anden' | 'conos',
   scheduledArrival: '',
   notes: '',
+  loadType: 'carga' as 'carga' | 'descarga' | 'mixto',
+  agendar: false,
 };
 
 export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { user, role } = useAuth();
 
   useEffect(() => {
     if (initialTruck) {
       setForm({
         clientName: initialTruck.clientName,
+        companyName: initialTruck.companyName ?? initialTruck.clientName,
         plate: initialTruck.plate,
         driverName: initialTruck.driverName,
+        driverRut: initialTruck.driverRut ?? '',
         dockType: initialTruck.dockType,
         dockNumber: String(initialTruck.dockNumber),
+        entryType: initialTruck.entryType ?? 'anden',
         scheduledArrival: initialTruck.scheduledArrival
           ? new Date(initialTruck.scheduledArrival).toISOString().slice(0, 16)
           : '',
         notes: initialTruck.notes ?? '',
+        loadType: initialTruck.loadType ?? 'carga',
+        agendar: initialTruck.status === 'agendado',
       });
     } else {
       setForm(initialState);
@@ -57,31 +69,47 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
       }
 
       if (mode === 'create') {
-        await createTruck({
-          clientName: form.clientName,
-          plate: form.plate,
-          driverName: form.driverName,
-          dockType: form.dockType,
-          dockNumber: form.dockNumber,
-          scheduledArrival: form.scheduledArrival,
-          notes: form.notes,
-        });
+        await createTruck(
+          {
+            clientName: form.clientName,
+            companyName: form.companyName || form.clientName,
+            plate: form.plate,
+            driverName: form.driverName,
+            driverRut: form.driverRut,
+            dockType: form.dockType,
+            dockNumber: form.dockNumber,
+            entryType: form.entryType,
+            scheduledArrival: form.scheduledArrival,
+            notes: form.notes,
+            loadType: form.loadType,
+            initialStatus: form.agendar ? 'agendado' : 'en_porteria',
+          },
+          user ? { userId: user.id, role } : undefined,
+        );
       } else if (initialTruck) {
-        await updateTruckDetails(initialTruck.id, {
-          clientName: form.clientName,
-          plate: form.plate,
-          driverName: form.driverName,
-          dockType: form.dockType,
-          dockNumber: form.dockNumber,
-          scheduledArrival: form.scheduledArrival,
-          notes: form.notes,
-        });
+        await updateTruckDetails(
+          initialTruck.id,
+          {
+            clientName: form.clientName,
+            companyName: form.companyName || form.clientName,
+            plate: form.plate,
+            driverName: form.driverName,
+            driverRut: form.driverRut,
+            dockType: form.dockType,
+            dockNumber: form.dockNumber,
+            entryType: form.entryType,
+            scheduledArrival: form.scheduledArrival,
+            notes: form.notes,
+            loadType: form.loadType,
+          },
+          user ? { userId: user.id, role } : undefined,
+        );
       }
 
       onClose();
     } catch (err) {
       console.error(err);
-      setError('Revisa los datos e inténtalo nuevamente.');
+      setError('Revisa los datos e intentalo nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -93,10 +121,10 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-              {mode === 'create' ? 'Nuevo camión' : 'Editar camión'}
+              {mode === 'create' ? 'Nuevo camion' : 'Editar camion'}
             </p>
             <h3 className="text-xl font-semibold text-white">
-              {mode === 'create' ? 'Crear camión' : 'Actualizar camión'}
+              {mode === 'create' ? 'Crear camion' : 'Actualizar camion'}
             </h3>
           </div>
           <button
@@ -116,6 +144,15 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
                 value={form.clientName}
                 onChange={(e) => setForm({ ...form, clientName: e.target.value })}
                 required
+              />
+            </label>
+
+            <label className="text-sm text-slate-300">
+              RUT Conductor
+              <input
+                className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
+                value={form.driverRut}
+                onChange={(e) => setForm({ ...form, driverRut: e.target.value })}
               />
             </label>
 
@@ -156,8 +193,38 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
                 value={form.dockType}
                 onChange={(e) => setForm({ ...form, dockType: e.target.value as DockType })}
               >
-                <option value="recepcion">Recepción</option>
+                <option value="recepcion">Recepcion</option>
                 <option value="despacho">Despacho</option>
+              </select>
+            </label>
+
+            <label className="text-sm text-slate-300">
+              Ingreso a
+              <select
+                className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
+                value={form.entryType}
+                onChange={(e) => setForm({ ...form, entryType: e.target.value as any })}
+              >
+                <option value="anden">Anden</option>
+                <option value="conos">Conos</option>
+              </select>
+            </label>
+
+            <label className="text-sm text-slate-300">
+              Tipo de carga
+              <select
+                className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
+                value={form.loadType}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    loadType: e.target.value as 'carga' | 'descarga' | 'mixto',
+                  })
+                }
+              >
+                <option value="carga">Carga</option>
+                <option value="descarga">Descarga</option>
+                <option value="mixto">Mixto</option>
               </select>
             </label>
 
@@ -172,6 +239,18 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
               />
             </label>
           </div>
+
+          {!initialTruck && (
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={form.agendar}
+                onChange={(e) => setForm({ ...form, agendar: e.target.checked })}
+                className="h-4 w-4 rounded border-white/20 bg-surface-dark text-accent focus:ring-accent"
+              />
+              Crear como agendado (llegara mas tarde)
+            </label>
+          )}
 
           <label className="text-sm text-slate-300">
             Notas

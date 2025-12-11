@@ -1,338 +1,241 @@
+import {
+  Timestamp,
+  addDoc,
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { db } from '../../../shared/config/firebase';
+import type { UserRole } from '../../auth/AuthProvider';
 import type { DockType, Truck, TruckStatus } from '../types';
 
 export type CreateTruckInput = {
+  companyName: string;
   clientName: string;
   plate: string;
   driverName: string;
+  driverRut?: string;
   dockType: DockType;
   dockNumber: string | number;
+  entryType?: 'conos' | 'anden';
   scheduledArrival: Date | string;
+  loadType?: 'carga' | 'descarga' | 'mixto';
   notes?: string;
+  delayReason?: string;
+  guidePhotoUrl?: string;
+  initialStatus?: TruckStatus;
 };
 
-type Listener = () => void;
+type Actor = { userId: string; role: UserRole | null };
 
-const listeners = new Set<Listener>();
-const notify = () => {
-  listeners.forEach((listener) => listener());
+const trucksCol = collection(db, 'trucks');
+
+const asDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (value instanceof Timestamp) return value.toDate();
+  if (typeof value === 'string' || typeof value === 'number') return new Date(value);
+  return null;
 };
 
-const makeId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
-
-// Bump key to force nueva semilla en clientes que ya tenían datos previos
-const STORAGE_KEY = 'friosan-trucks-v2';
-
-const createSeedData = (): Truck[] => {
-  const now = new Date();
-  return [
-    {
-      id: makeId(),
-      clientName: 'Agrosuper',
-      plate: 'ABCJ45',
-      driverName: 'Miguel R.',
-      dockType: 'recepcion',
-      dockNumber: '3',
-      status: 'en_espera',
-      scheduledArrival: new Date(now.getTime() + 15 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 50 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Pérdida de temperatura en ingreso',
-      history: [{ status: 'en_espera', changedAt: now, changedByUserId: 'system' }],
-    },
-    {
-      id: makeId(),
-      clientName: 'Guayarauco',
-      plate: 'PTZL11',
-      driverName: 'Camilo S.',
-      dockType: 'despacho',
-      dockNumber: '7',
-      status: 'en_espera',
-      scheduledArrival: new Date(now.getTime() - 10 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 70 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Falta de documentación de exportación',
-      history: [{ status: 'en_espera', changedAt: now, changedByUserId: 'system' }],
-    },
-    {
-      id: makeId(),
-      clientName: 'Polar Foods',
-      plate: 'MNTC33',
-      driverName: 'Sebastian Q.',
-      dockType: 'recepcion',
-      dockNumber: '6',
-      status: 'en_espera',
-      scheduledArrival: new Date(now.getTime() + 5 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 35 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Retraso por inspección sanitaria',
-      history: [{ status: 'en_espera', changedAt: new Date(now.getTime() - 35 * 60 * 1000), changedByUserId: 'system' }],
-    },
-    {
-      id: makeId(),
-      clientName: 'Rich Products',
-      plate: 'GHJK12',
-      driverName: 'Constanza L.',
-      dockType: 'recepcion',
-      dockNumber: '9',
-      status: 'en_espera',
-      scheduledArrival: new Date(now.getTime() + 25 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 15 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Esperando turno prioritario',
-      history: [{ status: 'en_espera', changedAt: new Date(now.getTime() - 15 * 60 * 1000), changedByUserId: 'system' }],
-    },
-    {
-      id: makeId(),
-      clientName: 'Friosur',
-      plate: 'BHFZ21',
-      driverName: 'Jose P.',
-      dockType: 'recepcion',
-      dockNumber: '5',
-      status: 'en_curso',
-      scheduledArrival: new Date(now.getTime() - 30 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 50 * 60 * 1000),
-      processStartTime: new Date(now.getTime() - 12 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Control de calidad en proceso',
-      history: [
-        { status: 'en_espera', changedAt: now, changedByUserId: 'system' },
-        { status: 'en_curso', changedAt: new Date(now.getTime() - 12 * 60 * 1000), changedByUserId: 'system' },
-      ],
-    },
-    {
-      id: makeId(),
-      clientName: 'FrioTruck',
-      plate: 'XQRT22',
-      driverName: 'Lucia M.',
-      dockType: 'despacho',
-      dockNumber: '4',
-      status: 'en_curso',
-      scheduledArrival: new Date(now.getTime() - 80 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 90 * 60 * 1000),
-      processStartTime: new Date(now.getTime() - 30 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Carga de pallets mixtos',
-      history: [
-        { status: 'en_espera', changedAt: new Date(now.getTime() - 90 * 60 * 1000), changedByUserId: 'system' },
-        { status: 'en_curso', changedAt: new Date(now.getTime() - 30 * 60 * 1000), changedByUserId: 'system' },
-      ],
-    },
-    {
-      id: makeId(),
-      clientName: 'RetailMax',
-      plate: 'DKLM98',
-      driverName: 'Andrea V.',
-      dockType: 'despacho',
-      dockNumber: '1',
-      status: 'terminado',
-      scheduledArrival: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 2.5 * 60 * 60 * 1000),
-      processStartTime: new Date(now.getTime() - 2 * 60 * 60 * 1000 + 20 * 60 * 1000),
-      processEndTime: new Date(now.getTime() - 30 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Descarga completa saludable',
-      history: [
-        { status: 'en_espera', changedAt: new Date(now.getTime() - 2.5 * 60 * 60 * 1000), changedByUserId: 'system' },
-        { status: 'en_curso', changedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000 + 20 * 60 * 1000), changedByUserId: 'system' },
-        { status: 'terminado', changedAt: new Date(now.getTime() - 30 * 60 * 1000), changedByUserId: 'system' },
-      ],
-    },
-    {
-      id: makeId(),
-      clientName: 'Andes Cargo',
-      plate: 'RBLK77',
-      driverName: 'Marcos D.',
-      dockType: 'despacho',
-      dockNumber: '8',
-      status: 'terminado',
-      scheduledArrival: new Date(now.getTime() - 1.5 * 60 * 60 * 1000),
-      checkInTime: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-      processStartTime: new Date(now.getTime() - 90 * 60 * 1000),
-      processEndTime: new Date(now.getTime() - 20 * 60 * 1000),
-      createdAt: now,
-      updatedAt: now,
-      notes: 'Despacho completado',
-      history: [
-        { status: 'en_espera', changedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000), changedByUserId: 'system' },
-        { status: 'en_curso', changedAt: new Date(now.getTime() - 90 * 60 * 1000), changedByUserId: 'system' },
-        { status: 'terminado', changedAt: new Date(now.getTime() - 20 * 60 * 1000), changedByUserId: 'system' },
-      ],
-    },
-  ];
+const toTimestamp = (value: Date | string) => {
+  const as = value instanceof Date ? value : new Date(value);
+  return Timestamp.fromDate(as);
 };
 
-let trucks: Truck[] = createSeedData();
-
-const persist = () => {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        trucks.map((t) => ({
-          ...t,
-          scheduledArrival: t.scheduledArrival.toISOString(),
-          checkInTime: t.checkInTime?.toISOString() ?? null,
-          processStartTime: t.processStartTime?.toISOString() ?? null,
-          processEndTime: t.processEndTime?.toISOString() ?? null,
-          createdAt: t.createdAt?.toISOString(),
-          updatedAt: t.updatedAt?.toISOString(),
-          history: t.history.map((h) => ({ ...h, changedAt: h.changedAt.toISOString() })),
-        })),
-      ),
-    );
-  } catch (error) {
-    console.error('No se pudo guardar en localStorage', error);
-  }
+const mapTruck = (snap: any): Truck => {
+  const data = snap.data();
+  return {
+    id: snap.id,
+    companyName: data.companyName ?? data.clientName,
+    clientName: data.clientName,
+    plate: data.plate,
+    driverName: data.driverName,
+    driverRut: data.driverRut,
+    dockType: data.dockType,
+    dockNumber: data.dockNumber,
+    entryType: data.entryType,
+    status: data.status,
+    scheduledArrival: asDate(data.scheduledArrival) ?? new Date(),
+    loadType: data.loadType,
+    checkInGateAt: asDate(data.checkInGateAt),
+    checkInTime: asDate(data.checkInTime),
+    processStartTime: asDate(data.processStartTime),
+    processEndTime: asDate(data.processEndTime),
+    storedAt: asDate(data.storedAt),
+    closedAt: asDate(data.closedAt),
+    createdAt: asDate(data.createdAt) ?? undefined,
+    updatedAt: asDate(data.updatedAt) ?? undefined,
+    notes: data.notes,
+    delayReason: data.delayReason,
+    guidePhotoUrl: data.guidePhotoUrl,
+    history: (data.history ?? []).map((h: any) => ({
+      status: h.status,
+      changedAt: asDate(h.changedAt) ?? new Date(),
+      changedByUserId: h.changedByUserId ?? 'system',
+      changedByRole: h.changedByRole,
+      note: h.note,
+    })),
+  };
 };
 
-const reviveDates = (t: any): Truck => ({
-  ...t,
-  scheduledArrival: new Date(t.scheduledArrival),
-  checkInTime: t.checkInTime ? new Date(t.checkInTime) : null,
-  processStartTime: t.processStartTime ? new Date(t.processStartTime) : null,
-  processEndTime: t.processEndTime ? new Date(t.processEndTime) : null,
-  createdAt: t.createdAt ? new Date(t.createdAt) : undefined,
-  updatedAt: t.updatedAt ? new Date(t.updatedAt) : undefined,
-  history: (t.history ?? []).map((h: any) => ({ ...h, changedAt: new Date(h.changedAt) })),
+const historyEntry = (status: TruckStatus, actor?: Actor, note?: string) => ({
+  status,
+  changedAt: Timestamp.now(),
+  changedByUserId: actor?.userId ?? 'system',
+  changedByRole: actor?.role ?? 'system',
+  note: note ?? '',
 });
-
-(() => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Truck[];
-      trucks = parsed.map(reviveDates);
-    } else {
-      persist();
-    }
-  } catch (error) {
-    console.warn('No se cargo el estado local, usando datos de ejemplo', error);
-  }
-})();
-
-const normalizeDate = (value: Date | string) => (value instanceof Date ? value : new Date(value));
-
-export const resetTrucks = () => {
-  trucks = createSeedData();
-  persist();
-  notify();
-};
 
 export const subscribeTrucksByDockType = (
   dockType: DockType,
   onUpdate: (trucks: Truck[]) => void,
+  onError?: (error: unknown) => void,
 ) => {
-  const handler = () => {
-    const filtered = trucks
-      .filter((t) => t.dockType === dockType)
-      .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
-    onUpdate(filtered);
-  };
-
-  listeners.add(handler);
-  handler(); // initial push
-
-  return () => listeners.delete(handler);
+  const q = query(trucksCol, where('dockType', '==', dockType), orderBy('createdAt', 'desc'));
+  const unsub = onSnapshot(
+    q,
+    (snap) => {
+      onUpdate(snap.docs.map(mapTruck));
+    },
+    (err) => {
+      console.error('Error en listener de trucks', err);
+      onError?.(err);
+    },
+  );
+  return unsub;
 };
 
-export const createTruck = async (input: CreateTruckInput) => {
-  const now = new Date();
-  const newTruck: Truck = {
-    id: makeId(),
-    clientName: input.clientName,
-    plate: input.plate.toUpperCase(),
-    driverName: input.driverName,
+export const subscribeAllTrucks = (
+  onUpdate: (trucks: Truck[]) => void,
+  onError?: (error: unknown) => void,
+) => {
+  const q = query(trucksCol, orderBy('createdAt', 'desc'));
+  const unsub = onSnapshot(
+    q,
+    (snap) => onUpdate(snap.docs.map(mapTruck)),
+    (err) => {
+      console.error('Error en listener de trucks', err);
+      onError?.(err);
+    },
+  );
+  return unsub;
+};
+
+export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {
+  const status: TruckStatus = input.initialStatus ?? 'en_porteria';
+  const now = serverTimestamp();
+
+  await addDoc(trucksCol, {
+    companyName: input.companyName.trim(),
+    clientName: input.clientName.trim(),
+    plate: input.plate.trim().toUpperCase(),
+    driverName: input.driverName.trim(),
+    driverRut: input.driverRut?.trim() ?? '',
     dockType: input.dockType,
     dockNumber: String(input.dockNumber),
-    status: 'en_espera',
-    scheduledArrival: normalizeDate(input.scheduledArrival),
-    checkInTime: now,
+    entryType: input.entryType ?? 'conos',
+    status,
+    scheduledArrival: toTimestamp(input.scheduledArrival),
+    loadType: input.loadType ?? 'carga',
+    notes: input.notes ?? '',
+    delayReason: input.delayReason ?? '',
+    guidePhotoUrl: input.guidePhotoUrl ?? '',
+    checkInGateAt: status === 'en_porteria' ? now : null,
+    checkInTime: status === 'en_espera' || status === 'en_curso' ? now : null,
+    processStartTime: status === 'en_curso' ? now : null,
+    processEndTime: null,
+    storedAt: null,
+    closedAt: null,
     createdAt: now,
     updatedAt: now,
-    notes: input.notes,
-    history: [
-      {
-        status: 'en_espera',
-        changedAt: now,
-        changedByUserId: 'system',
-      },
-    ],
-  };
-
-  trucks = [newTruck, ...trucks];
-  persist();
-  notify();
+    history: [historyEntry(status, actor, input.notes ?? input.delayReason)],
+  });
 };
 
 export const updateTruckStatus = async (
   truckId: string,
   newStatus: TruckStatus,
-  userId: string,
+  actor: Actor,
+  note?: string,
 ) => {
-  const now = new Date();
-  trucks = trucks.map((t) => {
-    if (t.id !== truckId) return t;
+  const ref = doc(trucksCol, truckId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Truck not found');
+  const data = snap.data();
+  const now = serverTimestamp();
 
-    const next: Truck = {
-      ...t,
-      status: newStatus,
-      updatedAt: now,
-      history: [...t.history, { status: newStatus, changedAt: now, changedByUserId: userId }],
-    };
+  const patch: Record<string, any> = {
+    status: newStatus,
+    updatedAt: now,
+  };
 
-    if (newStatus === 'en_curso' && !t.processStartTime) {
-      next.processStartTime = now;
-    }
-    if (newStatus === 'terminado') {
-      next.processEndTime = now;
-    }
+  if (newStatus === 'en_espera' && !data.checkInTime) patch.checkInTime = now;
+  if (newStatus === 'en_curso' && !data.processStartTime) patch.processStartTime = now;
+  if ((newStatus === 'recepcionado' || newStatus === 'terminado') && !data.processEndTime) {
+    patch.processEndTime = now;
+  }
+  if (newStatus === 'almacenado' && !data.storedAt) patch.storedAt = now;
+  if (newStatus === 'cerrado' && !data.closedAt) patch.closedAt = now;
 
-    return next;
+  await updateDoc(ref, {
+    ...patch,
+    history: arrayUnion(historyEntry(newStatus, actor, note)),
   });
-
-  persist();
-  notify();
 };
 
 export const updateTruckDetails = async (
   truckId: string,
   update: Partial<CreateTruckInput>,
+  _actor?: Actor,
 ) => {
-  const now = new Date();
-  trucks = trucks.map((t) =>
-    t.id === truckId
-      ? {
-          ...t,
-          ...update,
-          dockNumber: update.dockNumber !== undefined ? String(update.dockNumber) : t.dockNumber,
-          scheduledArrival: update.scheduledArrival
-            ? normalizeDate(update.scheduledArrival)
-            : t.scheduledArrival,
-          updatedAt: now,
-        }
-      : t,
-  );
-  persist();
-  notify();
+  const ref = doc(trucksCol, truckId);
+  const now = serverTimestamp();
+  const payload: Record<string, any> = {
+    updatedAt: now,
+  };
+
+  if (update.clientName !== undefined) payload.clientName = update.clientName.trim();
+  if (update.plate !== undefined) payload.plate = update.plate.trim().toUpperCase();
+  if (update.driverName !== undefined) payload.driverName = update.driverName.trim();
+  if (update.driverRut !== undefined) payload.driverRut = update.driverRut.trim();
+  if (update.dockType !== undefined) payload.dockType = update.dockType;
+  if (update.dockNumber !== undefined) payload.dockNumber = String(update.dockNumber);
+  if (update.entryType !== undefined) payload.entryType = update.entryType;
+  if (update.scheduledArrival !== undefined) {
+    payload.scheduledArrival = toTimestamp(update.scheduledArrival);
+  }
+  if (update.notes !== undefined) payload.notes = update.notes;
+  if (update.loadType !== undefined) payload.loadType = update.loadType;
+  if (update.guidePhotoUrl !== undefined) payload.guidePhotoUrl = update.guidePhotoUrl;
+
+  await updateDoc(ref, payload);
 };
 
-export const flagTruckDelay = async (truckId: string, reason: string) => {
-  trucks = trucks.map((t) =>
-    t.id === truckId
-      ? {
-          ...t,
-          notes: reason,
-          updatedAt: new Date(),
-        }
-      : t,
-  );
-  persist();
-  notify();
+export const flagTruckDelay = async (truckId: string, reason: string, actor?: Actor) => {
+  const ref = doc(trucksCol, truckId);
+  const now = serverTimestamp();
+  await updateDoc(ref, {
+    delayReason: reason,
+    notes: reason,
+    updatedAt: now,
+    history: arrayUnion(historyEntry('en_espera', actor, reason)),
+  });
+};
+
+export const resetTrucks = async () => {
+  console.warn('resetTrucks is disabled for Firestore. Seed data in the database if needed.');
+};
+
+export const deleteTruck = async (truckId: string) => {
+  const ref = doc(trucksCol, truckId);
+  await deleteDoc(ref);
 };

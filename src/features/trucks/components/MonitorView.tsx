@@ -1,19 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { subscribeTrucksByDockType } from '../services/trucksApi';
-import type { DockType, Truck } from '../types';
+import type { DockType, Truck, TruckStatus } from '../types';
 import { TruckCard } from './TruckCard';
 import { useAuth } from '../../auth/AuthProvider';
 
-const statusOrder: Array<'en_espera' | 'en_curso' | 'terminado'> = [
+const statusOrder: TruckStatus[] = [
+  'en_porteria',
   'en_espera',
   'en_curso',
-  'terminado',
+  'recepcionado',
+  'almacenado',
+  'cerrado',
 ];
 
-const statusLabel = {
+const statusLabel: Record<TruckStatus, string> = {
+  agendado: 'Agendado',
+  en_camino: 'En camino',
+  en_porteria: 'Porteria',
   en_espera: 'En espera',
   en_curso: 'En curso',
+  recepcionado: 'Recepcionado',
+  almacenado: 'Almacenado',
+  cerrado: 'Cerrado',
   terminado: 'Terminado',
 };
 
@@ -22,9 +31,7 @@ const useDockTrucks = (dock: DockType) => {
 
   useEffect(() => {
     const unsub = subscribeTrucksByDockType(dock, setTrucks);
-    return () => {
-      unsub();
-    };
+    return () => unsub();
   }, [dock]);
 
   return trucks;
@@ -49,10 +56,7 @@ export const MonitorView = () => {
           acc[t.status] = (acc[t.status] ?? 0) + 1;
           return acc;
         },
-        { en_espera: 0, en_curso: 0, terminado: 0 } as Record<
-          (typeof statusOrder)[number],
-          number
-        >,
+        {} as Record<TruckStatus, number>,
       );
     return {
       recepcion: buildCounts(recepcionTrucks),
@@ -64,12 +68,13 @@ export const MonitorView = () => {
     <div className="space-y-3 rounded-3xl border border-white/10 bg-surface-panel/60 p-4 shadow-panel">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold text-white">
-          {dock === 'recepcion' ? 'Recepción' : 'Despacho'}
+          {dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
         </h3>
         <div className="flex gap-2 text-xs text-slate-400">
           {statusOrder.map((status) => (
             <div key={status} className="flex items-center gap-1 rounded-full bg-white/5 px-3 py-1">
               <span className="text-slate-200">{statusLabel[status]}</span>
+              <span className="text-accent font-semibold">{list.filter((t) => t.status === status).length}</span>
             </div>
           ))}
         </div>
@@ -100,24 +105,15 @@ export const MonitorView = () => {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
-        <SummaryCard
-          title="Recepción en espera"
-          value={counts.recepcion.en_espera}
-        />
-        <SummaryCard
-          title="Recepción en curso"
-          value={counts.recepcion.en_curso}
-        />
-        <SummaryCard
-          title="Recepción terminados"
-          value={counts.recepcion.terminado}
-        />
+        <SummaryCard title="Recepcion en porteria" value={counts.recepcion.en_porteria ?? 0} />
+        <SummaryCard title="Recepcion en curso" value={counts.recepcion.en_curso ?? 0} />
+        <SummaryCard title="Recepcion finalizado" value={(counts.recepcion.recepcionado ?? 0) + (counts.recepcion.almacenado ?? 0)} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <SummaryCard title="Despacho en espera" value={counts.despacho.en_espera} />
-        <SummaryCard title="Despacho en curso" value={counts.despacho.en_curso} />
-        <SummaryCard title="Despacho terminados" value={counts.despacho.terminado} />
+        <SummaryCard title="Despacho en porteria" value={counts.despacho.en_porteria ?? 0} />
+        <SummaryCard title="Despacho en curso" value={counts.despacho.en_curso ?? 0} />
+        <SummaryCard title="Despacho finalizado" value={(counts.despacho.recepcionado ?? 0) + (counts.despacho.almacenado ?? 0)} />
       </div>
 
       {board('recepcion', recepcionTrucks)}

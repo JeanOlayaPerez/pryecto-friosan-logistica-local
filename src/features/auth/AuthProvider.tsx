@@ -1,13 +1,22 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import {
+  inMemoryPersistence,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signOut,
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../../shared/config/firebase';
 
-export type UserRole = 'operaciones' | 'comercial' | 'admin';
+export type UserRole =
+  | 'porteria'
+  | 'recepcion'
+  | 'operaciones'
+  | 'comercial'
+  | 'gerencia'
+  | 'admin';
 
 type AuthUser = {
   id: string;
@@ -25,31 +34,22 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const MOCK_USERS: Array<AuthUser & { password: string; role: UserRole }> = [
-  {
-    id: 'u-ops',
-    email: 'operaciones@friosan.com',
-    name: 'Equipo Operaciones',
-    password: 'demo123',
-    role: 'operaciones',
-  },
-  {
-    id: 'u-com',
-    email: 'comercial@friosan.com',
-    name: 'Equipo Comercial',
-    password: 'demo123',
-    role: 'comercial',
-  },
-  {
-    id: 'u-admin',
-    email: 'admin@friosan.com',
-    name: 'Administración',
-    password: 'demo123',
-    role: 'admin',
-  },
-];
-
-const STORAGE_KEY = 'friosan-auth';
+const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
+  if (!data) return null;
+  const raw =
+    data.role ??
+    data.Role ??
+    data.rol ??
+    data.Rol ??
+    data.USER_ROLE ??
+    data.userRole ??
+    data.user_role;
+  if (!raw || !data.name) return null;
+  const normalized = String(raw).toLowerCase().trim();
+  const allowed = ['porteria', 'recepcion', 'operaciones', 'comercial', 'gerencia', 'admin'];
+  if (!allowed.includes(normalized)) return null;
+  return { name: data.name as string, role: normalized as UserRole };
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -57,37 +57,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as { user: AuthUser; role: UserRole };
-        setUser(parsed.user);
-        setRole(parsed.role);
-      } catch (e) {
-        console.error('Error reading local session', e);
+    // No persistir sesión: requiere login en cada refresh / pérdida de conexión
+    setPersistence(auth, inMemoryPersistence).catch((err) => {
+      console.warn('No se pudo establecer persistencia en memoria', err);
+    });
+
+    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+      if (!fbUser) {
+        setUser(null);
+        setRole(null);
+        setLoading(false);
+        return;
       }
-    }
-    setLoading(false);
+
+      try {
+        const userRef = doc(db, 'users', fbUser.uid);
+        const snap = await getDoc(userRef);
+        const meta = parseUserDoc(snap.data());
+        setUser({
+          id: fbUser.uid,
+          email: fbUser.email ?? '',
+          name: meta?.name ?? fbUser.email ?? 'Usuario',
+        });
+        setRole(meta?.role ?? null);
+      } catch (err) {
+        console.error('Error reading user profile', err);
+        setUser({
+          id: fbUser.uid,
+          email: fbUser.email ?? '',
+          name: fbUser.email ?? 'Usuario',
+        });
+        setRole(null);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      unsub();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
-    const match = MOCK_USERS.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
-    );
-    if (!match) {
-      throw new Error('Invalid credentials');
-    }
-
-    const { role: userRole, password: _, ...userData } = match;
-    setUser(userData);
-    setRole(userRole);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: userData, role: userRole }));
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
   const logout = async () => {
+    await signOut(auth);
     setUser(null);
     setRole(null);
-    localStorage.removeItem(STORAGE_KEY);
   };
 
   const value = useMemo(
