@@ -6,7 +6,6 @@ import { TruckBoard } from '../features/trucks/components/TruckBoard';
 import { MonitorView } from '../features/trucks/components/MonitorView';
 import { ManagerDashboard } from '../features/trucks/components/ManagerDashboard';
 import { PorteriaDesk } from '../features/trucks/components/PorteriaDesk';
-import { RecepcionDesk } from '../features/trucks/components/RecepcionDesk';
 import { HistoryView } from '../features/trucks/components/HistoryView';
 import { CommercialView } from '../features/trucks/components/CommercialView';
 
@@ -28,7 +27,7 @@ export const AppRouter = () => {
       <Route path="/monitor" element={<MonitorView />} />
       <Route path="/gerencia" element={<ManagerDashboard />} />
       <Route path="/porteria" element={<PorteriaDesk />} />
-      <Route path="/recepcion" element={<RecepcionDesk />} />
+      <Route path="/recepcion" element={<TruckBoard />} />
       <Route path="/comercial" element={<CommercialView />} />
       <Route path="/historial" element={<HistoryView />} />
       </Route>
