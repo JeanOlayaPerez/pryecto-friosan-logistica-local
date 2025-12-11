@@ -14,6 +14,7 @@ const HomeRoute = () => {
   const { role } = useAuth();
   if (role === 'porteria') return <Navigate to="/porteria" replace />;
   if (role === 'comercial') return <Navigate to="/comercial" replace />;
+  if (role === 'recepcion') return <Navigate to="/recepcion" replace />;
   return <TruckBoard />;
 };
 

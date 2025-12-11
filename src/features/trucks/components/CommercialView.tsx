@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Navigate } from 'react-router-dom';
 import { subscribeAllTrucks, updateTruckDetails } from '../services/trucksApi';
 import type { Truck, TruckStatus } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
@@ -76,6 +77,8 @@ export const CommercialView = () => {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const canEdit = role === 'comercial' || role === 'admin' || role === 'superadmin';
+  const fallbackHome =
+    role === 'porteria' ? '/porteria' : role === 'recepcion' ? '/recepcion' : '/';
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -186,12 +189,9 @@ export const CommercialView = () => {
     }
   };
 
+  if (role === 'porteria') return <Navigate to="/porteria" replace />;
   if (role !== 'comercial' && role !== 'admin' && role !== 'operaciones' && role !== 'superadmin') {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-slate-200">
-        <p>No tienes acceso a este panel.</p>
-      </div>
-    );
+    return <Navigate to={fallbackHome} replace />;
   }
 
   return (

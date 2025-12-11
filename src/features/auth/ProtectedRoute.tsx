@@ -5,6 +5,17 @@ export const ProtectedRoute = () => {
   const { user, loading, role } = useAuth();
   const location = useLocation();
 
+  const defaultHome =
+    role === 'porteria'
+      ? '/porteria'
+      : role === 'comercial'
+        ? '/comercial'
+        : role === 'recepcion'
+          ? '/recepcion'
+          : '/';
+
+  const canSeeCommercial = ['comercial', 'admin', 'superadmin', 'operaciones'].includes(role ?? '');
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center text-slate-300">
@@ -27,6 +38,10 @@ export const ProtectedRoute = () => {
 
   if (role === 'comercial' && location.pathname !== '/comercial') {
     return <Navigate to="/comercial" replace />;
+  }
+
+  if (location.pathname === '/comercial' && !canSeeCommercial) {
+    return <Navigate to={defaultHome} replace />;
   }
 
   return <Outlet />;
