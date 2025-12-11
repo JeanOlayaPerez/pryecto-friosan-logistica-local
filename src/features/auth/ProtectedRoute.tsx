@@ -5,16 +5,30 @@ export const ProtectedRoute = () => {
   const { user, loading, role } = useAuth();
   const location = useLocation();
 
+  const guessRole = () => {
+    if (role) return role;
+    const email = user?.email?.toLowerCase() ?? '';
+    if (email.includes('porteria')) return 'porteria';
+    if (email.includes('recepcion')) return 'recepcion';
+    if (email.includes('comercial')) return 'comercial';
+    if (email.includes('operaciones')) return 'operaciones';
+    if (email.includes('gerencia')) return 'gerencia';
+    if (email.includes('admin')) return 'admin';
+    return null;
+  };
+
+  const effectiveRole = guessRole();
+
   const defaultHome =
-    role === 'porteria'
+    effectiveRole === 'porteria'
       ? '/porteria'
-      : role === 'comercial'
+      : effectiveRole === 'comercial'
         ? '/comercial'
-        : role === 'recepcion'
+        : effectiveRole === 'recepcion'
           ? '/recepcion'
           : '/';
 
-  const canSeeCommercial = ['comercial', 'admin', 'superadmin', 'operaciones'].includes(role ?? '');
+  const canSeeCommercial = ['comercial', 'admin', 'superadmin', 'operaciones'].includes(effectiveRole ?? '');
 
   if (loading) {
     return (
@@ -28,19 +42,19 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  if (location.pathname === '/porteria' && !['porteria', 'admin', 'superadmin'].includes(role ?? '')) {
+  if (location.pathname === '/porteria' && !['porteria', 'admin', 'superadmin'].includes(effectiveRole ?? '')) {
     return <Navigate to="/" replace />;
   }
 
-  if (role === 'porteria' && location.pathname !== '/porteria') {
+  if (effectiveRole === 'porteria' && location.pathname !== '/porteria') {
     return <Navigate to="/porteria" replace />;
   }
 
-  if (role === 'recepcion' && location.pathname !== '/recepcion') {
+  if (effectiveRole === 'recepcion' && location.pathname !== '/recepcion') {
     return <Navigate to="/recepcion" replace />;
   }
 
-  if (role === 'comercial' && location.pathname !== '/comercial') {
+  if (effectiveRole === 'comercial' && location.pathname !== '/comercial') {
     return <Navigate to="/comercial" replace />;
   }
 
