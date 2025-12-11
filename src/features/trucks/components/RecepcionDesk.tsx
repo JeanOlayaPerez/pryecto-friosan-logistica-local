@@ -64,7 +64,7 @@ export const RecepcionDesk = () => {
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {lista.map((truck) => {
           const actions = [];
-          if (user && (role === 'recepcion' || role === 'admin')) {
+          if (user && (role === 'recepcion' || role === 'admin' || role === 'superadmin')) {
             if (truck.status === 'en_espera') {
               actions.push({ label: 'Enviar a anden', onClick: () => mover(truck.id, 'en_curso') });
             }

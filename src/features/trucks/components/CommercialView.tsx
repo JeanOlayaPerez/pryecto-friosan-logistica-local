@@ -75,6 +75,7 @@ export const CommercialView = () => {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const canEdit = role === 'comercial' || role === 'admin' || role === 'superadmin';
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -143,6 +144,7 @@ export const CommercialView = () => {
   });
 
   const startEdit = (t: Truck) => {
+    if (!canEdit) return;
     const m = metricsFromTruck(t);
     setEditId(t.id);
     setForm({
@@ -157,6 +159,7 @@ export const CommercialView = () => {
   };
 
   const saveEdit = async (t: Truck) => {
+    if (!canEdit) return;
     setSaving(true);
     setSaveMsg(null);
     setSaveError(null);
@@ -183,10 +186,10 @@ export const CommercialView = () => {
     }
   };
 
-  if (role !== 'comercial' && role !== 'admin') {
+  if (role !== 'comercial' && role !== 'admin' && role !== 'operaciones' && role !== 'superadmin') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-slate-200">
-        <p>Solo el rol comercial (o admin) puede ver este panel.</p>
+        <p>No tienes acceso a este panel.</p>
       </div>
     );
   }
@@ -455,13 +458,17 @@ export const CommercialView = () => {
                       </div>
                     ) : (
                       <div className="mt-3 flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          className="rounded-full border border-white/20 px-3 py-1 text-xs text-white hover:bg-white/10"
-                          onClick={() => startEdit(truck)}
-                        >
-                          Editar mercaderia
-                        </button>
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            className="rounded-full border border-white/20 px-3 py-1 text-xs text-white hover:bg-white/10"
+                            onClick={() => startEdit(truck)}
+                          >
+                            Editar mercaderia
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-400">Solo lectura</span>
+                        )}
                       </div>
                     )}
 
@@ -487,4 +494,3 @@ const Info = ({ label, value }: { label: string; value: string }) => (
     <p className="text-slate-100">{value}</p>
   </div>
 );
-

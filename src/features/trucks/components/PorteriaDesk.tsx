@@ -100,7 +100,7 @@ export const PorteriaDesk = () => {
     );
   }
 
-  if (role !== 'porteria' && role !== 'admin' && role !== 'operaciones') {
+  if (role !== 'porteria' && role !== 'admin' && role !== 'operaciones' && role !== 'superadmin') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-slate-200">
         <p>No tienes acceso a Porteria.</p>
@@ -331,4 +331,3 @@ export const PorteriaDesk = () => {
     </div>
   );
 };
-

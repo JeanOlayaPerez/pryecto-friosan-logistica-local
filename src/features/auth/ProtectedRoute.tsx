@@ -17,12 +17,16 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  if (role !== 'porteria' && location.pathname === '/porteria') {
+  if (location.pathname === '/porteria' && !['porteria', 'admin', 'superadmin'].includes(role ?? '')) {
     return <Navigate to="/" replace />;
   }
 
   if (role === 'porteria' && location.pathname !== '/porteria') {
     return <Navigate to="/porteria" replace />;
+  }
+
+  if (role === 'comercial' && location.pathname !== '/comercial') {
+    return <Navigate to="/comercial" replace />;
   }
 
   return <Outlet />;

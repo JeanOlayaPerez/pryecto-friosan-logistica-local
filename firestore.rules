@@ -26,9 +26,9 @@ service cloud.firestore {
     match /trucks/{truckId} {
       allow read: if request.auth != null;
       // Porteria crea, Recepcion actualiza estados, Admin todo.
-      allow create: if hasRole(['porteria', 'admin']);
-      allow update: if hasRole(['recepcion', 'comercial', 'admin']);
-      allow delete: if hasRole(['admin', 'recepcion']);
+      allow create: if hasRole(['porteria', 'admin', 'superadmin']);
+      allow update: if hasRole(['recepcion', 'comercial', 'admin', 'superadmin']);
+      allow delete: if hasRole(['admin', 'recepcion', 'superadmin']);
     }
 
     match /users/{userId} {

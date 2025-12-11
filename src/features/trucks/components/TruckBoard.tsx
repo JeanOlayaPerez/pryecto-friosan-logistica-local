@@ -84,9 +84,10 @@ export const TruckBoard = () => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [listenerError, setListenerError] = useState<string | null>(null);
 
-  const canRecep = role === 'recepcion' || role === 'admin';
-  const canCreate = role === 'admin';
-  const readOnly = viewOnly || role === 'comercial' || role === 'gerencia' || role === 'operaciones';
+  const canRecep = role === 'recepcion' || role === 'admin' || role === 'superadmin';
+  const canCreate = role === 'admin' || role === 'superadmin';
+  const readOnly =
+    viewOnly || role === 'comercial' || role === 'gerencia' || role === 'operaciones';
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -266,7 +267,7 @@ export const TruckBoard = () => {
       if (n) actions.push({ label: 'Siguiente etapa', onClick: () => handleMove(truck.id, n) });
       if (p) actions.push({ label: 'Retroceder', tone: 'ghost', onClick: () => handleMove(truck.id, p) });
     }
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'superadmin') {
       actions.push({
         label: 'Eliminar',
         tone: 'warning',

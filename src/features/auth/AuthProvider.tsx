@@ -16,7 +16,8 @@ export type UserRole =
   | 'operaciones'
   | 'comercial'
   | 'gerencia'
-  | 'admin';
+  | 'admin'
+  | 'superadmin';
 
 type AuthUser = {
   id: string;
@@ -46,7 +47,7 @@ const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
     data.user_role;
   if (!raw || !data.name) return null;
   const normalized = String(raw).toLowerCase().trim();
-  const allowed = ['porteria', 'recepcion', 'operaciones', 'comercial', 'gerencia', 'admin'];
+  const allowed = ['porteria', 'recepcion', 'operaciones', 'comercial', 'gerencia', 'admin', 'superadmin'];
   if (!allowed.includes(normalized)) return null;
   return { name: data.name as string, role: normalized as UserRole };
 };
