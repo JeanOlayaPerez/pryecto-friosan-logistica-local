@@ -37,6 +37,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
   if (!data) return null;
+  const stripAccents = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const raw =
     data.role ??
     data.Role ??
@@ -46,10 +47,32 @@ const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
     data.userRole ??
     data.user_role;
   if (!raw || !data.name) return null;
-  const normalized = String(raw).toLowerCase().trim();
-  const allowed = ['porteria', 'recepcion', 'operaciones', 'comercial', 'gerencia', 'admin', 'superadmin'];
-  if (!allowed.includes(normalized)) return null;
-  return { name: data.name as string, role: normalized as UserRole };
+  const normalized = stripAccents(String(raw)).toLowerCase().trim();
+  const allowed = ['porteria', 'recepcion', 'operaciones', 'comercial', 'gerencia', 'admin', 'superadmin'] as const;
+  const mapped: Partial<Record<string, UserRole>> = {
+    porteria: 'porteria',
+    recepcion: 'recepcion',
+    operaciones: 'operaciones',
+    comercial: 'comercial',
+    gerencia: 'gerencia',
+    admin: 'admin',
+    superadmin: 'superadmin',
+  };
+  const role = mapped[normalized] ?? (allowed.includes(normalized as UserRole) ? (normalized as UserRole) : null);
+  if (!role) return null;
+  return { name: data.name as string, role };
+};
+
+const inferRoleFromEmail = (email?: string | null): UserRole | null => {
+  if (!email) return null;
+  const e = email.toLowerCase();
+  if (e.includes('porteria')) return 'porteria';
+  if (e.includes('recepcion')) return 'recepcion';
+  if (e.includes('comercial')) return 'comercial';
+  if (e.includes('operaciones')) return 'operaciones';
+  if (e.includes('gerencia')) return 'gerencia';
+  if (e.includes('admin')) return 'admin';
+  return null;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -75,12 +98,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userRef = doc(db, 'users', fbUser.uid);
         const snap = await getDoc(userRef);
         const meta = parseUserDoc(snap.data());
+        const inferredRole = meta?.role ?? inferRoleFromEmail(fbUser.email);
         setUser({
           id: fbUser.uid,
           email: fbUser.email ?? '',
           name: meta?.name ?? fbUser.email ?? 'Usuario',
         });
-        setRole(meta?.role ?? null);
+        setRole(inferredRole ?? null);
       } catch (err) {
         console.error('Error reading user profile', err);
         setUser({
@@ -88,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: fbUser.email ?? '',
           name: fbUser.email ?? 'Usuario',
         });
-        setRole(null);
+        setRole(inferRoleFromEmail(fbUser.email));
       } finally {
         setLoading(false);
       }
