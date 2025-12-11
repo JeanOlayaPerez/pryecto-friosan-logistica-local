@@ -36,6 +36,10 @@ export const ProtectedRoute = () => {
     return <Navigate to="/porteria" replace />;
   }
 
+  if (role === 'recepcion' && location.pathname !== '/recepcion') {
+    return <Navigate to="/recepcion" replace />;
+  }
+
   if (role === 'comercial' && location.pathname !== '/comercial') {
     return <Navigate to="/comercial" replace />;
   }
