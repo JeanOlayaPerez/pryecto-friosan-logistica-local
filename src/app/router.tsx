@@ -8,12 +8,14 @@ import { ManagerDashboard } from '../features/trucks/components/ManagerDashboard
 import { PorteriaDesk } from '../features/trucks/components/PorteriaDesk';
 import { HistoryView } from '../features/trucks/components/HistoryView';
 import { CommercialView } from '../features/trucks/components/CommercialView';
+import { GeneralBoard } from '../features/trucks/components/GeneralBoard';
 
 const HomeRoute = () => {
   const { role } = useAuth();
   if (role === 'porteria') return <Navigate to="/porteria" replace />;
   if (role === 'comercial') return <Navigate to="/comercial" replace />;
   if (role === 'recepcion') return <Navigate to="/recepcion" replace />;
+  if (role === 'visor') return <Navigate to="/visor" replace />;
   return <TruckBoard />;
 };
 
@@ -29,6 +31,7 @@ export const AppRouter = () => {
       <Route path="/porteria" element={<PorteriaDesk />} />
       <Route path="/recepcion" element={<TruckBoard />} />
       <Route path="/comercial" element={<CommercialView />} />
+      <Route path="/visor" element={<GeneralBoard />} />
       <Route path="/historial" element={<HistoryView />} />
       </Route>
 

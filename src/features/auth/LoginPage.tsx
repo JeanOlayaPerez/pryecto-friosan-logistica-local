@@ -192,7 +192,7 @@ export const LoginPage = () => {
               </form>
 
               <div className="mt-4 text-xs text-slate-400">
-                Tip: usa los correos de prueba (porteria@..., recepcion@..., operaciones@...) y la clave que definiste en Firebase Auth.
+                Tip: usa los correos de prueba (porteria@..., recepcion@..., operaciones@..., visor@...) y la clave que definiste en Firebase Auth.
               </div>
             </div>
           </div>

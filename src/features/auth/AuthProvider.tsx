@@ -16,6 +16,7 @@ export type UserRole =
   | 'operaciones'
   | 'comercial'
   | 'gerencia'
+  | 'visor'
   | 'admin'
   | 'superadmin';
 
@@ -48,13 +49,17 @@ const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
     data.user_role;
   if (!raw || !data.name) return null;
   const normalized = stripAccents(String(raw)).toLowerCase().trim();
-  const allowed = ['porteria', 'recepcion', 'operaciones', 'comercial', 'gerencia', 'admin', 'superadmin'] as const;
+  const allowed = ['porteria', 'recepcion', 'operaciones', 'comercial', 'gerencia', 'visor', 'admin', 'superadmin'] as const;
   const mapped: Partial<Record<string, UserRole>> = {
     porteria: 'porteria',
     recepcion: 'recepcion',
     operaciones: 'operaciones',
     comercial: 'comercial',
     gerencia: 'gerencia',
+    visor: 'visor',
+    pantalla: 'visor',
+    display: 'visor',
+    panel: 'visor',
     admin: 'admin',
     superadmin: 'superadmin',
   };
@@ -71,6 +76,7 @@ const inferRoleFromEmail = (email?: string | null): UserRole | null => {
   if (e.includes('comercial')) return 'comercial';
   if (e.includes('operaciones')) return 'operaciones';
   if (e.includes('gerencia')) return 'gerencia';
+  if (e.includes('visor') || e.includes('pantalla') || e.includes('display')) return 'visor';
   if (e.includes('admin')) return 'admin';
   return null;
 };
