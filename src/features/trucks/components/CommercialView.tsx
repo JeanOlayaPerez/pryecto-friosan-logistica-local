@@ -1,11 +1,10 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Navigate } from 'react-router-dom';
-import { subscribeAllTrucks, updateTruckDetails } from '../services/trucksApi';
-import type { Truck, TruckStatus } from '../types';
+import { createTruck, subscribeAllTrucks, updateTruckDetails } from '../services/trucksApi';
+import type { DockType, Truck, TruckStatus } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
 
-const dockNumbers = Array.from({ length: 9 }, (_, i) => `${i + 1}`);
 const statusLabel: Record<TruckStatus, string> = {
   agendado: 'Agendado',
   en_camino: 'En camino',
@@ -37,6 +36,21 @@ const formatHour = (value?: Date | null) => {
   } catch {
     return '--';
   }
+};
+
+const typeDisplay = (t: Truck) => {
+  const main = (t.loadType ?? 'carga').toUpperCase();
+  const isDone = ['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(t.status);
+  return isDone ? `${main} / LISTO` : main;
+};
+
+const sameDay = (a?: Date | null, b?: Date | null) => {
+  if (!a || !b) return false;
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 };
 
 export type Metrics = {
@@ -76,6 +90,24 @@ export const CommercialView = () => {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [planDate, setPlanDate] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [createForm, setCreateForm] = useState({
+    clientName: '',
+    plate: '',
+    driverName: '',
+    driverRut: '',
+    dockType: 'recepcion' as DockType,
+    scheduledArrival: '',
+    loadType: 'carga',
+    notes: '',
+  });
+  const [creating, setCreating] = useState(false);
+  const [createMsg, setCreateMsg] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
   const canEdit = role === 'comercial' || role === 'admin' || role === 'superadmin';
   const fallbackHome =
     role === 'porteria' ? '/porteria' : role === 'recepcion' ? '/recepcion' : '/';
@@ -114,22 +146,6 @@ export const CommercialView = () => {
     );
   }, [search, trucks]);
 
-  const perDock = useMemo(
-    () =>
-      dockNumbers.map((dock) => {
-        const list = filtered.filter((t) => `${t.dockNumber}` === dock);
-        const ocupados = list.filter((t) => !['cerrado', 'terminado'].includes(t.status));
-        const prioridad = list.find((t) => t.status === 'en_curso') ?? list[0] ?? null;
-        return {
-          dock,
-          list,
-          ocupado: ocupados.length > 0,
-          prioridad,
-        };
-      }),
-    [filtered],
-  );
-
   const mercaderia = useMemo(
     () =>
       filtered
@@ -137,6 +153,12 @@ export const CommercialView = () => {
         .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0)),
     [filtered],
   );
+
+  const plantilla = useMemo(() => {
+    return filtered
+      .filter((t) => sameDay(t.scheduledArrival, planDate))
+      .sort((a, b) => (a.scheduledArrival?.getTime() ?? 0) - (b.scheduledArrival?.getTime() ?? 0));
+  }, [filtered, planDate]);
 
   const metricsFromTruck = (t: Truck): Metrics => ({
     pallets: t.pallets ?? undefined,
@@ -189,6 +211,54 @@ export const CommercialView = () => {
     }
   };
 
+  const handleCreate = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!canEdit) return;
+    setCreating(true);
+    setCreateMsg(null);
+    setCreateError(null);
+    try {
+      if (!createForm.clientName.trim() || !createForm.plate.trim() || !createForm.driverName.trim()) {
+        throw new Error('Completa cliente, patente y conductor.');
+      }
+      if (!createForm.scheduledArrival) {
+        throw new Error('Ingresa una fecha y hora agendada.');
+      }
+      const scheduled = new Date(createForm.scheduledArrival);
+      if (Number.isNaN(scheduled.getTime())) {
+        throw new Error('Fecha/hora agendada invalida.');
+      }
+      await createTruck({
+        companyName: createForm.clientName.trim(),
+        clientName: createForm.clientName.trim(),
+        plate: createForm.plate.trim().toUpperCase(),
+        driverName: createForm.driverName.trim(),
+        driverRut: createForm.driverRut.trim() || undefined,
+        dockType: createForm.dockType,
+        dockNumber: '0',
+        scheduledArrival: scheduled,
+        loadType: createForm.loadType as 'carga' | 'descarga' | 'mixto',
+        notes: createForm.notes.trim(),
+        initialStatus: 'agendado',
+      });
+      setCreateMsg('Camion agendado en la plantilla.');
+      setCreateForm((prev) => ({
+        ...prev,
+        plate: '',
+        driverName: '',
+        driverRut: '',
+        notes: '',
+      }));
+      const d = new Date(scheduled);
+      d.setHours(0, 0, 0, 0);
+      setPlanDate(d);
+    } catch (err: any) {
+      setCreateError(err?.message ?? 'No se pudo agendar el camion.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   if (role === 'porteria') return <Navigate to="/porteria" replace />;
   if (role !== 'comercial' && role !== 'admin' && role !== 'operaciones' && role !== 'superadmin') {
     return <Navigate to={fallbackHome} replace />;
@@ -225,265 +295,177 @@ export const CommercialView = () => {
               className="w-full rounded-full border border-white/10 bg-surface-panel px-4 py-2 text-sm text-white outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
             />
           </div>
-        </div>
       </div>
+    </div>
 
-      {listenerError && (
-        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          {listenerError}
+    <div className="glass rounded-3xl border border-white/10 p-4 shadow-panel">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Plantilla diaria (comercial)</p>
+          <h3 className="text-xl font-semibold text-white">Agendar camiones del día</h3>
+          <p className="text-sm text-slate-400">
+            Ingresa los camiones previstos. Portería luego solo marcará su ingreso y avance.
+          </p>
         </div>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {perDock.map((dock) => (
-          <motion.div
-            key={dock.dock}
-            layout
-            className={`glass rounded-2xl border px-4 py-3 shadow-panel ${
-              dock.ocupado ? 'border-emerald-400/40 bg-emerald-500/10' : 'border-white/10'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Anden</p>
-                <h3 className="text-2xl font-semibold text-white">#{dock.dock}</h3>
-              </div>
-              <div className="text-right text-xs text-slate-400">
-                <p>{dock.list.length} camiones</p>
-                <p>{dock.ocupado ? 'Ocupado' : 'Libre'}</p>
-              </div>
-            </div>
-            {dock.list.length > 0 && (
-              <div className="mt-3 space-y-2 text-xs">
-                {dock.list.map((t) => {
-                  const m = metricsFromTruck(t);
-                  return (
-                    <div key={t.id} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-white">{t.clientName}</p>
-                        <span className={`rounded-full px-3 py-1 text-[11px] ${chipStyle[t.status]}`}>
-                          {statusLabel[t.status]}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        {t.loadType ?? 'Carga/Descarga'} � {t.entryType ?? 'ingreso'}
-                      </p>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-200">
-                        <Info label="Pallets" value={m.pallets !== undefined ? `${m.pallets}` : 'Sin dato'} />
-                        <Info label="Cajas" value={m.boxes !== undefined ? `${m.boxes}` : 'Sin dato'} />
-                        <Info label="Kilos" value={m.kilos !== undefined ? `${m.kilos}` : 'Sin dato'} />
-                        <Info label="Valor" value={m.price !== undefined ? `$${m.price}` : 'Sin dato'} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {dock.prioridad && (
-              <div className="mt-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200">
-                <p className="text-white font-semibold">{dock.prioridad.clientName}</p>
-                <p className="text-xs text-slate-400">
-                  {dock.prioridad.plate} - {dock.prioridad.driverName}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span className={`rounded-full px-3 py-1 ${chipStyle[dock.prioridad.status]}`}>
-                    {statusLabel[dock.prioridad.status]}
-                  </span>
-                  {dock.prioridad.loadType && (
-                    <span className="rounded-full bg-white/10 px-3 py-1 capitalize">
-                      {dock.prioridad.loadType}
-                    </span>
-                  )}
-                  {dock.prioridad.entryType && (
-                    <span className="rounded-full bg-white/10 px-3 py-1">{dock.prioridad.entryType}</span>
-                  )}
-                </div>
-                {dock.prioridad.notes && (
-                  <p className="mt-2 text-xs text-slate-300 line-clamp-2">Notas: {dock.prioridad.notes}</p>
-                )}
-              </div>
-            )}
-            {dock.list.length === 0 && (
-              <p className="mt-2 text-sm text-slate-400">Sin camiones asignados.</p>
-            )}
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="glass rounded-3xl border border-white/10 p-4 shadow-panel">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Mercaderia en piso</p>
-            <h3 className="text-xl font-semibold text-white">Detalle por camion</h3>
-            <p className="text-xs text-slate-400">Lectura y edicion comercial: pallets, cajas, kilos y valor.</p>
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-xs text-slate-300">
+            Día a mostrar
+            <input
+              type="date"
+              className="mt-1 rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-sm text-white"
+              value={planDate.toISOString().slice(0, 10)}
+              onChange={(e) => {
+                const d = new Date(e.target.value);
+                if (!Number.isNaN(d.getTime())) {
+                  d.setHours(0, 0, 0, 0);
+                  setPlanDate(d);
+                }
+              }}
+            />
+          </label>
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200">
-            {mercaderia.length} activos
+            {plantilla.length} camiones agendados
           </span>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="flex min-h-[200px] items-center justify-center text-slate-300">Cargando...</div>
-        ) : mercaderia.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-slate-300">
-            No hay camiones en proceso para mostrar.
+      <form className="mt-4 space-y-3" onSubmit={handleCreate}>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <label className="text-xs text-slate-300">
+            Cliente
+            <input
+              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-white"
+              value={createForm.clientName}
+              onChange={(e) => setCreateForm({ ...createForm, clientName: e.target.value })}
+              required
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            Patente
+            <input
+              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-white"
+              value={createForm.plate}
+              onChange={(e) => setCreateForm({ ...createForm, plate: e.target.value })}
+              required
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            Conductor
+            <input
+              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-white"
+              value={createForm.driverName}
+              onChange={(e) => setCreateForm({ ...createForm, driverName: e.target.value })}
+              required
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            Rut conductor (opcional)
+            <input
+              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-white"
+              value={createForm.driverRut}
+              onChange={(e) => setCreateForm({ ...createForm, driverRut: e.target.value })}
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            Fecha y hora agendada
+            <input
+              type="datetime-local"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-white"
+              value={createForm.scheduledArrival}
+              onChange={(e) => setCreateForm({ ...createForm, scheduledArrival: e.target.value })}
+              required
+            />
+          </label>
+          <label className="text-xs text-slate-300">
+            Tipo carga
+            <select
+              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-white"
+              value={createForm.loadType}
+              onChange={(e) => setCreateForm({ ...createForm, loadType: e.target.value })}
+            >
+              <option value="carga">Carga</option>
+              <option value="descarga">Descarga</option>
+              <option value="mixto">Mixto</option>
+            </select>
+          </label>
+          <label className="text-xs text-slate-300 md:col-span-2 lg:col-span-3">
+            Notas (opcional)
+            <textarea
+              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-3 py-2 text-white"
+              rows={2}
+              value={createForm.notes}
+              onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+            />
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs text-slate-400">
+            Estado inicial: <span className="text-white">Agendado</span>. Portería avanzará el flujo.
           </div>
+          <div className="flex items-center gap-2">
+            {createMsg && <span className="text-xs text-emerald-300">{createMsg}</span>}
+            {createError && <span className="text-xs text-rose-300">{createError}</span>}
+            <button
+              type="submit"
+              disabled={creating}
+              className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-accent/30 hover:brightness-110 disabled:opacity-60"
+            >
+              {creating ? 'Guardando...' : 'Agregar a plantilla'}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+        <div className="grid grid-cols-[140px,140px,1fr,1fr,1fr,0.9fr,1.2fr] bg-white/5 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-slate-300">
+          <span>Hora agendada</span>
+          <span>Patente</span>
+          <span>Cliente</span>
+          <span>Conductor</span>
+          <span>Rut</span>
+          <span>Tipo carga</span>
+          <span>Estado / Notas</span>
+        </div>
+        {loading ? (
+          <div className="flex min-h-[120px] items-center justify-center text-sm text-slate-300">Cargando...</div>
+        ) : plantilla.length === 0 ? (
+          <div className="px-4 py-6 text-sm text-slate-300">Sin camiones agendados para este dia.</div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <AnimatePresence>
-              {mercaderia.map((truck) => {
-                const metrics = metricsFromTruck(truck);
-                const isEditing = editId === truck.id;
-                return (
-                  <motion.div
-                    key={truck.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="rounded-2xl border border-white/10 bg-surface-panel/70 p-4 text-sm text-slate-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-semibold text-white">{truck.clientName}</p>
-                        <p className="text-xs text-slate-400">
-                          Anden {truck.dockNumber} � {truck.plate}
-                        </p>
-                      </div>
-                      <span className={`rounded-full px-3 py-1 text-xs ${chipStyle[truck.status]}`}>
-                        {statusLabel[truck.status]}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-300">
-                      <Info label="Carga/Descarga" value={truck.loadType ?? 'N/A'} />
-                      <Info label="Ingreso" value={formatHour(truck.checkInTime ?? truck.createdAt)} />
-                      <Info label="Conductor" value={truck.driverName} />
-                      <Info label="Rut" value={truck.driverRut ?? '--'} />
-                      <Info label="Tipo ingreso" value={truck.entryType ?? 'conos'} />
-                      <Info label="Ult. cambio" value={formatHour(truck.updatedAt)} />
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs">
-                      <Info label="Pallets" value={metrics.pallets !== undefined ? `${metrics.pallets}` : 'Sin dato'} />
-                      <Info label="Cajas" value={metrics.boxes !== undefined ? `${metrics.boxes}` : 'Sin dato'} />
-                      <Info label="Kilos" value={metrics.kilos !== undefined ? `${metrics.kilos}` : 'Sin dato'} />
-                      <Info label="Valor" value={metrics.price !== undefined ? `$${metrics.price}` : 'Sin dato'} />
-                    </div>
-
-                    {metrics.items && metrics.items.length > 0 && (
-                      <div className="mt-2 space-y-1 rounded-xl border border-white/5 bg-white/5 p-3 text-xs">
-                        <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">Mercaderia declarada</p>
-                        <ul className="list-disc space-y-1 pl-4 text-slate-200">
-                          {metrics.items.map((item, idx) => (
-                            <li key={idx}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {isEditing ? (
-                      <div className="mt-3 space-y-2 rounded-xl border border-accent/40 bg-accent/10 p-3">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <label className="text-slate-300">
-                            Pallets
-                            <input
-                              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-2 py-1 text-white"
-                              value={form.pallets}
-                              onChange={(e) => setForm({ ...form, pallets: e.target.value })}
-                              type="number"
-                              min="0"
-                            />
-                          </label>
-                          <label className="text-slate-300">
-                            Cajas
-                            <input
-                              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-2 py-1 text-white"
-                              value={form.boxes}
-                              onChange={(e) => setForm({ ...form, boxes: e.target.value })}
-                              type="number"
-                              min="0"
-                            />
-                          </label>
-                          <label className="text-slate-300">
-                            Kilos
-                            <input
-                              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-2 py-1 text-white"
-                              value={form.kilos}
-                              onChange={(e) => setForm({ ...form, kilos: e.target.value })}
-                              type="number"
-                              min="0"
-                            />
-                          </label>
-                          <label className="text-slate-300">
-                            Valor (CLP)
-                            <input
-                              className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-2 py-1 text-white"
-                              value={form.price}
-                              onChange={(e) => setForm({ ...form, price: e.target.value })}
-                              type="number"
-                              min="0"
-                            />
-                          </label>
-                        </div>
-                        <label className="text-xs text-slate-300">
-                          Items (uno por linea)
-                          <textarea
-                            className="mt-1 w-full rounded-lg border border-white/15 bg-surface-dark px-2 py-2 text-white"
-                            rows={3}
-                            value={form.items}
-                            onChange={(e) => setForm({ ...form, items: e.target.value })}
-                          />
-                        </label>
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            className="rounded-full border border-white/20 px-3 py-1 text-xs text-white"
-                            onClick={() => setEditId(null)}
-                            disabled={saving}
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-slate-900"
-                            onClick={() => saveEdit(truck)}
-                            disabled={saving}
-                          >
-                            {saving ? 'Guardando...' : 'Guardar'}
-                          </button>
-                        </div>
-                        {saveMsg && <p className="text-xs text-emerald-200">{saveMsg}</p>}
-                        {saveError && <p className="text-xs text-rose-200">{saveError}</p>}
-                      </div>
-                    ) : (
-                      <div className="mt-3 flex items-center justify-end gap-2">
-                        {canEdit ? (
-                          <button
-                            type="button"
-                            className="rounded-full border border-white/20 px-3 py-1 text-xs text-white hover:bg-white/10"
-                            onClick={() => startEdit(truck)}
-                          >
-                            Editar mercaderia
-                          </button>
-                        ) : (
-                          <span className="text-xs text-slate-400">Solo lectura</span>
-                        )}
-                      </div>
-                    )}
-
-                    {!metrics.items?.length && truck.notes === undefined && (
-                      <p className="mt-2 text-xs text-slate-400">
-                        Sin detalle de mercaderia. Completa la edicion para que el panel muestre el contenido.
-                      </p>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+          <div className="divide-y divide-white/5">
+            {plantilla.map((t) => (
+              <div
+                key={t.id}
+                className="grid grid-cols-[140px,140px,1fr,1fr,1fr,0.9fr,1.2fr] items-center bg-white/5 px-4 py-3 text-sm text-slate-100"
+              >
+                <span className="font-mono text-amber-100">
+                  {t.scheduledArrival
+                    ? t.scheduledArrival.toLocaleString('es-CL', { hour: '2-digit', minute: '2-digit' })
+                    : '--'}
+                </span>
+                <span className="font-semibold tracking-[0.2em] text-white">{t.plate}</span>
+                <span className="font-semibold text-white">{t.clientName}</span>
+                <span className="text-xs text-slate-200">{t.driverName}</span>
+                <span className="text-xs text-slate-200">{t.driverRut || '—'}</span>
+                <span className="text-xs text-slate-200">{typeDisplay(t)}</span>
+                <span className="flex flex-col gap-1 text-xs text-slate-200">
+                  <span className={`w-fit rounded-full px-2 py-1 text-[11px] ${chipStyle[t.status]}`}>
+                    {statusLabel[t.status]}
+                  </span>
+                  <span className="text-slate-300 line-clamp-2">{t.notes || '—'}</span>
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </div>
+    </div>
+
+    {listenerError && (
+      <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        {listenerError}
+      </div>
+    )}
+
     </div>
   );
 };

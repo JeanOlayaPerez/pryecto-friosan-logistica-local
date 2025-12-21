@@ -29,7 +29,9 @@ export const ProtectedRoute = () => {
           ? '/recepcion'
           : effectiveRole === 'visor'
             ? '/visor'
-            : '/';
+            : effectiveRole === 'gerencia'
+              ? '/gerencia'
+              : '/';
 
   const canSeeCommercial = ['comercial', 'admin', 'superadmin', 'operaciones'].includes(effectiveRole ?? '');
   const isGeneralPath = location.pathname === '/visor';
@@ -72,6 +74,10 @@ export const ProtectedRoute = () => {
 
   if (isGeneralPath && effectiveRole !== 'visor') {
     return <Navigate to={defaultHome} replace />;
+  }
+
+  if (effectiveRole === 'gerencia' && !['/gerencia', '/gerencia/reportes'].includes(location.pathname)) {
+    return <Navigate to="/gerencia" replace />;
   }
 
   return <Outlet />;
