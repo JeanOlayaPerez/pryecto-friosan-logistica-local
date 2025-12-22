@@ -374,14 +374,6 @@ export const CommercialView = () => {
         {listenerError}
       </div>
     )}
-
-    </div>
-  );
-};
-
-const Info = ({ label, value }: { label: string; value: string }) => (
-  <div>
-    <p className="text-[11px] uppercase tracking-[0.15em] text-slate-500">{label}</p>
-    <p className="text-slate-100">{value}</p>
   </div>
 );
+
