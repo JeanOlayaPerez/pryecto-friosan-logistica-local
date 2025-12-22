@@ -9,6 +9,7 @@ import { HistoryView } from '../features/trucks/components/HistoryView';
 import { CommercialView } from '../features/trucks/components/CommercialView';
 import { GeneralBoard } from '../features/trucks/components/GeneralBoard';
 import { GerenciaReports } from '../features/trucks/components/GerenciaReports';
+import { ClientsView } from '../features/clients/ClientsView';
 
 const HomeRoute = () => {
   const { role } = useAuth();
@@ -17,6 +18,7 @@ const HomeRoute = () => {
   if (role === 'recepcion') return <Navigate to="/recepcion" replace />;
   if (role === 'gerencia') return <Navigate to="/gerencia" replace />;
   if (role === 'visor') return <Navigate to="/visor" replace />;
+  if (role === 'clientes') return <Navigate to="/clientes" replace />;
   return <TruckBoard />;
 };
 
@@ -30,6 +32,7 @@ export const AppRouter = () => {
       <Route path="/monitor" element={<MonitorView />} />
       <Route path="/gerencia" element={<GerenciaReports />} />
       <Route path="/gerencia/reportes" element={<GerenciaReports />} />
+      <Route path="/clientes" element={<ClientsView />} />
       <Route path="/porteria" element={<PorteriaDesk />} />
       <Route path="/recepcion" element={<TruckBoard />} />
       <Route path="/comercial" element={<CommercialView />} />

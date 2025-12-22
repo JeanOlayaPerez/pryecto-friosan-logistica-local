@@ -11,6 +11,7 @@ export const ProtectedRoute = () => {
     if (email.includes('porteria')) return 'porteria';
     if (email.includes('recepcion')) return 'recepcion';
     if (email.includes('comercial')) return 'comercial';
+    if (email.includes('cliente') || email.includes('clientes') || email.includes('empresa')) return 'clientes';
     if (email.includes('operaciones')) return 'operaciones';
     if (email.includes('gerencia')) return 'gerencia';
     if (email.includes('visor') || email.includes('pantalla') || email.includes('display')) return 'visor';
@@ -27,11 +28,13 @@ export const ProtectedRoute = () => {
         ? '/comercial'
         : effectiveRole === 'recepcion'
           ? '/recepcion'
-          : effectiveRole === 'visor'
-            ? '/visor'
-            : effectiveRole === 'gerencia'
-              ? '/gerencia'
-              : '/';
+          : effectiveRole === 'clientes'
+            ? '/clientes'
+            : effectiveRole === 'visor'
+              ? '/visor'
+              : effectiveRole === 'gerencia'
+                ? '/gerencia'
+                : '/';
 
   const canSeeCommercial = ['comercial', 'admin', 'superadmin', 'operaciones'].includes(effectiveRole ?? '');
   const isGeneralPath = location.pathname === '/visor';
@@ -54,6 +57,10 @@ export const ProtectedRoute = () => {
 
   if (effectiveRole === 'porteria' && location.pathname !== '/porteria') {
     return <Navigate to="/porteria" replace />;
+  }
+
+  if (effectiveRole === 'clientes' && location.pathname !== '/clientes') {
+    return <Navigate to="/clientes" replace />;
   }
 
   if (effectiveRole === 'recepcion' && location.pathname !== '/recepcion') {
