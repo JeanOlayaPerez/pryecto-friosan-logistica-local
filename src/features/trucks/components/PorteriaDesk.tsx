@@ -236,7 +236,7 @@ export const PorteriaDesk = () => {
             </div>
             {actionMsg && <p className="mb-2 text-xs text-amber-700">{actionMsg}</p>}
             <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-[140px,140px,1.4fr,140px,240px,120px,160px] bg-slate-100 text-[11px] uppercase tracking-[0.18em] text-slate-600">
+              <div className="grid grid-cols-[0.9fr,0.9fr,1.4fr,1fr,1.1fr,0.9fr,1fr] bg-slate-100 text-[11px] uppercase tracking-[0.18em] text-slate-600">
                 <span className="border-r border-slate-200 px-3 py-2">Agendada</span>
                 <span className="border-r border-slate-200 px-3 py-2">Patente</span>
                 <span className="border-r border-slate-200 px-3 py-2">Cliente / Conductor / Rut</span>
@@ -246,39 +246,39 @@ export const PorteriaDesk = () => {
                 <span className="px-3 py-2">Estado</span>
               </div>
               {agendaList.length === 0 && (
-                <div className="px-3 py-4 text-sm text-slate-500 border-t border-slate-200">Sin camiones agendados.</div>
+                <div className="border-t border-slate-200 px-3 py-4 text-sm text-slate-500">Sin camiones agendados.</div>
               )}
-              <div className="max-h-[360px] overflow-auto bg-white">
+              <div className="max-h-[360px] overflow-y-auto overflow-x-hidden bg-white">
                 {agendaList.map((t) => (
                   <div
                     key={t.id}
-                    className="grid grid-cols-[140px,140px,1.4fr,140px,240px,120px,160px] border-t border-slate-200 text-sm text-slate-800"
+                    className="grid grid-cols-[0.9fr,0.9fr,1.4fr,1fr,1.1fr,0.9fr,1fr] border-t border-slate-200 text-sm text-slate-800"
                   >
-                    <span className="border-r border-slate-200 px-3 py-3 font-mono text-slate-700">
+                    <span className="border-r border-slate-200 px-3 py-3 font-mono text-slate-700 break-words">
                       {t.scheduledArrival
                         ? t.scheduledArrival.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
                         : "--"}
                     </span>
-                    <span className="border-r border-slate-200 px-3 py-3 font-semibold tracking-[0.15em] text-slate-900">
+                    <span className="border-r border-slate-200 px-3 py-3 font-semibold tracking-[0.15em] text-slate-900 break-words">
                       {t.plate}
                     </span>
-                    <div className="border-r border-slate-200 px-3 py-3 flex flex-col gap-0.5 text-sm text-slate-800">
+                    <div className="border-r border-slate-200 px-3 py-3 flex flex-col gap-0.5 text-sm text-slate-800 break-words">
                       <span className="font-semibold">{t.clientName}</span>
                       <span className="text-slate-600">{t.driverName}</span>
                       {t.driverRut && <span className="text-slate-500">{t.driverRut}</span>}
                     </div>
-                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600">
+                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600 break-words">
                       {t.updatedAt
                         ? t.updatedAt.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
                         : "--"}
                     </span>
-                    <div className="border-r border-slate-200 px-3 py-3 text-xs">
+                    <div className="border-r border-slate-200 px-3 py-3 text-xs break-words">
                       <div className={`w-fit rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
                         {statusLabel[t.status]}
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1">Actualiza para notificar otras vistas.</p>
+                      <p className="mt-1 text-[11px] text-slate-500">Actualiza para notificar otras vistas.</p>
                     </div>
-                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600">
+                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600 break-words">
                       {t.updatedAt && t.checkInGateAt
                         ? `${Math.max(
                             0,
