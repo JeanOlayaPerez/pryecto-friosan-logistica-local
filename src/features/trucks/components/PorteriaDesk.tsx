@@ -236,36 +236,57 @@ export const PorteriaDesk = () => {
             </div>
             {actionMsg && <p className="mb-2 text-xs text-amber-700">{actionMsg}</p>}
             <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] bg-slate-100 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-slate-600 border-b border-slate-200">
-                <span>Agendada</span>
-                <span>Patente</span>
-                <span>Cliente / Conductor / Rut</span>
-                <span>Estado</span>
-                <span>Ult. cambio</span>
-                <span>Acciones</span>
-                <span>T. Porteria</span>
+              <div className="grid grid-cols-[140px,140px,1.4fr,140px,240px,120px,160px] bg-slate-100 text-[11px] uppercase tracking-[0.18em] text-slate-600">
+                <span className="border-r border-slate-200 px-3 py-2">Agendada</span>
+                <span className="border-r border-slate-200 px-3 py-2">Patente</span>
+                <span className="border-r border-slate-200 px-3 py-2">Cliente / Conductor / Rut</span>
+                <span className="border-r border-slate-200 px-3 py-2">Ult. cambio</span>
+                <span className="border-r border-slate-200 px-3 py-2">Acciones</span>
+                <span className="border-r border-slate-200 px-3 py-2">T. Porteria</span>
+                <span className="px-3 py-2">Estado</span>
               </div>
               {agendaList.length === 0 && (
-                <div className="px-3 py-4 text-sm text-slate-500">Sin camiones agendados.</div>
+                <div className="px-3 py-4 text-sm text-slate-500 border-t border-slate-200">Sin camiones agendados.</div>
               )}
-              <div className="max-h-[360px] overflow-auto bg-white border-b border-slate-200">
+              <div className="max-h-[360px] overflow-auto bg-white">
                 {agendaList.map((t) => (
                   <div
                     key={t.id}
-                    className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] items-center px-3 py-3 text-sm text-slate-800 border-b border-slate-200"
+                    className="grid grid-cols-[140px,140px,1.4fr,140px,240px,120px,160px] border-t border-slate-200 text-sm text-slate-800"
                   >
-                    <span className="font-mono text-slate-700">
+                    <span className="border-r border-slate-200 px-3 py-3 font-mono text-slate-700">
                       {t.scheduledArrival
                         ? t.scheduledArrival.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
                         : "--"}
                     </span>
-                    <span className="font-semibold tracking-[0.15em] text-slate-900">{t.plate}</span>
-                    <div className="flex flex-col text-sm text-slate-800 gap-0.5">
+                    <span className="border-r border-slate-200 px-3 py-3 font-semibold tracking-[0.15em] text-slate-900">
+                      {t.plate}
+                    </span>
+                    <div className="border-r border-slate-200 px-3 py-3 flex flex-col gap-0.5 text-sm text-slate-800">
                       <span className="font-semibold">{t.clientName}</span>
                       <span className="text-slate-600">{t.driverName}</span>
                       {t.driverRut && <span className="text-slate-500">{t.driverRut}</span>}
                     </div>
-                    <div className="w-full">
+                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600">
+                      {t.updatedAt
+                        ? t.updatedAt.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
+                        : "--"}
+                    </span>
+                    <div className="border-r border-slate-200 px-3 py-3 text-xs">
+                      <div className={`w-fit rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
+                        {statusLabel[t.status]}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">Actualiza para notificar otras vistas.</p>
+                    </div>
+                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600">
+                      {t.updatedAt && t.checkInGateAt
+                        ? `${Math.max(
+                            0,
+                            Math.round((t.updatedAt.getTime() - t.checkInGateAt.getTime()) / 60000),
+                          )} min`
+                        : "--"}
+                    </span>
+                    <div className="px-3 py-3">
                       <select
                         className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800"
                         value={t.status}
@@ -277,27 +298,6 @@ export const PorteriaDesk = () => {
                         <option value="en_curso">En curso</option>
                       </select>
                     </div>
-                    <span className="text-xs text-slate-600">
-                      {t.updatedAt
-                        ? t.updatedAt.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
-                        : "--"}
-                    </span>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <div className="flex gap-2">
-                        <span className={`w-fit rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
-                          {statusLabel[t.status]}
-                        </span>
-                        <span className="text-[11px] text-slate-500">Actualiza para notificar otras vistas.</span>
-                      </div>
-                    </div>
-                    <span className="text-xs text-slate-600">
-                      {t.updatedAt && t.checkInGateAt
-                        ? `${Math.max(
-                            0,
-                            Math.round((t.updatedAt.getTime() - t.checkInGateAt.getTime()) / 60000),
-                          )} min`
-                        : "--"}
-                    </span>
                   </div>
                 ))}
               </div>
