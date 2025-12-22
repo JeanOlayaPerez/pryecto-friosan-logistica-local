@@ -49,6 +49,12 @@ export const PorteriaDesk = () => {
   // Mostrar la bitacora por defecto; el formulario se usa solo para camiones no planificados
   const [showAgenda, setShowAgenda] = useState(true);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const unsub = subscribeAllTrucks(setTrucks);
@@ -155,14 +161,31 @@ export const PorteriaDesk = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="relative z-10 mx-auto max-w-5xl space-y-6 px-4 py-6">
+        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-md md:grid-cols-[1.4fr,1fr,1fr]">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.25em] text-slate-500">FrioSan SPA</p>
+            <p className="text-sm font-semibold text-slate-900">Centro de distribución frigorífica</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500">Fecha</p>
+            <p className="font-mono text-sm text-slate-800">
+              {now.toLocaleDateString("es-CL", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500">Hora / Temperatura estimada Pudahuel</p>
+            <p className="font-mono text-sm text-slate-800">
+              {now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · 12°C
+            </p>
+          </div>
+        </div>
+
         <div className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Porteria · FrioSan SPA</p>
               <h1 className="text-2xl font-semibold text-slate-900">Centro de distribucion frigorifica</h1>
-              <p className="text-sm text-slate-500">
-                Por defecto ves la bitacora comercial. Usa el formulario solo si llega un camion no planificado.
-              </p>
+              <p className="text-sm text-slate-500">Bitacora comercial visible por defecto.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -172,11 +195,6 @@ export const PorteriaDesk = () => {
               >
                 {showAgenda ? "Ingresar camion" : "Volver a bitacora"}
               </button>
-              {user && (
-                <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
-                  {user.name}
-                </span>
-              )}
               <button
                 onClick={() => logout()}
                 className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm hover:brightness-110"
@@ -217,13 +235,14 @@ export const PorteriaDesk = () => {
             </div>
             {actionMsg && <p className="mb-2 text-xs text-amber-700">{actionMsg}</p>}
             <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-[140px,140px,1.1fr,160px,140px,240px] bg-slate-100 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-slate-600">
+              <div className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] bg-slate-100 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-slate-600">
                 <span>Agendada</span>
                 <span>Patente</span>
-                <span>Cliente / Conductor</span>
+                <span>Cliente / Conductor / Rut</span>
                 <span>Estado</span>
                 <span>Ult. cambio</span>
                 <span>Acciones</span>
+                <span>T. Porteria</span>
               </div>
               {agendaList.length === 0 && (
                 <div className="px-3 py-4 text-sm text-slate-500">Sin camiones agendados.</div>
@@ -232,7 +251,7 @@ export const PorteriaDesk = () => {
                 {agendaList.map((t) => (
                   <div
                     key={t.id}
-                    className="grid grid-cols-[140px,140px,1.1fr,160px,140px,240px] items-center px-3 py-3 text-sm text-slate-800"
+                    className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] items-center px-3 py-3 text-sm text-slate-800"
                   >
                     <span className="font-mono text-slate-700">
                       {t.scheduledArrival
@@ -240,39 +259,44 @@ export const PorteriaDesk = () => {
                         : "--"}
                     </span>
                     <span className="font-semibold tracking-[0.15em] text-slate-900">{t.plate}</span>
-                    <span className="text-sm text-slate-800">
+                    <div className="flex flex-col text-sm text-slate-800 gap-0.5">
                       <span className="font-semibold">{t.clientName}</span>
-                      <span className="text-slate-500"> · {t.driverName}</span>
-                      {t.driverRut && <span className="text-slate-500"> · {t.driverRut}</span>}
-                    </span>
-                    <span className={`w-fit rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
-                      {statusLabel[t.status]}
-                    </span>
+                      <span className="text-slate-600">{t.driverName}</span>
+                      {t.driverRut && <span className="text-slate-500">{t.driverRut}</span>}
+                    </div>
+                    <div className="w-full">
+                      <select
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800"
+                        value={t.status}
+                        onChange={(e) => handleStatus(t.id, e.target.value as TruckStatus)}
+                      >
+                        <option value="en_camino">En camino</option>
+                        <option value="en_porteria">En porteria</option>
+                        <option value="en_espera">En espera</option>
+                        <option value="en_curso">En curso</option>
+                      </select>
+                    </div>
                     <span className="text-xs text-slate-600">
                       {t.updatedAt
                         ? t.updatedAt.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
                         : "--"}
                     </span>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      <button
-                        className="rounded-full border border-slate-300 bg-white px-3 py-1 text-slate-800 hover:bg-slate-100"
-                        onClick={() => handleStatus(t.id, "en_camino")}
-                      >
-                        En camino
-                      </button>
-                      <button
-                        className="rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-amber-800 hover:bg-amber-200"
-                        onClick={() => handleStatus(t.id, "en_porteria")}
-                      >
-                        En porteria
-                      </button>
-                      <button
-                        className="rounded-full border border-sky-300 bg-sky-100 px-3 py-1 text-sky-800 hover:bg-sky-200"
-                        onClick={() => handleStatus(t.id, "en_espera")}
-                      >
-                        Espera anden
-                      </button>
+                      <div className="flex gap-2">
+                        <span className={`w-fit rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
+                          {statusLabel[t.status]}
+                        </span>
+                        <span className="text-[11px] text-slate-500">Actualiza para notificar otras vistas.</span>
+                      </div>
                     </div>
+                    <span className="text-xs text-slate-600">
+                      {t.updatedAt && t.checkInGateAt
+                        ? `${Math.max(
+                            0,
+                            Math.round((t.updatedAt.getTime() - t.checkInGateAt.getTime()) / 60000),
+                          )} min`
+                        : "--"}
+                    </span>
                   </div>
                 ))}
               </div>
