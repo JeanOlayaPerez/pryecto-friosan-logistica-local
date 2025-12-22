@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { createTruck, subscribeAllTrucks, updateTruckStatus } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
@@ -22,7 +22,8 @@ export const PorteriaDesk = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [entryType, setEntryType] = useState<'conos' | 'anden'>('conos');
   const [dockNumber, setDockNumber] = useState('');
-  const [showAgenda, setShowAgenda] = useState(false);
+  // Mostrar la bitacora por defecto; el formulario solo se abre para camiones no planificados
+  const [showAgenda, setShowAgenda] = useState(true);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -159,7 +160,7 @@ export const PorteriaDesk = () => {
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Porteria</p>
               <h1 className="text-2xl font-semibold text-white">Ingreso de camiones</h1>
-              <p className="text-sm text-slate-400">Captura rápida para guardia.</p>
+              <p className="text-sm text-slate-400">Por defecto ves la bitacora comercial. Usa el formulario solo si llega un camion no planificado.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -167,7 +168,7 @@ export const PorteriaDesk = () => {
                 onClick={() => setShowAgenda((v) => !v)}
                 className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white hover:bg-white/15"
               >
-                {showAgenda ? 'Cerrar bitácora' : 'Bitácora de ingresos'}
+                {showAgenda ? 'Ingresar camion' : 'Volver a bitacora'}
               </button>
               {user && <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white">{user.name}</span>}
               <button
@@ -235,8 +236,8 @@ export const PorteriaDesk = () => {
                   <span className="font-semibold tracking-[0.2em] text-white">{t.plate}</span>
                   <span className="text-sm text-white">
                     <span className="font-semibold">{t.clientName}</span>
-                    <span className="text-slate-300"> • {t.driverName}</span>
-                    {t.driverRut && <span className="text-slate-400"> • {t.driverRut}</span>}
+                    <span className="text-slate-300"> â€¢ {t.driverName}</span>
+                    {t.driverRut && <span className="text-slate-400"> â€¢ {t.driverRut}</span>}
                   </span>
                   <span className={`w-fit rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
                     {statusLabel[t.status]}
@@ -460,3 +461,5 @@ export const PorteriaDesk = () => {
     </div>
   );
 };
+
+
