@@ -4,7 +4,6 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { TruckBoard } from '../features/trucks/components/TruckBoard';
 import { MonitorView } from '../features/trucks/components/MonitorView';
-import { ManagerDashboard } from '../features/trucks/components/ManagerDashboard';
 import { PorteriaDesk } from '../features/trucks/components/PorteriaDesk';
 import { HistoryView } from '../features/trucks/components/HistoryView';
 import { CommercialView } from '../features/trucks/components/CommercialView';

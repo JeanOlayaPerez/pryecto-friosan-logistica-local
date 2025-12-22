@@ -72,15 +72,6 @@ export const PorteriaDesk = () => {
     terminado: 'bg-emerald-400/15 text-emerald-100 border border-emerald-300/40',
   };
 
-  const formatHour = (value?: Date | null) => {
-    if (!value) return '--';
-    try {
-      return value.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '--';
-    }
-  };
-
   const handleStatus = async (truckId: string, status: TruckStatus) => {
     setActionMsg(null);
     try {

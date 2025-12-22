@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { Truck, TruckStatus } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
-import { formatDurationSince, minutesBetween } from '../../../shared/utils/time';
+import { minutesBetween } from '../../../shared/utils/time';
 
 type ReportType = 'cliente' | 'dia' | 'anden';
 

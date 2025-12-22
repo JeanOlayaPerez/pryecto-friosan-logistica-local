@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Navigate } from 'react-router-dom';
-import { createTruck, subscribeAllTrucks, updateTruckDetails } from '../services/trucksApi';
+import { createTruck, subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
 
@@ -29,15 +28,6 @@ const chipStyle: Record<TruckStatus, string> = {
   terminado: 'bg-emerald-400/15 text-emerald-50 border border-emerald-300/40',
 };
 
-const formatHour = (value?: Date | null) => {
-  if (!value) return '--';
-  try {
-    return value.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '--';
-  }
-};
-
 const typeDisplay = (t: Truck) => {
   const main = (t.loadType ?? 'carga').toUpperCase();
   const isDone = ['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(t.status);
@@ -53,31 +43,6 @@ const sameDay = (a?: Date | null, b?: Date | null) => {
   );
 };
 
-export type Metrics = {
-  pallets?: number;
-  boxes?: number;
-  kilos?: number;
-  price?: number;
-  items?: string[];
-};
-
-const parseMetrics = (notes?: string): Metrics => {
-  if (!notes) return {};
-  const lower = notes.toLowerCase();
-  const number = (re: RegExp) => {
-    const m = lower.match(re);
-    if (!m) return undefined;
-    const n = Number((m[1] ?? '').replace(',', '.'));
-    return Number.isFinite(n) ? n : undefined;
-  };
-  const pallets = number(/(\d+)\s*pallet/);
-  const boxes = number(/(\d+)\s*caja/);
-  const kilos = number(/(\d+(?:[\.,]\d+)?)\s*(?:kg|kilo)/);
-  const price = number(/(\d+(?:[\.,]\d+)?)\s*(?:clp|\$)/);
-  const items = notes.split(/,|;|\n/).map((t) => t.trim()).filter(Boolean);
-  return { pallets, boxes, kilos, price, items };
-};
-
 export const CommercialView = () => {
   const { role } = useAuth();
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -85,11 +50,6 @@ export const CommercialView = () => {
   const [listenerError, setListenerError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [now, setNow] = useState(() => new Date());
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ pallets: '', boxes: '', kilos: '', price: '', items: '' });
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [planDate, setPlanDate] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -159,57 +119,6 @@ export const CommercialView = () => {
       .filter((t) => sameDay(t.scheduledArrival, planDate))
       .sort((a, b) => (a.scheduledArrival?.getTime() ?? 0) - (b.scheduledArrival?.getTime() ?? 0));
   }, [filtered, planDate]);
-
-  const metricsFromTruck = (t: Truck): Metrics => ({
-    pallets: t.pallets ?? undefined,
-    boxes: t.boxes ?? undefined,
-    kilos: t.kilos ?? undefined,
-    price: t.price ?? undefined,
-    items: t.cargoItems && t.cargoItems.length ? t.cargoItems : parseMetrics(t.notes).items,
-  });
-
-  const startEdit = (t: Truck) => {
-    if (!canEdit) return;
-    const m = metricsFromTruck(t);
-    setEditId(t.id);
-    setForm({
-      pallets: m.pallets?.toString() ?? '',
-      boxes: m.boxes?.toString() ?? '',
-      kilos: m.kilos?.toString() ?? '',
-      price: m.price?.toString() ?? '',
-      items: (m.items ?? []).join('\n'),
-    });
-    setSaveMsg(null);
-    setSaveError(null);
-  };
-
-  const saveEdit = async (t: Truck) => {
-    if (!canEdit) return;
-    setSaving(true);
-    setSaveMsg(null);
-    setSaveError(null);
-    try {
-      await updateTruckDetails(t.id, {
-        pallets: form.pallets ? Number(form.pallets) : undefined,
-        boxes: form.boxes ? Number(form.boxes) : undefined,
-        kilos: form.kilos ? Number(form.kilos) : undefined,
-        price: form.price ? Number(form.price) : undefined,
-        cargoItems: form.items
-          ? form.items
-              .split('\n')
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : [],
-      });
-      setSaveMsg('Guardado');
-      setEditId(null);
-    } catch (err) {
-      console.error(err);
-      setSaveError('No se pudo guardar (permisos o red).');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault();
