@@ -173,10 +173,12 @@ export const PorteriaDesk = () => {
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-slate-500">Hora / Temperatura estimada Pudahuel</p>
+            <p className="text-xs text-slate-500">Hora:</p>
             <p className="font-mono text-sm text-slate-800">
-              {now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · 12°C
+              {now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </p>
+            <p className="text-xs text-slate-500">Temperatura:</p>
+            <p className="font-mono text-sm text-slate-800">12°C (Pudahuel)</p>
           </div>
         </div>
 
@@ -184,8 +186,7 @@ export const PorteriaDesk = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Porteria · FrioSan SPA</p>
-              <h1 className="text-2xl font-semibold text-slate-900">Centro de distribucion frigorifica</h1>
-              <p className="text-sm text-slate-500">Bitacora comercial visible por defecto.</p>
+              <h1 className="text-2xl font-semibold text-slate-900">Bitacora de camiones</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -235,7 +236,7 @@ export const PorteriaDesk = () => {
             </div>
             {actionMsg && <p className="mb-2 text-xs text-amber-700">{actionMsg}</p>}
             <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] bg-slate-100 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-slate-600">
+              <div className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] bg-slate-100 px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-slate-600 border-b border-slate-200">
                 <span>Agendada</span>
                 <span>Patente</span>
                 <span>Cliente / Conductor / Rut</span>
@@ -247,11 +248,11 @@ export const PorteriaDesk = () => {
               {agendaList.length === 0 && (
                 <div className="px-3 py-4 text-sm text-slate-500">Sin camiones agendados.</div>
               )}
-              <div className="max-h-[360px] divide-y divide-slate-200 overflow-auto bg-white">
+              <div className="max-h-[360px] overflow-auto bg-white border-b border-slate-200">
                 {agendaList.map((t) => (
                   <div
                     key={t.id}
-                    className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] items-center px-3 py-3 text-sm text-slate-800"
+                    className="grid grid-cols-[140px,140px,1.4fr,160px,140px,240px,120px] items-center px-3 py-3 text-sm text-slate-800 border-b border-slate-200"
                   >
                     <span className="font-mono text-slate-700">
                       {t.scheduledArrival
