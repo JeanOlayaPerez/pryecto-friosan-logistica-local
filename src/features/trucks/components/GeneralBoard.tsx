@@ -167,7 +167,7 @@ export const GeneralBoard = () => {
                 <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-contain" />
               </div>
               <h1 className="text-3xl font-black uppercase tracking-[0.18em] text-[#f2c744]">
-                Espera camiones Friosan
+                Bitacora de camiones
               </h1>
             </div>
             <div className="text-right">
@@ -226,7 +226,7 @@ export const GeneralBoard = () => {
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-          <div className="grid min-w-[1380px] grid-cols-[130px,230px,150px,130px,150px,130px,170px,150px,120px,110px] border-b border-[#1a3762] bg-[#0b234a] text-[12px] font-semibold uppercase tracking-[0.18em] text-[#f2c744]">
+          <div className="grid min-w-[1420px] grid-cols-[150px,240px,170px,150px,170px,150px,180px,180px,130px,120px] border-b border-[#1a3762] bg-[#0b234a] text-[12px] font-semibold uppercase tracking-[0.18em] text-[#f2c744]">
             <div className="border-r border-[#1a3762] px-3 py-3">Patente</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Nombre empresa</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Fec. bitácora</div>
@@ -267,7 +267,7 @@ export const GeneralBoard = () => {
             return (
               <div
                 key={truck.id}
-                className={`grid min-w-[1380px] grid-cols-[130px,230px,150px,130px,150px,130px,170px,150px,120px,110px] border-b border-[#1a3762] ${
+                className={`grid min-w-[1420px] grid-cols-[150px,240px,170px,150px,170px,150px,180px,180px,130px,120px] border-b border-[#1a3762] ${
                   idx % 2 === 0 ? 'bg-[#0c2b52]' : 'bg-[#0a2748]'
                 }`}
               >
