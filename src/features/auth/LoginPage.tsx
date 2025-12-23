@@ -83,10 +83,9 @@ export const LoginPage = () => {
               className="h-12 w-auto rounded-lg bg-white/80 px-2 py-1"
             />
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-200">Friosan Logistica</p>
-              <p className="text-sm text-slate-300">Acceso seguro por rol</p>
-            </div>
+            <p className="text-xs uppercase tracking-[0.25em] text-slate-200">Friosan SPA</p>
           </div>
+        </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-700 bg-slate-800/70 px-4 py-3 shadow-sm backdrop-blur">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Fecha</p>
