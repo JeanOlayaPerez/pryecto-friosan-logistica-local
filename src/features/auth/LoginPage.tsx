@@ -5,8 +5,6 @@ import { sendPasswordResetEmail } from 'firebase/auth';
 import { useAuth } from './AuthProvider';
 import { auth } from '../../shared/config/firebase';
 
-type Mode = 'night' | 'day';
-
 export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -17,7 +15,7 @@ export const LoginPage = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const [mode, setMode] = useState<Mode>('night');
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = (location.state as { from?: string } | undefined)?.from ?? '/';
 
@@ -58,65 +56,50 @@ export const LoginPage = () => {
     }
   };
 
-  const toggleMode = () => setMode((prev) => (prev === 'night' ? 'day' : 'night'));
-
-  const baseBg = mode === 'night' ? 'bg-surface-dark' : 'bg-slate-100';
-  const panelBg =
-    mode === 'night'
-      ? 'bg-gradient-to-br from-white/10 via-surface-panel to-surface-dark border-white/10 text-slate-100'
-      : 'bg-white border-slate-200 text-slate-900 shadow-xl';
-  const textPrimary = mode === 'night' ? 'text-white' : 'text-slate-900';
-  const textSecondary = mode === 'night' ? 'text-slate-300' : 'text-slate-600';
+  const baseBg = 'bg-slate-100';
+  const panelBg = 'bg-white border-slate-200 text-slate-900 shadow-xl';
+  const brandLogo =
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width=\"220\" height=\"80\" viewBox=\"0 0 220 80\" fill=\"none\"><rect width=\"220\" height=\"80\" rx=\"10\" fill=\"%231d4ed8\"/><circle cx=\"48\" cy=\"40\" r=\"26\" fill=\"%23ffffff\" fill-opacity=\"0.18\"/><path d=\"M62 22c-5.2-4.5-12.4-6-18.9-3.9C33 21 27 29 27 38c0 10 8 18 18 18 5.7 0 11-2.7 14.4-7.2\" stroke=\"%23a5d8ff\" stroke-width=\"4\" stroke-linecap=\"round\"/><text x=\"80\" y=\"49\" font-family=\"Arial, sans-serif\" font-size=\"28\" font-weight=\"700\" fill=\"%23dbeafe\">FRIOSAN</text></svg>';
 
   return (
     <div className={`relative min-h-screen overflow-hidden ${baseBg}`}>
       <div
-        className="absolute inset-0 opacity-80"
+        className="absolute inset-0 opacity-50"
         aria-hidden
         style={{
           background:
-            mode === 'night'
-              ? 'radial-gradient(circle at 20% 20%, rgba(56,189,248,0.15), transparent 30%), radial-gradient(circle at 80% 0%, rgba(168,85,247,0.12), transparent 30%), radial-gradient(circle at 50% 80%, rgba(16,185,129,0.12), transparent 30%)'
-              : 'radial-gradient(circle at 10% 10%, rgba(59,130,246,0.2), transparent 25%), radial-gradient(circle at 90% 0%, rgba(45,212,191,0.18), transparent 28%), radial-gradient(circle at 40% 90%, rgba(52,211,153,0.18), transparent 28%)',
+            'radial-gradient(circle at 10% 10%, rgba(59,130,246,0.15), transparent 25%), radial-gradient(circle at 90% 0%, rgba(45,212,191,0.14), transparent 28%), radial-gradient(circle at 40% 90%, rgba(52,211,153,0.12), transparent 28%)',
         }}
       />
       <div className="absolute inset-0 opacity-30">
         <div className="logistics-bg" aria-hidden />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-center gap-10 px-4 py-10 md:flex-row md:items-center">
-        <div className="flex-1 space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-200">
-            <span>Friosan Logistica</span>
-            <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-slate-900">Seguro</span>
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col justify-center gap-8 px-4 py-10 lg:flex-row lg:items-center">
+        <div className="flex-1 space-y-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-md backdrop-blur">
+            <img
+              src={brandLogo}
+              alt="Friosan Logo"
+              className="h-12 w-auto"
+            />
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Friosan Logistica</p>
+              <p className="text-sm text-slate-600">Acceso seguro por rol</p>
+            </div>
           </div>
-          <h1 className={`text-4xl font-bold leading-tight md:text-5xl ${textPrimary}`}>
-            Acceso centralizado para el panel operativo
-          </h1>
-          <p className={`max-w-2xl text-lg ${textSecondary}`}>
-            Roles separados, datos en tiempo real y recuperacion de clave integrada. Mantiene los accesos
-            listos para la demo y para produccion.
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-panel">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Fecha y hora</p>
-              <p className="text-lg font-semibold text-white">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Fecha</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {now.toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Hora</p>
+              <p className="text-sm font-semibold text-slate-900">
                 {now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </p>
-              <p className="text-sm text-slate-300">
-                {now.toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'long' })}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-panel">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Sesion</p>
-              <p className="text-lg font-semibold text-white">No persistente</p>
-              <p className="text-sm text-slate-300">Cada refresh vuelve al login.</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-panel">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Recuperacion</p>
-              <p className="text-lg font-semibold text-white">Correo Firebase</p>
-              <p className="text-sm text-slate-300">Link automatico de cambio de clave.</p>
             </div>
           </div>
         </div>
@@ -126,27 +109,20 @@ export const LoginPage = () => {
             <div className="flex items-center justify-between px-6 py-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Inicia sesion</p>
-                <h2 className="text-xl font-semibold text-white">Credenciales del rol</h2>
-                <p className="text-sm text-slate-400">Correo y clave asignados a tu rol.</p>
+                <h2 className="text-xl font-semibold text-slate-900">Credenciales del rol</h2>
+                <p className="text-sm text-slate-500">Usuario y contraseña</p>
               </div>
-              <button
-                type="button"
-                onClick={toggleMode}
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20"
-              >
-                {mode === 'night' ? 'Modo dia' : 'Modo noche'}
-              </button>
             </div>
 
-            <div className="border-t border-white/10 bg-black/10 px-6 py-5">
+            <div className="border-t border-slate-200 bg-white px-6 py-5">
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
-                  <label className="text-sm text-slate-300">Correo</label>
-                  <div className="mt-1 flex items-center rounded-xl border border-white/10 bg-surface-panel px-3 py-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
-                    <span className="pr-2 text-slate-400">@</span>
+                  <label className="text-sm text-slate-700">Usuario (correo)</label>
+                  <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
+                    <span className="pr-2 text-slate-500">@</span>
                     <input
                       type="email"
-                      className="w-full bg-transparent text-sm text-white outline-none"
+                      className="w-full bg-transparent text-sm text-slate-900 outline-none"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -155,17 +131,24 @@ export const LoginPage = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm text-slate-300">Contrasena</label>
-                  <div className="mt-1 flex items-center rounded-xl border border-white/10 bg-surface-panel px-3 py-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
-                    <span className="pr-2 text-slate-400">***</span>
+                  <label className="text-sm text-slate-700">Contraseña</label>
+                  <div className="mt-1 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
+                    <span className="pr-2 text-slate-500">🔒</span>
                     <input
-                      type="password"
-                      className="w-full bg-transparent text-sm text-white outline-none"
+                      type={showPassword ? 'text' : 'password'}
+                      className="w-full bg-transparent text-sm text-slate-900 outline-none"
                       value={password}
                       autoComplete="current-password"
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                    >
+                      {showPassword ? 'Ocultar' : 'Ver'}
+                    </button>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-xs">
                     <button
@@ -173,27 +156,23 @@ export const LoginPage = () => {
                       onClick={handleReset}
                       className="font-semibold text-accent hover:underline"
                     >
-                      Olvide mi contrasena
+                      Olvidé contraseña
                     </button>
-                    <span className="text-slate-400">Acceso solo para cuentas internas</span>
+                    <span className="text-slate-500">Acceso interno</span>
                   </div>
                 </div>
 
-                {error && <p className="text-sm text-rose-400">{error}</p>}
-                {message && <p className="text-sm text-emerald-400">{message}</p>}
+                {error && <p className="text-sm text-rose-500">{error}</p>}
+                {message && <p className="text-sm text-emerald-600">{message}</p>}
 
                 <button
                   type="submit"
                   disabled={loading}
                   className="flex w-full items-center justify-center rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-900 transition hover:brightness-110 disabled:opacity-60"
                 >
-                  {loading ? 'Ingresando...' : 'Entrar'}
+                  {loading ? 'Ingresando...' : 'Iniciar sesión'}
                 </button>
               </form>
-
-              <div className="mt-4 text-xs text-slate-400">
-                Tip: usa los correos de prueba (porteria@..., recepcion@..., operaciones@..., visor@...) y la clave que definiste en Firebase Auth.
-              </div>
             </div>
           </div>
         </div>
