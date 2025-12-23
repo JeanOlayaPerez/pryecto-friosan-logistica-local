@@ -235,7 +235,7 @@ export const GeneralBoard = () => {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/85 shadow-inner shadow-slate-200/60 backdrop-blur">
-          <div className="grid min-w-[1220px] grid-cols-[120px,220px,140px,120px,140px,120px,150px,180px,110px,110px] border-b border-slate-200 bg-slate-100 text-[12px] font-semibold uppercase tracking-[0.15em] text-slate-700">
+          <div className="grid min-w-[1320px] grid-cols-[130px,230px,150px,130px,150px,130px,170px,150px,120px,110px] border-b border-slate-200 bg-slate-100 text-[12px] font-semibold uppercase tracking-[0.15em] text-slate-700">
             <div className="border-r border-slate-200 px-3 py-2.5">Patente</div>
             <div className="border-r border-slate-200 px-3 py-2.5">Nombre empresa</div>
             <div className="border-r border-slate-200 px-3 py-2.5">Fec. bitacora</div>
@@ -260,7 +260,7 @@ export const GeneralBoard = () => {
             return (
               <div
                 key={truck.id}
-                className={`grid min-w-[1220px] grid-cols-[120px,220px,140px,120px,140px,120px,150px,180px,110px,110px] border-b border-slate-200 ${
+                className={`grid min-w-[1320px] grid-cols-[130px,230px,150px,130px,150px,130px,170px,150px,120px,110px] border-b border-slate-200 ${
                   idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                 }`}
               >
@@ -278,7 +278,7 @@ export const GeneralBoard = () => {
                 <div className="border-r border-slate-200 px-3 py-2.5 text-sm text-slate-700">{ingresoHour}</div>
                 <div className="border-r border-slate-200 px-3 py-2.5">
                   <span
-                    className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${statusChipBg[truck.status]}`}
+                    className={`inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${statusChipBg[truck.status]}`}
                   >
                     {statusLabel[truck.status]}
                   </span>
