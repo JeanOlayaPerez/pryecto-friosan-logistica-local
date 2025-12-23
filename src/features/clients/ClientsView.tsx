@@ -5,23 +5,15 @@ import type { ClientRecord, CreateClientInput } from "./types";
 import { createClient, deleteClient, subscribeClients, updateClient } from "./clientsApi";
 
 type FormState = {
-  name: string;
-  estado: string;
-  proceso: string;
-  patente: string;
-  contacto: string;
-  correo: string;
-  notas: string;
+  razonSocial: string;
+  nombreEmpresa: string;
+  correoContacto: string;
 };
 
 const emptyForm: FormState = {
-  name: "",
-  estado: "Carga",
-  proceso: "Bitacora",
-  patente: "",
-  contacto: "",
-  correo: "",
-  notas: "",
+  razonSocial: "",
+  nombreEmpresa: "",
+  correoContacto: "",
 };
 
 export const ClientsView = () => {
@@ -55,11 +47,9 @@ export const ClientsView = () => {
     if (!q) return clients;
     return clients.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.estado.toLowerCase().includes(q) ||
-        c.proceso.toLowerCase().includes(q) ||
-        (c.patente ?? "").toLowerCase().includes(q) ||
-        (c.contacto ?? "").toLowerCase().includes(q),
+        c.razonSocial.toLowerCase().includes(q) ||
+        c.nombreEmpresa.toLowerCase().includes(q) ||
+        (c.correoContacto ?? "").toLowerCase().includes(q),
     );
   }, [clients, search]);
 
@@ -69,15 +59,12 @@ export const ClientsView = () => {
     setSaveMsg(null);
     setError(null);
     try {
-      if (!form.name.trim()) throw new Error("Razón social es obligatoria");
+      if (!form.razonSocial.trim()) throw new Error("Razón social es obligatoria");
+      if (!form.nombreEmpresa.trim()) throw new Error("Nombre de empresa es obligatorio");
       const payload: CreateClientInput = {
-        name: form.name,
-        estado: form.estado,
-        proceso: form.proceso,
-        patente: form.patente,
-        contacto: form.contacto,
-        correo: form.correo,
-        notas: form.notas,
+        razonSocial: form.razonSocial,
+        nombreEmpresa: form.nombreEmpresa,
+        correoContacto: form.correoContacto,
       };
       if (editId) {
         await updateClient(editId, payload);
@@ -99,13 +86,9 @@ export const ClientsView = () => {
   const handleEdit = (c: ClientRecord) => {
     setEditId(c.id);
     setForm({
-      name: c.name,
-      estado: c.estado,
-      proceso: c.proceso,
-      patente: c.patente ?? "",
-      contacto: c.contacto ?? "",
-      correo: c.correo ?? "",
-      notas: c.notas ?? "",
+      razonSocial: c.razonSocial,
+      nombreEmpresa: c.nombreEmpresa,
+      correoContacto: c.correoContacto ?? "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -138,10 +121,7 @@ export const ClientsView = () => {
             <p className="text-xs text-slate-500">Empresas</p>
             <p className="text-lg font-semibold">{clients.length}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
-            <p className="text-xs text-slate-500">Con patente asignada</p>
-            <p className="text-lg font-semibold">{clients.filter((c) => c.patente).length}</p>
-          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2" />
         </div>
 
         <form
@@ -153,64 +133,27 @@ export const ClientsView = () => {
               Razón social *
               <input
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.razonSocial}
+                onChange={(e) => setForm({ ...form, razonSocial: e.target.value })}
                 required
               />
             </label>
             <label className="text-sm text-slate-700">
-              Estado
-              <select
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                value={form.estado}
-                onChange={(e) => setForm({ ...form, estado: e.target.value })}
-              >
-                <option>Carga</option>
-                <option>Descarga</option>
-                <option>Mixto</option>
-                <option>Otro</option>
-              </select>
-            </label>
-            <label className="text-sm text-slate-700">
-              Proceso
+              Nombre de la empresa *
               <input
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                value={form.proceso}
-                onChange={(e) => setForm({ ...form, proceso: e.target.value })}
+                value={form.nombreEmpresa}
+                onChange={(e) => setForm({ ...form, nombreEmpresa: e.target.value })}
+                required
               />
             </label>
             <label className="text-sm text-slate-700">
-              Patente
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30 uppercase"
-                value={form.patente}
-                onChange={(e) => setForm({ ...form, patente: e.target.value })}
-              />
-            </label>
-            <label className="text-sm text-slate-700">
-              Contacto
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                value={form.contacto}
-                onChange={(e) => setForm({ ...form, contacto: e.target.value })}
-              />
-            </label>
-            <label className="text-sm text-slate-700">
-              Correo
+              Correo de contacto (opcional)
               <input
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 type="email"
-                value={form.correo}
-                onChange={(e) => setForm({ ...form, correo: e.target.value })}
-              />
-            </label>
-            <label className="text-sm text-slate-700 lg:col-span-3 md:col-span-2">
-              Notas
-              <textarea
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                rows={2}
-                value={form.notas}
-                onChange={(e) => setForm({ ...form, notas: e.target.value })}
+                value={form.correoContacto}
+                onChange={(e) => setForm({ ...form, correoContacto: e.target.value })}
               />
             </label>
           </div>
@@ -243,26 +186,24 @@ export const ClientsView = () => {
           </div>
         </form>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Catálogo</p>
-            <h2 className="text-lg font-semibold text-slate-900">Empresas activas</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Catálogo</p>
+              <h2 className="text-lg font-semibold text-slate-900">Empresas activas</h2>
+            </div>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por razón social, nombre o correo"
+              className="w-full max-w-sm rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+            />
           </div>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por razón social, patente o contacto"
-            className="w-full max-w-sm rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-          />
-        </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
-          <div className="grid grid-cols-[2fr,1fr,1fr,1fr,1.2fr,0.8fr] bg-slate-100 text-[12px] uppercase tracking-[0.18em] text-slate-600">
+          <div className="grid grid-cols-[1.6fr,1.6fr,1.6fr,0.8fr] bg-slate-100 text-[12px] uppercase tracking-[0.18em] text-slate-600">
             <span className="border-r border-slate-200 px-3 py-2">Razón Social</span>
-            <span className="border-r border-slate-200 px-3 py-2">Estado</span>
-            <span className="border-r border-slate-200 px-3 py-2">Proceso</span>
-            <span className="border-r border-slate-200 px-3 py-2">Patente</span>
-            <span className="border-r border-slate-200 px-3 py-2">Contacto</span>
+            <span className="border-r border-slate-200 px-3 py-2">Nombre empresa</span>
+            <span className="border-r border-slate-200 px-3 py-2">Correo contacto</span>
             <span className="px-3 py-2">Acciones</span>
           </div>
           {loading && <div className="px-4 py-6 text-sm text-slate-500">Cargando...</div>}
@@ -272,18 +213,16 @@ export const ClientsView = () => {
           {filtered.map((c) => (
             <div
               key={c.id}
-              className="grid grid-cols-[2fr,1fr,1fr,1fr,1.2fr,0.8fr] border-t border-slate-200 text-sm text-slate-800"
+              className="grid grid-cols-[1.6fr,1.6fr,1.6fr,0.8fr] border-t border-slate-200 text-sm text-slate-800"
             >
               <div className="border-r border-slate-200 px-3 py-3 break-words">
-                <p className="font-semibold">{c.name}</p>
-                {c.notas && <p className="text-xs text-slate-500">{c.notas}</p>}
+                <p className="font-semibold">{c.razonSocial}</p>
               </div>
-              <span className="border-r border-slate-200 px-3 py-3 break-words">{c.estado.toUpperCase()}</span>
-              <span className="border-r border-slate-200 px-3 py-3 break-words">{c.proceso.toUpperCase()}</span>
-              <span className="border-r border-slate-200 px-3 py-3 break-words">{c.patente || "—"}</span>
               <div className="border-r border-slate-200 px-3 py-3 break-words">
-                <p>{c.contacto || "—"}</p>
-                {c.correo && <p className="text-xs text-slate-500">{c.correo}</p>}
+                <p className="font-semibold">{c.nombreEmpresa}</p>
+              </div>
+              <div className="border-r border-slate-200 px-3 py-3 break-words">
+                <p>{c.correoContacto || "—"}</p>
               </div>
               <div className="px-3 py-3 flex flex-wrap gap-2">
                 <button

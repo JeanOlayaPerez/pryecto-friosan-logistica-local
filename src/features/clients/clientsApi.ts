@@ -27,13 +27,9 @@ const mapClient = (snap: any): ClientRecord => {
   const data = snap.data();
   return {
     id: snap.id,
-    name: data.name ?? "",
-    estado: data.estado ?? "",
-    proceso: data.proceso ?? "",
-    patente: data.patente ?? "",
-    contacto: data.contacto ?? "",
-    correo: data.correo ?? "",
-    notas: data.notas ?? "",
+    razonSocial: data.razonSocial ?? "",
+    nombreEmpresa: data.nombreEmpresa ?? "",
+    correoContacto: data.correoContacto ?? "",
     createdAt: asDate(data.createdAt),
     updatedAt: asDate(data.updatedAt),
   };
@@ -57,13 +53,9 @@ export const subscribeClients = (
 export const createClient = async (input: CreateClientInput) => {
   const now = serverTimestamp();
   await addDoc(clientsCol, {
-    name: input.name.trim(),
-    estado: input.estado.trim(),
-    proceso: input.proceso.trim(),
-    patente: input.patente?.trim() ?? "",
-    contacto: input.contacto?.trim() ?? "",
-    correo: input.correo?.trim() ?? "",
-    notas: input.notas?.trim() ?? "",
+    razonSocial: input.razonSocial.trim(),
+    nombreEmpresa: input.nombreEmpresa.trim(),
+    correoContacto: input.correoContacto?.trim() ?? "",
     createdAt: now,
     updatedAt: now,
   });
@@ -72,13 +64,9 @@ export const createClient = async (input: CreateClientInput) => {
 export const updateClient = async (id: string, input: Partial<CreateClientInput>) => {
   const ref = doc(clientsCol, id);
   const patch: any = { updatedAt: serverTimestamp() };
-  if (input.name !== undefined) patch.name = input.name.trim();
-  if (input.estado !== undefined) patch.estado = input.estado.trim();
-  if (input.proceso !== undefined) patch.proceso = input.proceso.trim();
-  if (input.patente !== undefined) patch.patente = input.patente.trim();
-  if (input.contacto !== undefined) patch.contacto = input.contacto.trim();
-  if (input.correo !== undefined) patch.correo = input.correo.trim();
-  if (input.notas !== undefined) patch.notas = input.notas.trim();
+  if (input.razonSocial !== undefined) patch.razonSocial = input.razonSocial.trim();
+  if (input.nombreEmpresa !== undefined) patch.nombreEmpresa = input.nombreEmpresa.trim();
+  if (input.correoContacto !== undefined) patch.correoContacto = input.correoContacto.trim();
   await updateDoc(ref, patch);
 };
 

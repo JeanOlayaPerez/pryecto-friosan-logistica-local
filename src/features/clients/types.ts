@@ -1,12 +1,8 @@
 export type ClientRecord = {
   id: string;
-  name: string;
-  estado: string;
-  proceso: string;
-  patente?: string;
-  contacto?: string;
-  correo?: string;
-  notas?: string;
+  razonSocial: string;
+  nombreEmpresa: string;
+  correoContacto?: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
