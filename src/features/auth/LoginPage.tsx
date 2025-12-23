@@ -56,49 +56,48 @@ export const LoginPage = () => {
     }
   };
 
-  const baseBg = 'bg-slate-100';
+  const baseBg = 'bg-slate-900';
   const panelBg = 'bg-white border-slate-200 text-slate-900 shadow-xl';
-  const brandLogo =
-    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width=\"220\" height=\"80\" viewBox=\"0 0 220 80\" fill=\"none\"><rect width=\"220\" height=\"80\" rx=\"10\" fill=\"%231d4ed8\"/><circle cx=\"48\" cy=\"40\" r=\"26\" fill=\"%23ffffff\" fill-opacity=\"0.18\"/><path d=\"M62 22c-5.2-4.5-12.4-6-18.9-3.9C33 21 27 29 27 38c0 10 8 18 18 18 5.7 0 11-2.7 14.4-7.2\" stroke=\"%23a5d8ff\" stroke-width=\"4\" stroke-linecap=\"round\"/><text x=\"80\" y=\"49\" font-family=\"Arial, sans-serif\" font-size=\"28\" font-weight=\"700\" fill=\"%23dbeafe\">FRIOSAN</text></svg>';
+  const brandLogo = '/friosan-logo.png'; // coloca tu archivo exacto en public/friosan-logo.png
 
   return (
     <div className={`relative min-h-screen overflow-hidden ${baseBg}`}>
       <div
-        className="absolute inset-0 opacity-50"
+        className="absolute inset-0 opacity-60"
         aria-hidden
         style={{
           background:
-            'radial-gradient(circle at 10% 10%, rgba(59,130,246,0.15), transparent 25%), radial-gradient(circle at 90% 0%, rgba(45,212,191,0.14), transparent 28%), radial-gradient(circle at 40% 90%, rgba(52,211,153,0.12), transparent 28%)',
+            'linear-gradient(135deg, #0b1830 0%, #0f213f 40%, #0c2b4f 100%)',
         }}
       />
-      <div className="absolute inset-0 opacity-30">
+      <div className="absolute inset-0 opacity-25">
         <div className="logistics-bg" aria-hidden />
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col justify-center gap-8 px-4 py-10 lg:flex-row lg:items-center">
         <div className="flex-1 space-y-4">
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-md backdrop-blur">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-800/70 px-4 py-3 shadow-md backdrop-blur">
             <img
               src={brandLogo}
               alt="Friosan Logo"
-              className="h-12 w-auto"
+              className="h-12 w-auto rounded-lg bg-white/80 px-2 py-1"
             />
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Friosan Logistica</p>
-              <p className="text-sm text-slate-600">Acceso seguro por rol</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-slate-200">Friosan Logistica</p>
+              <p className="text-sm text-slate-300">Acceso seguro por rol</p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Fecha</p>
-              <p className="text-sm font-semibold text-slate-900">
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/70 px-4 py-3 shadow-sm backdrop-blur">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Fecha</p>
+              <p className="text-sm font-semibold text-slate-100">
                 {now.toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Hora</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/70 px-4 py-3 shadow-sm backdrop-blur">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Hora</p>
+              <p className="text-sm font-semibold text-slate-100">
+                {now.toLocaleTimeString('es-CL', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </p>
             </div>
           </div>

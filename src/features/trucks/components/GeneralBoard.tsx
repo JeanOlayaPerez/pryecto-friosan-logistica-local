@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
-import { formatDurationSince, isDelayed, minutesBetween } from '../../../shared/utils/time';
+import { minutesBetween } from '../../../shared/utils/time';
 
 const statusLabel: Record<TruckStatus, string> = {
   agendado: 'Agendado',
@@ -16,25 +15,50 @@ const statusLabel: Record<TruckStatus, string> = {
   terminado: 'Terminado',
 };
 
-const statusTone: Record<TruckStatus, string> = {
-  agendado: 'text-slate-100',
-  en_camino: 'text-slate-100',
-  en_porteria: 'text-amber-100',
-  en_espera: 'text-amber-100',
-  en_curso: 'text-sky-100',
-  recepcionado: 'text-emerald-100',
-  almacenado: 'text-emerald-100',
-  cerrado: 'text-slate-100',
-  terminado: 'text-emerald-100',
+const statusChipBg: Record<TruckStatus, string> = {
+  agendado: 'bg-sky-500/80 text-sky-50',
+  en_camino: 'bg-sky-500/80 text-sky-50',
+  en_porteria: 'bg-amber-500/90 text-slate-900',
+  en_espera: 'bg-amber-500/90 text-slate-900',
+  en_curso: 'bg-blue-500/90 text-white',
+  recepcionado: 'bg-emerald-500/90 text-emerald-50',
+  almacenado: 'bg-emerald-500/90 text-emerald-50',
+  cerrado: 'bg-slate-600/90 text-slate-50',
+  terminado: 'bg-emerald-500/90 text-emerald-50',
 };
 
 const formatHour = (value?: Date | null) => {
   if (!value) return '--:--';
   try {
-    return value.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return value.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
   } catch {
     return '--:--';
   }
+};
+
+const formatDate = (value?: Date | null) => {
+  if (!value) return '--';
+  try {
+    const d = value;
+    const day = `${d.getDate()}`.padStart(2, '0');
+    const month = `${d.getMonth() + 1}`.padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch {
+    return '--';
+  }
+};
+
+const formatElapsed = (start?: Date | null, nowValue?: Date | null) => {
+  if (!start || !nowValue) return 'N/A';
+  const diff = nowValue.getTime() - start.getTime();
+  if (Number.isNaN(diff) || diff < 0) return 'N/A';
+  const totalMinutes = Math.floor(diff / 60000);
+  const hours = Math.floor(totalMinutes / 60)
+    .toString()
+    .padStart(2, '0');
+  const mins = (totalMinutes % 60).toString().padStart(2, '0');
+  return `${hours}:${mins}`;
 };
 
 const gateFromTruck = (t: Truck) => `${t.dockType === 'recepcion' ? 'R' : 'D'}-${t.dockNumber}`;
@@ -45,55 +69,6 @@ const typeDisplay = (t: Truck) => {
   const isDone = ['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(t.status);
   const sub = isDone ? 'LISTO' : entry;
   return `${main} / ${sub}`;
-};
-
-const remarkFromTruck = (t: Truck) => {
-  if (t.status === 'en_curso') {
-    return `OPERANDO ${formatDurationSince(t.processStartTime ?? t.checkInTime)}`;
-  }
-  if (t.status === 'en_espera') {
-    return isDelayed(t.checkInTime, 30)
-      ? `DELAY +${formatDurationSince(t.checkInTime)}`
-      : `EN FILA ${formatDurationSince(t.checkInTime)}`;
-  }
-  if (t.status === 'en_porteria') return 'CONTROL PORTERIA';
-  if (t.status === 'en_camino') return 'EN RUTA';
-  if (t.status === 'agendado') return 'AGENDA CONFIRMADA';
-  if (t.status === 'recepcionado' || t.status === 'almacenado') return 'DESCARGA COMPLETA';
-  if (t.status === 'cerrado' || t.status === 'terminado') return 'CERRADO';
-  return t.notes || '---';
-};
-
-const BoardHeaderCell = ({ children }: { children: ReactNode }) => (
-  <div className="flex h-10 items-center border-r border-amber-400/30 bg-[#1e293b] px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-100 last:border-r-0">
-    {children}
-  </div>
-);
-
-const BoardCell = ({
-  children,
-  className,
-  style,
-}: {
-  children: ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}) => (
-  <div
-    className={`relative flex h-12 items-center whitespace-normal border-r border-amber-400/15 px-3 text-sm font-mono uppercase tracking-[0.18em] text-amber-50 before:absolute before:inset-x-0 before:top-1/2 before:h-px before:bg-amber-400/20 first:border-l ${className ?? ''}`}
-    style={style}
-  >
-    <span className="block w-full pr-1 leading-tight">{children}</span>
-  </div>
-);
-
-const GRID_TEMPLATE = 'grid grid-cols-[130px,150px,1.15fr,0.5fr,210px,180px,1.4fr]';
-
-const statusLedClass = (status: TruckStatus) => {
-  if (status === 'en_curso') return 'bg-amber-400 shadow-[0_0_0_4px_rgba(251,191,36,0.25)]';
-  if (status === 'recepcionado' || status === 'almacenado' || status === 'cerrado' || status === 'terminado')
-    return 'bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.25)]';
-  return 'bg-rose-400 shadow-[0_0_0_4px_rgba(248,113,113,0.25)]';
 };
 
 export const GeneralBoard = () => {
@@ -195,73 +170,24 @@ export const GeneralBoard = () => {
   }, [filtered]);
 
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-r from-amber-500/10 via-sky-500/5 to-emerald-500/10 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(251,191,36,0.16),transparent_25%),radial-gradient(circle_at_70%_30%,rgba(56,189,248,0.12),transparent_25%),radial-gradient(circle_at_50%_80%,rgba(16,185,129,0.12),transparent_25%)]" />
-        <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.3em] text-amber-100">Panel operativo</p>
-            <h2 className="text-2xl font-bold text-white">Tablero en vivo de camiones</h2>
-            <div className="flex flex-wrap gap-2 text-xs text-amber-50">
-              <span className="rounded-full bg-black/30 px-3 py-1 font-mono tracking-[0.15em]">
-                {now.toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'short' })}
-              </span>
-              <span className="rounded-full bg-black/30 px-3 py-1 font-mono tracking-[0.18em]">
-                {now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </span>
-              <span className="rounded-full bg-black/30 px-3 py-1 font-semibold">
-                {filterDock === 'todos' ? 'Recepcion + Despacho' : filterDock === 'recepcion' ? 'Solo recepcion' : 'Solo despacho'}
-              </span>
+    <div className="min-h-screen space-y-6 bg-[#0a1024] px-3 pb-10 pt-2 sm:px-6">
+      <div className="rounded-3xl border border-amber-300/30 bg-gradient-to-r from-[#0f1a3a] via-[#0c1430] to-[#0f1a3a] px-6 py-5 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-black/30 p-3 shadow-inner shadow-slate-900/60">
+              <img src="/friosan-logo.png" alt="Friosan" className="h-14 w-auto object-contain" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-amber-100">Friosan SPA</p>
+              <p className="text-2xl font-extrabold tracking-wide text-amber-300">Espera de camiones</p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-2xl border border-amber-300/40 bg-black/30 px-4 py-3 text-right">
-              <p className="text-xs uppercase tracking-[0.18em] text-amber-100">Camiones en pantalla</p>
-              <p className="text-3xl font-semibold text-white">{stats.total}</p>
-              <p className="text-xs text-amber-50/80">Filtro aplicado</p>
-            </div>
-            <div className="rounded-2xl border border-amber-300/40 bg-black/30 px-4 py-3 text-right">
-              <p className="text-xs uppercase tracking-[0.18em] text-amber-100">Retrasos detectados</p>
-              <p className="text-3xl font-semibold text-white">
-                {filtered.filter((t) => isDelayed(t.checkInTime, 30)).length}
-              </p>
-              <p className="text-xs text-amber-50/80">+30 min en espera</p>
-            </div>
+          <div className="text-right">
+            <p className="text-lg font-mono tracking-[0.18em] text-amber-100">
+              {formatDate(now)}, {formatHour(now)}
+            </p>
+            <p className="text-xs text-amber-50/70">Ultima actualizacion: {formatHour(now)}</p>
           </div>
-        </div>
-      </div>
-
-      <div className="glass flex flex-wrap items-center gap-3 rounded-2xl border border-amber-400/20 bg-[#0d1322]/70 px-4 py-3 shadow-panel">
-        <div className="inline-flex rounded-full border border-amber-400/30 bg-black/30 p-1 text-sm shadow-sm shadow-amber-500/20">
-          {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
-            <button
-              key={dock}
-              onClick={() => setFilterDock(dock)}
-              className={`rounded-full px-4 py-2 transition ${
-                filterDock === dock
-                  ? 'bg-amber-400 text-slate-900 font-semibold'
-                  : 'text-amber-100 hover:text-white'
-              }`}
-            >
-              {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative flex-1 min-w-[220px]">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar cliente, patente, conductor o anden"
-            className="w-full rounded-full border border-amber-400/20 bg-[#0a0f1c] px-4 py-2 text-sm text-amber-50 outline-none focus:border-amber-300/60 focus:ring-2 focus:ring-amber-400/30"
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-xs text-amber-100">
-          <span className="rounded-full bg-black/30 px-3 py-1">Porteria: {stats.enPorteria}</span>
-          <span className="rounded-full bg-black/30 px-3 py-1">Espera: {stats.enEspera}</span>
-          <span className="rounded-full bg-black/30 px-3 py-1">En curso: {stats.enCurso}</span>
-          <span className="rounded-full bg-black/30 px-3 py-1">A tiempo: {stats.onTime}</span>
         </div>
       </div>
 
@@ -271,64 +197,109 @@ export const GeneralBoard = () => {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-b from-[#0b1220] to-[#0a0f1a] shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
-        <div className={`${GRID_TEMPLATE} border-b border-amber-400/40 shadow-[inset_0_-1px_0_rgba(251,191,36,0.3)]`}>
-          <BoardHeaderCell>Hora</BoardHeaderCell>
-          <BoardHeaderCell>Patente</BoardHeaderCell>
-          <BoardHeaderCell>Cliente</BoardHeaderCell>
-          <BoardHeaderCell>Anden</BoardHeaderCell>
-          <BoardHeaderCell>Tipo</BoardHeaderCell>
-          <BoardHeaderCell>Estado</BoardHeaderCell>
-          <BoardHeaderCell>Observacion</BoardHeaderCell>
+      <div className="rounded-3xl border border-amber-400/30 bg-[#0f162f] p-5 shadow-[0_25px_70px_rgba(0,0,0,0.5)]">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-amber-200">Tablero visor</p>
+            <p className="text-xl font-semibold text-amber-50">Estado general de camiones</p>
+            <p className="text-xs text-amber-100/80">Filtros: {filterDock === 'todos' ? 'Recepcion + Despacho' : filterDock === 'recepcion' ? 'Solo recepcion' : 'Solo despacho'}</p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs text-amber-100">
+            <span className="rounded-full border border-amber-300/40 px-3 py-1">Total: {stats.total}</span>
+            <span className="rounded-full border border-amber-300/40 px-3 py-1">Porteria: {stats.enPorteria}</span>
+            <span className="rounded-full border border-amber-300/40 px-3 py-1">Espera: {stats.enEspera}</span>
+            <span className="rounded-full border border-amber-300/40 px-3 py-1">En curso: {stats.enCurso}</span>
+          </div>
         </div>
 
-        <AnimatePresence initial={false}>
-          {boardRows.map((truck, idx) => (
-            <motion.div
-              key={truck.id}
-              layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className={`${GRID_TEMPLATE} border-b border-amber-400/15 ${
-                idx % 2 === 0 ? 'bg-[#0c1423]/80' : 'bg-[#111b2c]/80'
-              } hover:bg-[#152238]/90`}
-            >
-              <BoardCell
-                className="text-amber-200 overflow-hidden"
-                style={{ whiteSpace: 'nowrap' }}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="inline-flex rounded-full border border-amber-400/30 bg-black/30 p-1 text-sm shadow-sm shadow-amber-500/20">
+            {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
+              <button
+                key={dock}
+                onClick={() => setFilterDock(dock)}
+                className={`rounded-full px-4 py-2 transition ${
+                  filterDock === dock ? 'bg-amber-400 text-slate-900 font-semibold' : 'text-amber-100 hover:text-white'
+                }`}
               >
-                {formatHour(truck.checkInTime ?? truck.checkInGateAt ?? truck.scheduledArrival)}
-              </BoardCell>
-              <BoardCell className="text-lg font-semibold tracking-[0.28em] text-white">
-                {truck.plate.toUpperCase()}
-              </BoardCell>
-              <BoardCell className="text-[13px] font-semibold text-white tracking-[0.12em]">
-                {truck.clientName}
-              </BoardCell>
-              <BoardCell className="text-amber-100">
-                {gateFromTruck(truck)}
-              </BoardCell>
-              <BoardCell className="text-[12px] text-amber-100">
-                {typeDisplay(truck)}
-              </BoardCell>
-              <BoardCell className={`text-[12px] font-semibold ${statusTone[truck.status]} flex items-center gap-3 justify-between`}>
-                <span className="truncate">{statusLabel[truck.status]}</span>
-                <span className={`ml-4 h-2.5 w-2.5 shrink-0 rounded-full border border-white/10 ${statusLedClass(truck.status)}`} />
-              </BoardCell>
-              <BoardCell className="text-[12px] text-amber-100">
-                {remarkFromTruck(truck)}
-              </BoardCell>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {boardRows.length === 0 && (
-          <div className="flex h-40 items-center justify-center text-sm text-amber-100">
-            No hay camiones activos para mostrar en el tablero.
+                {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
+              </button>
+            ))}
           </div>
-        )}
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar cliente, patente, conductor o anden"
+            className="flex-1 min-w-[240px] rounded-full border border-amber-400/20 bg-[#0a0f1c] px-4 py-2 text-sm text-amber-50 outline-none focus:border-amber-300/60 focus:ring-2 focus:ring-amber-400/30"
+          />
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-amber-400/30 bg-[#0d132c] shadow-inner shadow-black/30">
+          <div className="grid min-w-[1150px] grid-cols-[120px,220px,140px,120px,140px,120px,140px,140px,110px,100px] border-b border-amber-300/30 bg-[#0f214f] text-[12px] font-semibold uppercase tracking-[0.2em] text-amber-100">
+            <div className="border-r border-amber-300/30 px-3 py-3">Patente</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Nombre empresa</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Fec. bitacora</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Hora bitacora</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Fec. ingreso</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Hora ingreso</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Estado</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Proceso</div>
+            <div className="border-r border-amber-300/30 px-3 py-3">Puerta</div>
+            <div className="px-3 py-3">Tiempo</div>
+          </div>
+
+          {boardRows.map((truck, idx) => {
+            const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
+            const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
+            const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
+            const ingresoHour = formatHour(truck.checkInGateAt ?? truck.checkInTime ?? null);
+            const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
+            const process = typeDisplay(truck);
+            const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
+
+            return (
+              <div
+                key={truck.id}
+                className={`grid min-w-[1150px] grid-cols-[120px,220px,140px,120px,140px,120px,140px,140px,110px,100px] border-b border-amber-300/20 ${
+                  idx % 2 === 0 ? 'bg-[#0d1b42]' : 'bg-[#0b1738]'
+                }`}
+              >
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-amber-50">
+                  {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
+                </div>
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm font-semibold text-amber-50">
+                  <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
+                </div>
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">
+                  {bitacoraDate}
+                </div>
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">{bitacoraHour}</div>
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">{ingresoDate}</div>
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">{ingresoHour}</div>
+                <div className="border-r border-amber-300/20 px-3 py-3">
+                  <span
+                    className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${statusChipBg[truck.status]}`}
+                  >
+                    {statusLabel[truck.status]}
+                  </span>
+                </div>
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">
+                  <span className="block break-words leading-tight">{process}</span>
+                </div>
+                <div className="border-r border-amber-300/20 px-3 py-3 text-sm font-semibold text-purple-200">
+                  {gate}
+                </div>
+                <div className="px-3 py-3 text-sm font-mono font-semibold text-amber-50">{elapsed}</div>
+              </div>
+            );
+          })}
+
+          {boardRows.length === 0 && (
+            <div className="flex h-32 items-center justify-center text-sm text-amber-100">
+              No hay camiones activos para mostrar en el tablero.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
