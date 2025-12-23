@@ -27,6 +27,30 @@ const statusChip: Record<TruckStatus, string> = {
   terminado: "bg-emerald-100 text-emerald-800 border border-emerald-200",
 };
 
+const formatHour = (d?: Date | null) => {
+  if (!d) return "--:--";
+  try {
+    return d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
+  } catch {
+    return "--:--";
+  }
+};
+
+const formatDate = (d?: Date | null) => {
+  if (!d) return "--";
+  try {
+    return d.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+  } catch {
+    return "--";
+  }
+};
+
+const processLabel = (t: Truck) => {
+  const load = (t.loadType ?? "carga").toUpperCase();
+  const entry = (t.entryType ?? "conos").toUpperCase();
+  return `${load} · ${entry}`;
+};
+
 export const PorteriaDesk = () => {
   const { user, role, logout, loading } = useAuth();
   const [form, setForm] = useState({
@@ -46,7 +70,7 @@ export const PorteriaDesk = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [entryType, setEntryType] = useState<"conos" | "anden">("conos");
   const [dockNumber, setDockNumber] = useState("");
-  // Mostrar la bitacora por defecto; el formulario se usa solo para camiones no planificados
+  // Mostrar bitácora por defecto; el formulario solo para camión extra.
   const [showAgenda, setShowAgenda] = useState(true);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -159,160 +183,153 @@ export const PorteriaDesk = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="relative z-10 mx-auto max-w-5xl space-y-6 px-4 py-6">
-        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-md md:grid-cols-[1.4fr,1fr,1fr]">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.25em] text-slate-500">FrioSan SPA</p>
-            <p className="text-sm font-semibold text-slate-900">Centro de distribución frigorífica</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500">Fecha</p>
-            <p className="font-mono text-sm text-slate-800">
-              {now.toLocaleDateString("es-CL", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500">Hora:</p>
-            <p className="font-mono text-sm text-slate-800">
-              {now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-            </p>
-            <p className="text-xs text-slate-500">Temperatura:</p>
-            <p className="font-mono text-sm text-slate-800">12°C (Pudahuel)</p>
-          </div>
-        </div>
-
-        <div className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Porteria · FrioSan SPA</p>
-              <h1 className="text-2xl font-semibold text-slate-900">Bitacora de camiones</h1>
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-sky-50 text-slate-900">
+      <div className="relative z-10 mx-auto max-w-6xl space-y-6 px-4 py-6">
+        {/* Encabezado tipo barra superior */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-lg shadow-slate-200/70">
+          <div className="flex items-center justify-between bg-sky-700 px-4 py-3 text-white">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-28 overflow-hidden rounded-md bg-white/10">
+                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-contain" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-sky-100">Friosan · Porteria</p>
+                <p className="text-lg font-semibold">Panel de porteria</p>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="text-right text-sm">
+              <p className="font-mono tracking-wide">{formatDate(now)}</p>
+              <p className="font-mono tracking-wide">{formatHour(now)}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50 px-4 py-2 text-sm">
+            <span>
+              <span className="font-semibold">Fecha:</span> {formatDate(now)}
+            </span>
+            <span>
+              <span className="font-semibold">Usuario:</span> {user?.email ?? role?.toString().toUpperCase()}
+            </span>
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowAgenda((v) => !v)}
-                className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-200"
+                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700 shadow border border-sky-200 hover:bg-sky-50"
               >
-                {showAgenda ? "Ingresar camion" : "Volver a bitacora"}
+                {showAgenda ? "Ingresar camión extra" : "Volver a bitácora"}
               </button>
               <button
                 onClick={() => logout()}
-                className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm hover:brightness-110"
+                className="rounded-full bg-rose-500 px-3 py-1 text-xs font-semibold text-white shadow hover:bg-rose-600"
               >
                 Salir
               </button>
             </div>
           </div>
-          {!showAgenda && (
-            <div className="grid grid-cols-3 gap-3 text-sm text-slate-500">
-              <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Paso 1</p>
-                <p className="font-semibold text-slate-900">Conductor + RUT</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Paso 2</p>
-                <p className="font-semibold text-slate-900">Patente + Empresa</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Paso 3</p>
-                <p className="font-semibold text-slate-900">Carga / Descarga</p>
-              </div>
-            </div>
-          )}
         </div>
 
+        {/* Bitácora */}
         {showAgenda && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
-            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Bitacora de ingresos</p>
-                <h3 className="text-lg font-semibold text-slate-900">Camiones agendados por Comercial</h3>
-                <p className="text-xs text-slate-500">Marca el estado: en camino, en porteria o en espera.</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Bitacora de ingresos</p>
+                <h3 className="text-xl font-semibold text-slate-900">Camiones agendados por Comercial</h3>
+                <p className="text-xs text-slate-500">Marca el estado: en camino, en portería o en espera.</p>
               </div>
               <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
-                {agendaList.length} en bitacora
+                {agendaList.length} en bitácora
               </span>
             </div>
             {actionMsg && <p className="mb-2 text-xs text-amber-700">{actionMsg}</p>}
+
             <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-[0.9fr,0.9fr,1.4fr,1fr,1.1fr,0.9fr,1fr] bg-slate-100 text-[11px] uppercase tracking-[0.18em] text-slate-600">
-                <span className="border-r border-slate-200 px-3 py-2">Agendada</span>
-                <span className="border-r border-slate-200 px-3 py-2">Patente</span>
-                <span className="border-r border-slate-200 px-3 py-2">Cliente / Conductor / Rut</span>
-                <span className="border-r border-slate-200 px-3 py-2">Ult. cambio</span>
-                <span className="border-r border-slate-200 px-3 py-2">Acciones</span>
-                <span className="border-r border-slate-200 px-3 py-2">T. Porteria</span>
-                <span className="px-3 py-2">Estado</span>
-              </div>
-              {agendaList.length === 0 && (
-                <div className="border-t border-slate-200 px-3 py-4 text-sm text-slate-500">Sin camiones agendados.</div>
-              )}
-              <div className="max-h-[360px] overflow-y-auto overflow-x-hidden bg-white">
-                {agendaList.map((t) => (
-                  <div
-                    key={t.id}
-                    className="grid grid-cols-[0.9fr,0.9fr,1.4fr,1fr,1.1fr,0.9fr,1fr] border-t border-slate-200 text-sm text-slate-800"
-                  >
-                    <span className="border-r border-slate-200 px-3 py-3 font-mono text-slate-700 break-words">
-                      {t.scheduledArrival
-                        ? t.scheduledArrival.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
-                        : "--"}
-                    </span>
-                    <span className="border-r border-slate-200 px-3 py-3 font-semibold tracking-[0.15em] text-slate-900 break-words">
-                      {t.plate}
-                    </span>
-                    <div className="border-r border-slate-200 px-3 py-3 flex flex-col gap-0.5 text-sm text-slate-800 break-words">
-                      <span className="font-semibold">{t.clientName}</span>
-                      <span className="text-slate-600">{t.driverName}</span>
-                      {t.driverRut && <span className="text-slate-500">{t.driverRut}</span>}
-                    </div>
-                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600 break-words">
-                      {t.updatedAt
-                        ? t.updatedAt.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
-                        : "--"}
-                    </span>
-                    <div className="border-r border-slate-200 px-3 py-3 text-xs break-words">
-                      <div className={`w-fit rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
-                        {statusLabel[t.status]}
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-500">Actualiza para notificar otras vistas.</p>
-                    </div>
-                    <span className="border-r border-slate-200 px-3 py-3 text-xs text-slate-600 break-words">
-                      {t.updatedAt && t.checkInGateAt
-                        ? `${Math.max(
-                            0,
-                            Math.round((t.updatedAt.getTime() - t.checkInGateAt.getTime()) / 60000),
-                          )} min`
-                        : "--"}
-                    </span>
-                    <div className="px-3 py-3">
-                      <select
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800"
-                        value={t.status}
-                        onChange={(e) => handleStatus(t.id, e.target.value as TruckStatus)}
-                      >
-                        <option value="en_camino">En camino</option>
-                        <option value="en_porteria">En porteria</option>
-                        <option value="en_espera">En espera</option>
-                        <option value="en_curso">En curso</option>
-                      </select>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <table className="min-w-full table-fixed border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-600">
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[18%]">Razón social</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[14%]">Patente</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[20%]">Cliente / Conductor / Rut</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[16%]">Proceso</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[12%]">Agendada</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[10%]">Ult. cambio</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[10%]">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agendaList.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-4 text-center text-sm text-slate-500">
+                        No hay camiones en bitácora.
+                      </td>
+                    </tr>
+                  )}
+                  {agendaList.map((t, idx) => (
+                    <tr
+                      key={t.id}
+                      className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}
+                    >
+                      <td className="border border-slate-200 px-3 py-3 align-top">
+                        <p className="font-semibold text-slate-900 break-words">{t.clientName || "Sin cliente"}</p>
+                      </td>
+                      <td className="border border-slate-200 px-3 py-3 align-top text-sm font-semibold uppercase tracking-[0.12em] text-slate-900 break-words">
+                        {t.plate || "N/A"}
+                      </td>
+                      <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-800 break-words">
+                        <div className="space-y-0.5">
+                          <p className="font-semibold">{t.driverName || "--"}</p>
+                          {t.driverRut && <p className="text-slate-600 text-xs">{t.driverRut}</p>}
+                        </div>
+                      </td>
+                      <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-800 break-words">
+                        {processLabel(t)}
+                      </td>
+                      <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-700 break-words">
+                        {t.scheduledArrival ? `${formatDate(t.scheduledArrival)} · ${formatHour(t.scheduledArrival)}` : "--"}
+                      </td>
+                      <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-700">
+                        {t.updatedAt ? formatHour(t.updatedAt) : "--"}
+                      </td>
+                      <td className="border border-slate-200 px-3 py-3 align-top text-sm">
+                        <select
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800 shadow-sm"
+                          value={t.status}
+                          onChange={(e) => handleStatus(t.id, e.target.value as TruckStatus)}
+                        >
+                          <option value="en_camino">En camino</option>
+                          <option value="en_porteria">En porteria</option>
+                          <option value="en_espera">En espera</option>
+                          <option value="en_curso">En curso</option>
+                        </select>
+                        <div className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
+                          {statusLabel[t.status]}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
+        {/* Formulario para camión extra */}
         {!showAgenda && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Ingreso rápido</p>
+                <h3 className="text-xl font-semibold text-slate-900">Camión no previsto</h3>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
+                Completa datos mínimos
+              </span>
+            </div>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="text-sm text-slate-700">
                   Nombre conductor *
                   <input
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={form.driverName}
                     onChange={(e) => setForm({ ...form, driverName: e.target.value })}
                     required
@@ -321,7 +338,7 @@ export const PorteriaDesk = () => {
                 <label className="text-sm text-slate-700">
                   Rut
                   <input
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={form.driverRut}
                     onChange={(e) => setForm({ ...form, driverRut: e.target.value })}
                     placeholder="12.345.678-9"
@@ -330,7 +347,7 @@ export const PorteriaDesk = () => {
                 <label className="text-sm text-slate-700">
                   Patente *
                   <input
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm uppercase text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm uppercase text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={form.plate}
                     onChange={(e) => setForm({ ...form, plate: e.target.value })}
                     required
@@ -339,7 +356,7 @@ export const PorteriaDesk = () => {
                 <label className="text-sm text-slate-700">
                   Empresa *
                   <input
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={form.companyName}
                     onChange={(e) => setForm({ ...form, companyName: e.target.value, clientName: e.target.value })}
                     required
@@ -348,7 +365,7 @@ export const PorteriaDesk = () => {
                 <label className="text-sm text-slate-700">
                   Cargar / Descargar
                   <select
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={form.loadType}
                     onChange={(e) => setForm({ ...form, loadType: e.target.value as any })}
                   >
@@ -360,7 +377,7 @@ export const PorteriaDesk = () => {
                 <label className="text-sm text-slate-700">
                   Ingreso a
                   <select
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={entryType}
                     onChange={(e) => setEntryType(e.target.value as "conos" | "anden")}
                   >
@@ -372,7 +389,7 @@ export const PorteriaDesk = () => {
                   <label className="text-sm text-slate-700">
                     Anden (1-9)
                     <select
-                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                       value={dockNumber}
                       onChange={(e) => setDockNumber(e.target.value)}
                       required
@@ -391,7 +408,7 @@ export const PorteriaDesk = () => {
               <label className="text-sm text-slate-700">
                 Notas
                 <textarea
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                   rows={3}
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -423,7 +440,7 @@ export const PorteriaDesk = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:brightness-110 disabled:opacity-60"
+                  className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-600 disabled:opacity-60"
                 >
                   {submitting ? "Guardando..." : "Guardar ingreso"}
                 </button>
@@ -432,19 +449,20 @@ export const PorteriaDesk = () => {
           </div>
         )}
 
+        {/* Registro del día */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Registro de hoy</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Registro de hoy</p>
               <h3 className="text-lg font-semibold text-slate-900">Camiones ingresados</h3>
-              <p className="text-xs text-slate-500">Del mas reciente al mas antiguo</p>
+              <p className="text-xs text-slate-500">Del más reciente al más antiguo</p>
             </div>
             <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
               {todayList.length} registros
             </span>
           </div>
           <div className="grid gap-3">
-            {todayList.length === 0 && <p className="text-sm text-slate-500">Aun no hay registros hoy.</p>}
+            {todayList.length === 0 && <p className="text-sm text-slate-500">Aún no hay registros hoy.</p>}
             {todayList.map((t) => {
               const isOpen = expandedId === t.id;
               return (
@@ -453,12 +471,13 @@ export const PorteriaDesk = () => {
                     <div className="space-y-0.5">
                       <p className="font-semibold text-slate-900">{t.companyName}</p>
                       <p className="text-xs text-slate-600">
-                        {t.plate} - {t.driverName} - {t.loadType ?? "carga"}
+                        {t.plate} · {t.driverName} · {t.loadType ?? "carga"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-500">
-                        {t.createdAt?.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) ?? "--"}
+                        {t.createdAt?.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }) ??
+                          "--"}
                       </span>
                       <button
                         onClick={() => setExpandedId(isOpen ? null : t.id)}
