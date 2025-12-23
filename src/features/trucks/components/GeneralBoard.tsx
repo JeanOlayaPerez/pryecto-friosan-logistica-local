@@ -61,7 +61,7 @@ const formatElapsed = (start?: Date | null, nowValue?: Date | null) => {
   return `${hours}:${mins}`;
 };
 
-const gateFromTruck = (t: Truck) => `${t.dockType === 'recepcion' ? 'R' : 'D'}-${t.dockNumber}`;
+const gateFromTruck = (t: Truck) => `A-${t.dockNumber ?? '-'}`;
 
 const typeDisplay = (t: Truck) => {
   const main = (t.loadType ?? 'carga').toUpperCase();
@@ -197,29 +197,29 @@ export const GeneralBoard = () => {
         </div>
       )}
 
-      <div className="rounded-3xl border border-amber-400/30 bg-[#0f162f] p-5 shadow-[0_25px_70px_rgba(0,0,0,0.5)]">
+      <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-[0_25px_70px_rgba(0,0,0,0.32)] backdrop-blur">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-amber-200">Tablero visor</p>
-            <p className="text-xl font-semibold text-amber-50">Estado general de camiones</p>
-            <p className="text-xs text-amber-100/80">Filtros: {filterDock === 'todos' ? 'Recepcion + Despacho' : filterDock === 'recepcion' ? 'Solo recepcion' : 'Solo despacho'}</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-slate-500">Tablero visor</p>
+            <p className="text-xl font-semibold text-slate-900">Estado general de camiones</p>
+            <p className="text-xs text-slate-500">Filtros: {filterDock === 'todos' ? 'Recepcion + Despacho' : filterDock === 'recepcion' ? 'Solo recepcion' : 'Solo despacho'}</p>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs text-amber-100">
-            <span className="rounded-full border border-amber-300/40 px-3 py-1">Total: {stats.total}</span>
-            <span className="rounded-full border border-amber-300/40 px-3 py-1">Porteria: {stats.enPorteria}</span>
-            <span className="rounded-full border border-amber-300/40 px-3 py-1">Espera: {stats.enEspera}</span>
-            <span className="rounded-full border border-amber-300/40 px-3 py-1">En curso: {stats.enCurso}</span>
+          <div className="flex flex-wrap gap-2 text-xs text-slate-700">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Total: {stats.total}</span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Porteria: {stats.enPorteria}</span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Espera: {stats.enEspera}</span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">En curso: {stats.enCurso}</span>
           </div>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-full border border-amber-400/30 bg-black/30 p-1 text-sm shadow-sm shadow-amber-500/20">
+          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-sm shadow-sm">
             {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
               <button
                 key={dock}
                 onClick={() => setFilterDock(dock)}
                 className={`rounded-full px-4 py-2 transition ${
-                  filterDock === dock ? 'bg-amber-400 text-slate-900 font-semibold' : 'text-amber-100 hover:text-white'
+                  filterDock === dock ? 'bg-sky-500 text-white font-semibold' : 'text-slate-700 hover:text-slate-900'
                 }`}
               >
                 {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
@@ -230,22 +230,22 @@ export const GeneralBoard = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar cliente, patente, conductor o anden"
-            className="flex-1 min-w-[240px] rounded-full border border-amber-400/20 bg-[#0a0f1c] px-4 py-2 text-sm text-amber-50 outline-none focus:border-amber-300/60 focus:ring-2 focus:ring-amber-400/30"
+            className="flex-1 min-w-[240px] rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
           />
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-amber-400/30 bg-[#0d132c] shadow-inner shadow-black/30">
-          <div className="grid min-w-[1150px] grid-cols-[120px,220px,140px,120px,140px,120px,140px,140px,110px,100px] border-b border-amber-300/30 bg-[#0f214f] text-[12px] font-semibold uppercase tracking-[0.2em] text-amber-100">
-            <div className="border-r border-amber-300/30 px-3 py-3">Patente</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Nombre empresa</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Fec. bitacora</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Hora bitacora</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Fec. ingreso</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Hora ingreso</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Estado</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Proceso</div>
-            <div className="border-r border-amber-300/30 px-3 py-3">Puerta</div>
-            <div className="px-3 py-3">Tiempo</div>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/85 shadow-inner shadow-slate-200/60 backdrop-blur">
+          <div className="grid min-w-[1220px] grid-cols-[120px,220px,140px,120px,140px,120px,150px,180px,110px,110px] border-b border-slate-200 bg-slate-100 text-[12px] font-semibold uppercase tracking-[0.15em] text-slate-700">
+            <div className="border-r border-slate-200 px-3 py-2.5">Patente</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Nombre empresa</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Fec. bitacora</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Hora bitacora</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Fec. ingreso</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Hora ingreso</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Estado</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Proceso</div>
+            <div className="border-r border-slate-200 px-3 py-2.5">Andén</div>
+            <div className="px-3 py-2.5">Tiempo</div>
           </div>
 
           {boardRows.map((truck, idx) => {
@@ -260,42 +260,42 @@ export const GeneralBoard = () => {
             return (
               <div
                 key={truck.id}
-                className={`grid min-w-[1150px] grid-cols-[120px,220px,140px,120px,140px,120px,140px,140px,110px,100px] border-b border-amber-300/20 ${
-                  idx % 2 === 0 ? 'bg-[#0d1b42]' : 'bg-[#0b1738]'
+                className={`grid min-w-[1220px] grid-cols-[120px,220px,140px,120px,140px,120px,150px,180px,110px,110px] border-b border-slate-200 ${
+                  idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                 }`}
               >
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-amber-50">
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-900">
                   {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
                 </div>
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm font-semibold text-amber-50">
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-900">
                   <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
                 </div>
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm text-slate-700">
                   {bitacoraDate}
                 </div>
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">{bitacoraHour}</div>
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">{ingresoDate}</div>
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">{ingresoHour}</div>
-                <div className="border-r border-amber-300/20 px-3 py-3">
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm text-slate-700">{bitacoraHour}</div>
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm text-slate-700">{ingresoDate}</div>
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm text-slate-700">{ingresoHour}</div>
+                <div className="border-r border-slate-200 px-3 py-2.5">
                   <span
                     className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${statusChipBg[truck.status]}`}
                   >
                     {statusLabel[truck.status]}
                   </span>
                 </div>
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm text-amber-100">
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm text-slate-700">
                   <span className="block break-words leading-tight">{process}</span>
                 </div>
-                <div className="border-r border-amber-300/20 px-3 py-3 text-sm font-semibold text-purple-200">
+                <div className="border-r border-slate-200 px-3 py-2.5 text-sm font-semibold text-purple-700">
                   {gate}
                 </div>
-                <div className="px-3 py-3 text-sm font-mono font-semibold text-amber-50">{elapsed}</div>
+                <div className="px-3 py-2.5 text-sm font-mono font-semibold text-slate-900">{elapsed}</div>
               </div>
             );
           })}
 
           {boardRows.length === 0 && (
-            <div className="flex h-32 items-center justify-center text-sm text-amber-100">
+            <div className="flex h-32 items-center justify-center text-sm text-slate-600">
               No hay camiones activos para mostrar en el tablero.
             </div>
           )}
