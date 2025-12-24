@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { minutesBetween } from '../../../shared/utils/time';
@@ -159,7 +159,7 @@ export const GeneralBoard = () => {
 
   return (
     <div className="min-h-screen space-y-6 bg-[#0a1024] px-3 pb-10 pt-4 text-white">
-      <div className="mx-auto max-w-6xl space-y-4">
+      <div className="mx-auto max-w-screen-2xl space-y-4">
         <div className="rounded-3xl border border-[#1a3762] bg-[#0c1c3a] px-6 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
@@ -225,17 +225,17 @@ export const GeneralBoard = () => {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-          <div className="grid min-w-[1420px] grid-cols-[150px,240px,170px,150px,170px,150px,180px,180px,130px,120px] border-b border-[#1a3762] bg-[#0b234a] text-[12px] font-semibold uppercase tracking-[0.18em] text-[#f2c744]">
+        <div className="overflow-x-auto rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+          <div className="grid min-w-[1250px] grid-cols-[130px,220px,140px,120px,140px,120px,150px,150px,110px,110px] border-b border-[#1a3762] bg-[#0b234a] text-[12px] font-semibold uppercase tracking-[0.18em] text-[#f2c744]">
             <div className="border-r border-[#1a3762] px-3 py-3">Patente</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Nombre empresa</div>
-            <div className="border-r border-[#1a3762] px-3 py-3">Fec. bitácora</div>
-            <div className="border-r border-[#1a3762] px-3 py-3">Hora bitácora</div>
+            <div className="border-r border-[#1a3762] px-3 py-3">Fec. bitacora</div>
+            <div className="border-r border-[#1a3762] px-3 py-3">Hora bitacora</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Fec. ingreso</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Hora ingreso</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Estado</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Proceso</div>
-            <div className="border-r border-[#1a3762] px-3 py-3">Andén</div>
+            <div className="border-r border-[#1a3762] px-3 py-3">Anden</div>
             <div className="px-3 py-3">Tiempo</div>
           </div>
 
@@ -267,7 +267,7 @@ export const GeneralBoard = () => {
             return (
               <div
                 key={truck.id}
-                className={`grid min-w-[1420px] grid-cols-[150px,240px,170px,150px,170px,150px,180px,180px,130px,120px] border-b border-[#1a3762] ${
+                className={`grid min-w-[1250px] grid-cols-[130px,220px,140px,120px,140px,120px,150px,150px,110px,110px] border-b border-[#1a3762] ${
                   idx % 2 === 0 ? 'bg-[#0c2b52]' : 'bg-[#0a2748]'
                 }`}
               >
@@ -277,10 +277,18 @@ export const GeneralBoard = () => {
                 <div className="border-r border-[#1a3762] px-3 py-3 text-sm font-semibold text-white">
                   <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
                 </div>
-                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white">{bitacoraDate}</div>
-                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white">{bitacoraHour}</div>
-                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white">{ingresoDate}</div>
-                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white">{ingresoHour}</div>
+                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white whitespace-nowrap">
+                  {bitacoraDate}
+                </div>
+                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white whitespace-nowrap">
+                  {bitacoraHour}
+                </div>
+                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white whitespace-nowrap">
+                  {ingresoDate}
+                </div>
+                <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white whitespace-nowrap">
+                  {ingresoHour}
+                </div>
                 <div className="border-r border-[#1a3762] px-3 py-3">
                   <span className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white ${stateClass}`}>
                     {statusLabel[truck.status]}
@@ -291,10 +299,12 @@ export const GeneralBoard = () => {
                     {process}
                   </span>
                 </div>
-                <div className="border-r border-[#1a3762] px-3 py-3 text-sm font-semibold text-purple-200">
+                <div className="border-r border-[#1a3762] px-3 py-3 text-sm font-semibold text-purple-200 whitespace-nowrap">
                   {gate}
                 </div>
-                <div className="px-3 py-3 text-sm font-mono font-semibold text-[#f2c744]">{elapsed}</div>
+                <div className="px-3 py-3 text-sm font-mono font-semibold text-[#f2c744] whitespace-nowrap">
+                  {elapsed}
+                </div>
               </div>
             );
           })}
