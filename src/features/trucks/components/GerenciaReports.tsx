@@ -33,6 +33,7 @@ export const GerenciaReports = () => {
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [metricsRange, setMetricsRange] = useState<'dia' | '7d'>('dia');
 
   useEffect(() => {
     const unsub = subscribeAllTrucks(
@@ -52,10 +53,15 @@ export const GerenciaReports = () => {
     return <Navigate to="/" replace />;
   }
 
-  const filtered = useMemo(() => {
+  const getDaySource = (t: Truck) => {
+    if (reportType === 'bitacora' && bitacoraFilter === 'sin') {
+      return t.checkInGateAt ?? t.checkInTime ?? t.createdAt ?? null;
+    }
+    return t.scheduledArrival ?? null;
+  };
+
+  const baseFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const dayDate = day ? new Date(day) : null;
-    if (dayDate) dayDate.setHours(0, 0, 0, 0);
     return trucks.filter((t) => {
       const matchesTerm =
         !term ||
@@ -64,23 +70,61 @@ export const GerenciaReports = () => {
         t.driverName.toLowerCase().includes(term);
       const matchesDock = !dock || `${t.dockNumber}` === dock;
       const hasBitacora = typeof t.hasBitacora === 'boolean' ? t.hasBitacora : Boolean(t.scheduledArrival);
-      const daySource =
-        reportType === 'bitacora' && bitacoraFilter === 'sin'
-          ? t.checkInGateAt ?? t.checkInTime ?? t.createdAt
-          : t.scheduledArrival;
-      const matchesDay =
-        !dayDate ||
-        (daySource &&
-          daySource.getFullYear() === dayDate.getFullYear() &&
-          daySource.getMonth() === dayDate.getMonth() &&
-          daySource.getDate() === dayDate.getDate());
       const matchesBitacora =
         reportType !== 'bitacora' || (bitacoraFilter === 'con' ? hasBitacora : !hasBitacora);
-      return matchesTerm && matchesDock && matchesDay && matchesBitacora;
+      return matchesTerm && matchesDock && matchesBitacora;
     });
-  }, [trucks, search, dock, day, reportType, bitacoraFilter]);
+  }, [trucks, search, dock, reportType, bitacoraFilter]);
+
+  const filtered = useMemo(() => {
+    const dayDate = day ? new Date(day) : null;
+    if (dayDate) dayDate.setHours(0, 0, 0, 0);
+    return baseFiltered.filter((t) => {
+      if (!dayDate) return true;
+      const source = getDaySource(t);
+      if (!source) return false;
+      return (
+        source.getFullYear() === dayDate.getFullYear() &&
+        source.getMonth() === dayDate.getMonth() &&
+        source.getDate() === dayDate.getDate()
+      );
+    });
+  }, [baseFiltered, day, reportType, bitacoraFilter]);
+
+  const metricsSource = useMemo(() => {
+    if (metricsRange !== '7d') return filtered;
+    const endDate = day ? new Date(day) : new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 6);
+    startDate.setHours(0, 0, 0, 0);
+    return baseFiltered.filter((t) => {
+      const source = getDaySource(t);
+      if (!source) return false;
+      return source >= startDate && source <= endDate;
+    });
+  }, [metricsRange, baseFiltered, filtered, day, reportType, bitacoraFilter]);
 
   const metrics = useMemo(() => {
+    const total = metricsSource.length;
+    const delayed = metricsSource.filter(
+      (t) => minutesBetween(t.checkInTime, new Date()) >= 30 && t.status === 'en_espera',
+    ).length;
+    const enCurso = metricsSource.filter((t) => t.status === 'en_curso').length;
+    const finalizados = metricsSource.filter((t) =>
+      ['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(t.status),
+    ).length;
+    const promEspera = (() => {
+      const waits = metricsSource
+        .filter((t) => t.checkInGateAt && t.checkInTime)
+        .map((t) => minutesBetween(t.checkInGateAt!, t.checkInTime!));
+      if (!waits.length) return 0;
+      return Math.round(waits.reduce((a, b) => a + b, 0) / waits.length);
+    })();
+    return { total, delayed, enCurso, finalizados, promEspera };
+  }, [metricsSource]);
+
+  const reportMetrics = useMemo(() => {
     const total = filtered.length;
     const delayed = filtered.filter((t) => minutesBetween(t.checkInTime, new Date()) >= 30 && t.status === 'en_espera')
       .length;
@@ -136,10 +180,10 @@ export const GerenciaReports = () => {
           `${r.idx}. ${r.empresa} | Bitacora: ${r.bitDate} ${r.bitHour} | Ingreso: ${r.inDate} ${r.inHour} | Salida: ${r.outDate} ${r.outHour} | Proceso: ${r.proceso} | Patente: ${r.plate} | Anden: ${r.gate} | Hrs: ${r.hrsTotales}`,
       )
       .join('\n');
-    return `Informe logistico - ${new Date().toLocaleString('es-CL')}\nTotal: ${metrics.total} | En curso: ${
-      metrics.enCurso
-    } | Finalizados: ${metrics.finalizados} | Retrasos: ${metrics.delayed} | Prom espera: ${
-      metrics.promEspera
+    return `Informe logistico - ${new Date().toLocaleString('es-CL')}\nTotal: ${reportMetrics.total} | En curso: ${
+      reportMetrics.enCurso
+    } | Finalizados: ${reportMetrics.finalizados} | Retrasos: ${reportMetrics.delayed} | Prom espera: ${
+      reportMetrics.promEspera
     } min\n\n${lines || 'Sin filas con los filtros aplicados.'}`;
   };
 
@@ -272,11 +316,40 @@ export const GerenciaReports = () => {
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-4">
-          <InfoCard label="Total" value={`${metrics.total}`} />
-          <InfoCard label="En curso" value={`${metrics.enCurso}`} />
-          <InfoCard label="Finalizados" value={`${metrics.finalizados}`} />
-          <InfoCard label="Retrasos" value={`${metrics.delayed}`} />
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Metricas</p>
+            <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setMetricsRange('dia')}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  metricsRange === 'dia'
+                    ? 'bg-sky-500 text-white'
+                    : 'bg-white text-slate-700 border border-slate-200'
+                }`}
+              >
+                Dia
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetricsRange('7d')}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  metricsRange === '7d'
+                    ? 'bg-sky-500 text-white'
+                    : 'bg-white text-slate-700 border border-slate-200'
+                }`}
+              >
+                Ultimos 7 dias
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <InfoCard label="Total" value={`${metrics.total}`} />
+            <InfoCard label="En curso" value={`${metrics.enCurso}`} />
+            <InfoCard label="Finalizados" value={`${metrics.finalizados}`} />
+            <InfoCard label="Retrasos" value={`${metrics.delayed}`} />
+          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type FormEvent } from "react";
+﻿import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { createTruck, subscribeAllTrucks } from "../services/trucksApi";
 import type { DockType, Truck, TruckStatus } from "../types";
@@ -65,7 +65,7 @@ export const CommercialView = () => {
   const [creating, setCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
-
+  const scheduledInputRef = useRef<HTMLInputElement | null>(null);
   const canEdit = role === "comercial" || role === "admin" || role === "superadmin";
   const fallbackHome = role === "porteria" ? "/porteria" : role === "recepcion" ? "/recepcion" : "/";
 
@@ -157,6 +157,21 @@ export const CommercialView = () => {
       setCreateError(err?.message ?? "No se pudo agendar el camion.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openSchedulePicker = () => {
+    const el = scheduledInputRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (!el) return;
+    try {
+      if (typeof el.showPicker === "function") {
+        el.showPicker();
+      } else {
+        el.focus();
+        el.click();
+      }
+    } catch (err) {
+      console.warn("No se pudo abrir el calendario", err);
     }
   };
 
@@ -262,13 +277,30 @@ export const CommercialView = () => {
             </label>
             <label className="text-xs text-slate-600">
               Fecha y hora agendada
-              <input
-                type="datetime-local"
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
-                value={createForm.scheduledArrival}
-                onChange={(e) => setCreateForm({ ...createForm, scheduledArrival: e.target.value })}
-                required
-              />
+              <div className="relative mt-1">
+                <input
+                  ref={scheduledInputRef}
+                  type="datetime-local"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 pr-10 text-slate-900 focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                  value={createForm.scheduledArrival}
+                  onChange={(e) => setCreateForm({ ...createForm, scheduledArrival: e.target.value })}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={openSchedulePicker}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-50"
+                  aria-label="Abrir calendario"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+                    <path
+                      fillRule="evenodd"
+                      d="M6 2a1 1 0 0 1 1 1v1h6V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Zm12 8H2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6Zm-4 2a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2h-1Zm-4 0a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2H10Zm-4 0a1 1 0 1 0 0 2h1a1 1 0 1 0 0-2H6Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
             </label>
             <label className="text-xs text-slate-600">
               Bitacora
@@ -373,3 +405,5 @@ export const CommercialView = () => {
     </div>
   );
 };
+
+
