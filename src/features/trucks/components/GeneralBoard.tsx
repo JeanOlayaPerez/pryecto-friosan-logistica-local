@@ -175,6 +175,7 @@ export const GeneralBoard = () => {
 
   return (
     <div className="min-h-screen space-y-6 bg-[#0a1024] px-3 pb-10 pt-4 text-white">
+      {syncing && <div className="visor-refresh-overlay" aria-hidden />}
       <div className="mx-auto max-w-screen-2xl space-y-4">
         <div className="rounded-3xl border border-[#1a3762] bg-[#0c1c3a] px-6 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

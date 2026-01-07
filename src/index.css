@@ -180,6 +180,56 @@ body {
   pointer-events: none;
 }
 
+@keyframes visorFlash {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes visorSweep {
+  0% {
+    transform: translateX(-60%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(60%);
+    opacity: 0;
+  }
+}
+
+.visor-refresh-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: radial-gradient(circle at 20% 20%, rgba(242, 199, 68, 0.2), transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(56, 189, 248, 0.18), transparent 50%);
+  animation: visorFlash 1.2s ease-out;
+}
+
+.visor-refresh-overlay::before {
+  content: '';
+  position: absolute;
+  inset: -20% -50%;
+  background: linear-gradient(
+    90deg,
+    rgba(242, 199, 68, 0) 10%,
+    rgba(242, 199, 68, 0.45) 50%,
+    rgba(242, 199, 68, 0) 90%
+  );
+  transform: translateX(-60%);
+  animation: visorSweep 1.2s ease-out;
+}
+
 @keyframes floatGlow {
   from {
     transform: translate3d(0, 0, 0);
