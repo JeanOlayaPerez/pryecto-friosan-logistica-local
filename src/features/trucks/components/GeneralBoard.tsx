@@ -80,7 +80,7 @@ export const GeneralBoard = () => {
       timeoutId = setTimeout(() => setSyncing(false), 1400);
     };
     trigger();
-    const intervalId = setInterval(trigger, 30000);
+    const intervalId = setInterval(trigger, 5000);
     return () => {
       clearInterval(intervalId);
       if (timeoutId) clearTimeout(timeoutId);
@@ -250,8 +250,12 @@ export const GeneralBoard = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-          <div className="grid min-w-[1250px] grid-cols-[130px,220px,140px,120px,140px,120px,150px,150px,110px,110px] border-b border-[#1a3762] bg-[#0b234a] text-[12px] font-semibold uppercase tracking-[0.18em] text-[#f2c744]">
+        <div
+          className={`overflow-x-auto rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)] transition-shadow duration-500 ${
+            syncing ? 'ring-1 ring-[#f2c744]/50 shadow-[0_0_30px_rgba(242,199,68,0.2)]' : ''
+          }`}
+        >
+          <div className="grid min-w-[1250px] grid-cols-[130px,220px,140px,130px,140px,130px,150px,180px,100px,80px] border-b border-[#1a3762] bg-[#0b234a] text-[11px] font-semibold uppercase tracking-[0.12em] text-[#f2c744] whitespace-nowrap">
             <div className="border-r border-[#1a3762] px-3 py-3">Patente</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Nombre empresa</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Fec. bitacora</div>
@@ -292,7 +296,7 @@ export const GeneralBoard = () => {
             return (
               <div
                 key={truck.id}
-                className={`grid min-w-[1250px] grid-cols-[130px,220px,140px,120px,140px,120px,150px,150px,110px,110px] border-b border-[#1a3762] ${
+                className={`grid min-w-[1250px] grid-cols-[130px,220px,140px,130px,140px,130px,150px,180px,100px,80px] border-b border-[#1a3762] ${
                   idx % 2 === 0 ? 'bg-[#0c2b52]' : 'bg-[#0a2748]'
                 }`}
               >
@@ -320,7 +324,7 @@ export const GeneralBoard = () => {
                   </span>
                 </div>
                 <div className="border-r border-[#1a3762] px-3 py-3 text-sm text-white">
-                  <span className={`inline-flex rounded-md px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.12em] text-white ${processClass}`}>
+                  <span className={`inline-flex rounded-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-white whitespace-nowrap ${processClass}`}>
                     {process}
                   </span>
                 </div>
