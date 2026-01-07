@@ -66,7 +66,7 @@ export const GeneralBoard = () => {
   const [search, setSearch] = useState('');
   const [listenerError, setListenerError] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
-  const [syncing, setSyncing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [shiftIndex, setShiftIndex] = useState(0);
 
   useEffect(() => {
@@ -76,14 +76,13 @@ export const GeneralBoard = () => {
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const trigger = () => {
-      setSyncing(true);
+    const tick = () => {
       setShiftIndex((prev) => prev + 1);
+      setRefreshing(true);
       if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => setSyncing(false), 1400);
+      timeoutId = setTimeout(() => setRefreshing(false), 800);
     };
-    trigger();
-    const intervalId = setInterval(trigger, 5000);
+    const intervalId = setInterval(tick, 5000);
     return () => {
       clearInterval(intervalId);
       if (timeoutId) clearTimeout(timeoutId);
@@ -182,7 +181,6 @@ export const GeneralBoard = () => {
 
   return (
     <div className="min-h-screen space-y-6 bg-[#0a1024] px-3 pb-10 pt-4 text-white">
-      {syncing && <div className="visor-refresh-overlay" aria-hidden />}
       <div className="mx-auto max-w-screen-2xl space-y-4">
         <div className="rounded-3xl border border-[#1a3762] bg-[#0c1c3a] px-6 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -201,12 +199,9 @@ export const GeneralBoard = () => {
               <p className="text-xs text-slate-200">Ultima actualizacion: {formatHour(now)}</p>
               <div className="mt-2 inline-flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-200">
                 <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                  {syncing && (
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#f2c744] opacity-60" />
-                  )}
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#f2c744]" />
                 </span>
-                <span className={syncing ? 'animate-pulse' : ''}>{syncing ? 'Actualizando' : 'Actualizado'}</span>
+                <span>Actualizado</span>
               </div>
             </div>
           </div>
@@ -258,11 +253,16 @@ export const GeneralBoard = () => {
           </div>
         </div>
 
-        <div
-          className={`overflow-x-auto rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)] transition-shadow duration-500 ${
-            syncing ? 'ring-1 ring-[#f2c744]/50 shadow-[0_0_30px_rgba(242,199,68,0.2)]' : ''
-          }`}
-        >
+        <div className="relative overflow-x-auto rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+          <div className="pointer-events-none absolute right-4 top-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#f2c744]/80">
+            <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+              {refreshing && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#f2c744] opacity-50" />
+              )}
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${refreshing ? 'bg-[#f2c744]' : 'bg-[#f2c744]/60'}`} />
+            </span>
+            <span className={refreshing ? 'animate-pulse' : ''}>{refreshing ? 'Refrescando' : 'Actualizado'}</span>
+          </div>
           <div className="grid min-w-[1250px] grid-cols-[130px,220px,140px,130px,140px,130px,150px,180px,100px,80px] border-b border-[#1a3762] bg-[#0b234a] text-[11px] font-semibold uppercase tracking-[0.12em] text-[#f2c744] whitespace-nowrap">
             <div className="border-r border-[#1a3762] px-3 py-3">Patente</div>
             <div className="border-r border-[#1a3762] px-3 py-3">Nombre empresa</div>

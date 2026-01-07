@@ -20,6 +20,323 @@ const timeOrDash = (d?: Date | null) =>
 const dateOrDash = (d?: Date | null) =>
   d ? d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--';
 
+type DemoTruckSeed = {
+  id: string;
+  companyName: string;
+  clientName: string;
+  plate: string;
+  driverName: string;
+  dockType: Truck['dockType'];
+  dockNumber: Truck['dockNumber'];
+  entryType?: Truck['entryType'];
+  status: Truck['status'];
+  hasBitacora: boolean;
+  loadType?: Truck['loadType'];
+  dayOffset: number;
+  scheduled: string;
+  checkInGate?: string;
+  checkIn?: string;
+  updated?: string;
+};
+
+const buildDemoTrucks = (dayValue: string): Truck[] => {
+  let baseDay = dayValue ? new Date(dayValue) : new Date();
+  if (Number.isNaN(baseDay.getTime())) baseDay = new Date();
+  baseDay.setHours(0, 0, 0, 0);
+
+  const addDays = (base: Date, offset: number) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + offset);
+    return d;
+  };
+
+  const toTime = (base: Date, value?: string) => {
+    if (!value) return null;
+    const [h, m] = value.split(':').map(Number);
+    const d = new Date(base);
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+
+  const demoSeeds: DemoTruckSeed[] = [
+    {
+      id: 'demo-1',
+      companyName: 'Agrosuper',
+      clientName: 'Agrosuper',
+      plate: 'VZDS12',
+      driverName: 'Luis Araya',
+      dockType: 'recepcion',
+      dockNumber: 1,
+      entryType: 'conos',
+      status: 'en_curso',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: 0,
+      scheduled: '08:30',
+      checkInGate: '08:10',
+      checkIn: '08:20',
+      updated: '09:40',
+    },
+    {
+      id: 'demo-2',
+      companyName: 'Soprole',
+      clientName: 'Soprole',
+      plate: 'GHT894',
+      driverName: 'Maria Soto',
+      dockType: 'recepcion',
+      dockNumber: 3,
+      entryType: 'conos',
+      status: 'en_espera',
+      hasBitacora: true,
+      loadType: 'descarga',
+      dayOffset: 0,
+      scheduled: '09:05',
+      checkInGate: '08:40',
+      checkIn: '08:55',
+      updated: '10:15',
+    },
+    {
+      id: 'demo-3',
+      companyName: 'Alta Fruta',
+      clientName: 'Alta Fruta',
+      plate: 'DDWS90',
+      driverName: 'Pedro Rojas',
+      dockType: 'despacho',
+      dockNumber: 2,
+      entryType: 'anden',
+      status: 'en_camino',
+      hasBitacora: true,
+      loadType: 'mixto',
+      dayOffset: 0,
+      scheduled: '11:00',
+    },
+    {
+      id: 'demo-4',
+      companyName: 'Frutera Sur',
+      clientName: 'Frutera Sur',
+      plate: 'DSFDF432',
+      driverName: 'Camila Vera',
+      dockType: 'recepcion',
+      dockNumber: 5,
+      entryType: 'anden',
+      status: 'en_porteria',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: 0,
+      scheduled: '10:20',
+      checkInGate: '10:15',
+      checkIn: '10:18',
+      updated: '10:35',
+    },
+    {
+      id: 'demo-5',
+      companyName: 'Agrosuper',
+      clientName: 'Agrosuper',
+      plate: 'VZDV18',
+      driverName: 'Carlos Diaz',
+      dockType: 'recepcion',
+      dockNumber: 4,
+      entryType: 'anden',
+      status: 'recepcionado',
+      hasBitacora: true,
+      loadType: 'descarga',
+      dayOffset: 0,
+      scheduled: '07:50',
+      checkInGate: '07:45',
+      checkIn: '07:55',
+      updated: '09:05',
+    },
+    {
+      id: 'demo-6',
+      companyName: 'Donihue',
+      clientName: 'Donihue',
+      plate: 'PHSG48',
+      driverName: 'Juan Paredes',
+      dockType: 'despacho',
+      dockNumber: 6,
+      entryType: 'conos',
+      status: 'almacenado',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: 0,
+      scheduled: '06:40',
+      checkInGate: '06:30',
+      checkIn: '06:45',
+      updated: '08:30',
+    },
+    {
+      id: 'demo-7',
+      companyName: 'Copefrut',
+      clientName: 'Copefrut',
+      plate: 'KPG221',
+      driverName: 'Valentina Reyes',
+      dockType: 'recepcion',
+      dockNumber: 7,
+      entryType: 'anden',
+      status: 'agendado',
+      hasBitacora: false,
+      loadType: 'carga',
+      dayOffset: 0,
+      scheduled: '13:30',
+      checkInGate: '13:00',
+      checkIn: '13:10',
+    },
+    {
+      id: 'demo-8',
+      companyName: 'Sopravol',
+      clientName: 'Sopravol',
+      plate: 'BGF567',
+      driverName: 'Andres Silva',
+      dockType: 'despacho',
+      dockNumber: 8,
+      entryType: 'conos',
+      status: 'en_curso',
+      hasBitacora: false,
+      loadType: 'descarga',
+      dayOffset: 0,
+      scheduled: '12:10',
+      checkInGate: '11:55',
+      checkIn: '12:00',
+      updated: '13:05',
+    },
+    {
+      id: 'demo-9',
+      companyName: 'Lacteos Sur',
+      clientName: 'Lacteos Sur',
+      plate: 'MTR233',
+      driverName: 'Diego Yanez',
+      dockType: 'recepcion',
+      dockNumber: 9,
+      entryType: 'anden',
+      status: 'cerrado',
+      hasBitacora: true,
+      loadType: 'mixto',
+      dayOffset: 0,
+      scheduled: '05:40',
+      checkInGate: '05:25',
+      checkIn: '05:35',
+      updated: '07:20',
+    },
+    {
+      id: 'demo-10',
+      companyName: 'Agrosuper',
+      clientName: 'Agrosuper',
+      plate: 'SDFG43',
+      driverName: 'Jose Molina',
+      dockType: 'despacho',
+      dockNumber: 5,
+      entryType: 'conos',
+      status: 'terminado',
+      hasBitacora: true,
+      loadType: 'descarga',
+      dayOffset: -1,
+      scheduled: '14:10',
+      checkInGate: '13:50',
+      checkIn: '13:55',
+      updated: '16:40',
+    },
+    {
+      id: 'demo-11',
+      companyName: 'Pacific Fresh',
+      clientName: 'Pacific Fresh',
+      plate: 'VFR123',
+      driverName: 'Ana Torres',
+      dockType: 'recepcion',
+      dockNumber: 2,
+      entryType: 'anden',
+      status: 'almacenado',
+      hasBitacora: false,
+      loadType: 'carga',
+      dayOffset: -1,
+      scheduled: '09:30',
+      checkInGate: '09:10',
+      checkIn: '09:25',
+      updated: '11:45',
+    },
+    {
+      id: 'demo-12',
+      companyName: 'Frutera Central',
+      clientName: 'Frutera Central',
+      plate: 'PLT989',
+      driverName: 'Ignacio Vega',
+      dockType: 'despacho',
+      dockNumber: 1,
+      entryType: 'conos',
+      status: 'terminado',
+      hasBitacora: true,
+      loadType: 'mixto',
+      dayOffset: -2,
+      scheduled: '08:15',
+      checkInGate: '08:00',
+      checkIn: '08:05',
+      updated: '10:20',
+    },
+    {
+      id: 'demo-13',
+      companyName: 'Del Monte',
+      clientName: 'Del Monte',
+      plate: 'RCH777',
+      driverName: 'Paula Mora',
+      dockType: 'recepcion',
+      dockNumber: 3,
+      entryType: 'anden',
+      status: 'cerrado',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: -4,
+      scheduled: '10:40',
+      checkInGate: '10:20',
+      checkIn: '10:30',
+      updated: '12:30',
+    },
+    {
+      id: 'demo-14',
+      companyName: 'Agro Norte',
+      clientName: 'Agro Norte',
+      plate: 'ZXR552',
+      driverName: 'Rodolfo Carrasco',
+      dockType: 'despacho',
+      dockNumber: 4,
+      entryType: 'conos',
+      status: 'terminado',
+      hasBitacora: false,
+      loadType: 'descarga',
+      dayOffset: -6,
+      scheduled: '07:10',
+      checkInGate: '06:50',
+      checkIn: '07:00',
+      updated: '09:00',
+    },
+  ];
+
+  return demoSeeds.map((seed) => {
+    const seedDay = addDays(baseDay, seed.dayOffset);
+    const scheduledArrival = toTime(seedDay, seed.scheduled) ?? seedDay;
+    const checkInGateAt = toTime(seedDay, seed.checkInGate);
+    const checkInTime = toTime(seedDay, seed.checkIn);
+    const updatedAt = toTime(seedDay, seed.updated) ?? undefined;
+    return {
+      id: seed.id,
+      companyName: seed.companyName,
+      clientName: seed.clientName,
+      plate: seed.plate,
+      driverName: seed.driverName,
+      dockType: seed.dockType,
+      dockNumber: seed.dockNumber,
+      entryType: seed.entryType,
+      status: seed.status,
+      scheduledArrival,
+      hasBitacora: seed.hasBitacora,
+      loadType: seed.loadType,
+      checkInGateAt,
+      checkInTime,
+      updatedAt,
+      createdAt: scheduledArrival,
+      history: [],
+    };
+  });
+};
+
 export const GerenciaReports = () => {
   const { role } = useAuth();
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -34,6 +351,7 @@ export const GerenciaReports = () => {
   const [sendMsg, setSendMsg] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [metricsRange, setMetricsRange] = useState<'dia' | '7d'>('dia');
+  const [useDemo, setUseDemo] = useState(false);
 
   useEffect(() => {
     const unsub = subscribeAllTrucks(
@@ -49,6 +367,11 @@ export const GerenciaReports = () => {
     return () => unsub();
   }, []);
 
+  const demoTrucks = useMemo(() => buildDemoTrucks(day), [day]);
+  const hasRealData = trucks.length > 0;
+  const showDemo = useDemo || !hasRealData;
+  const sourceTrucks = showDemo ? demoTrucks : trucks;
+
   if (role !== 'gerencia' && role !== 'admin' && role !== 'superadmin') {
     return <Navigate to="/" replace />;
   }
@@ -62,7 +385,7 @@ export const GerenciaReports = () => {
 
   const baseFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return trucks.filter((t) => {
+    return sourceTrucks.filter((t) => {
       const matchesTerm =
         !term ||
         t.clientName.toLowerCase().includes(term) ||
@@ -74,7 +397,7 @@ export const GerenciaReports = () => {
         reportType !== 'bitacora' || (bitacoraFilter === 'con' ? hasBitacora : !hasBitacora);
       return matchesTerm && matchesDock && matchesBitacora;
     });
-  }, [trucks, search, dock, reportType, bitacoraFilter]);
+  }, [sourceTrucks, search, dock, reportType, bitacoraFilter]);
 
   const filtered = useMemo(() => {
     const dayDate = day ? new Date(day) : null;
@@ -319,31 +642,46 @@ export const GerenciaReports = () => {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Metricas</p>
-            <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setMetricsRange('dia')}
+                onClick={() => setUseDemo((prev) => !prev)}
+                disabled={!hasRealData && !useDemo}
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  metricsRange === 'dia'
-                    ? 'bg-sky-500 text-white'
-                    : 'bg-white text-slate-700 border border-slate-200'
-                }`}
+                  showDemo ? 'bg-amber-300 text-slate-900' : 'bg-white text-slate-700 border border-slate-200'
+                } ${!hasRealData && !useDemo ? 'cursor-default opacity-70' : ''}`}
               >
-                Dia
+                {showDemo ? 'Datos demo activos' : 'Activar datos demo'}
               </button>
-              <button
-                type="button"
-                onClick={() => setMetricsRange('7d')}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  metricsRange === '7d'
-                    ? 'bg-sky-500 text-white'
-                    : 'bg-white text-slate-700 border border-slate-200'
-                }`}
-              >
-                Ultimos 7 dias
-              </button>
+              <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setMetricsRange('dia')}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    metricsRange === 'dia'
+                      ? 'bg-sky-500 text-white'
+                      : 'bg-white text-slate-700 border border-slate-200'
+                  }`}
+                >
+                  Dia
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetricsRange('7d')}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    metricsRange === '7d'
+                      ? 'bg-sky-500 text-white'
+                      : 'bg-white text-slate-700 border border-slate-200'
+                  }`}
+                >
+                  Ultimos 7 dias
+                </button>
+              </div>
             </div>
           </div>
+          {showDemo && (
+            <p className="text-xs text-amber-700">Mostrando datos demo para la reunion.</p>
+          )}
           <div className="grid gap-3 md:grid-cols-4">
             <InfoCard label="Total" value={`${metrics.total}`} />
             <InfoCard label="En curso" value={`${metrics.enCurso}`} />
@@ -422,7 +760,7 @@ export const GerenciaReports = () => {
           </div>
         </div>
 
-        {listenerError && (
+        {listenerError && !showDemo && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
             {listenerError}
           </div>
