@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
+import { LayoutGroup, motion } from 'framer-motion';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { minutesBetween } from '../../../shared/utils/time';
@@ -66,6 +67,7 @@ export const GeneralBoard = () => {
   const [listenerError, setListenerError] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [syncing, setSyncing] = useState(false);
+  const [shiftIndex, setShiftIndex] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -76,6 +78,7 @@ export const GeneralBoard = () => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const trigger = () => {
       setSyncing(true);
+      setShiftIndex((prev) => prev + 1);
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => setSyncing(false), 1400);
     };
@@ -154,7 +157,11 @@ export const GeneralBoard = () => {
     },
     [sortedRows],
   );
-
+  const displayRows = useMemo(() => {
+    if (boardRows.length <= 1) return boardRows;
+    const offset = shiftIndex % boardRows.length;
+    return boardRows.slice(offset).concat(boardRows.slice(0, offset));
+  }, [boardRows, shiftIndex]);
   const stats = useMemo(() => {
     const enPorteria = filtered.filter((t) => t.status === 'en_porteria').length;
     const enEspera = filtered.filter((t) => t.status === 'en_espera').length;
@@ -269,7 +276,8 @@ export const GeneralBoard = () => {
             <div className="px-3 py-3">Tiempo</div>
           </div>
 
-          {boardRows.map((truck, idx) => {
+          <LayoutGroup>
+          {displayRows.map((truck, idx) => {
             const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
             const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
             const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
@@ -295,8 +303,10 @@ export const GeneralBoard = () => {
                   : 'bg-[#9b59b6]';
 
             return (
-              <div
+              <motion.div
                 key={truck.id}
+                layout
+                transition={{ type: 'spring', stiffness: 220, damping: 26 }}
                 className={`grid min-w-[1250px] grid-cols-[130px,220px,140px,130px,140px,130px,150px,180px,100px,80px] border-b border-[#1a3762] ${
                   idx % 2 === 0 ? 'bg-[#0c2b52]' : 'bg-[#0a2748]'
                 }`}
@@ -335,11 +345,12 @@ export const GeneralBoard = () => {
                 <div className="px-3 py-3 text-sm font-mono font-semibold text-[#f2c744] whitespace-nowrap">
                   {elapsed}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
+          </LayoutGroup>
 
-          {boardRows.length === 0 && (
+          {displayRows.length === 0 && (
             <div className="flex h-32 items-center justify-center text-sm text-slate-200">
               No hay camiones activos para mostrar en el tablero.
             </div>
@@ -349,3 +360,10 @@ export const GeneralBoard = () => {
     </div>
   );
 };
+
+
+
+
+
+
+
