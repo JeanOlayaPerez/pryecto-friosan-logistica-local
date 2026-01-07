@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from './features/auth/AuthProvider';
 
 type AppProps = {
@@ -7,6 +7,26 @@ type AppProps = {
 
 const Shell = ({ children }: AppProps) => {
   const { user, role, logout } = useAuth();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const updateFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    updateFullscreen();
+    document.addEventListener('fullscreenchange', updateFullscreen);
+    return () => document.removeEventListener('fullscreenchange', updateFullscreen);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error('No se pudo cambiar a pantalla completa', err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-surface-dark text-slate-100">
@@ -26,18 +46,26 @@ const Shell = ({ children }: AppProps) => {
                 </div>
                 <p className="text-sm uppercase tracking-[0.28em] text-slate-200">Friosan SPA</p>
               </div>
-              {user && (
-                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
-                  <span className="font-semibold text-white">{user.name}</span>
-                  {role && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px]">{role}</span>}
-                  <button
-                    onClick={() => logout()}
-                    className="rounded-full bg-accent px-2 py-1 text-xs font-semibold text-slate-900 hover:brightness-110"
-                  >
-                    Salir
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleFullscreen}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200 hover:bg-white/10"
+                >
+                  {isFullscreen ? 'Salir pantalla completa' : 'Pantalla completa'}
+                </button>
+                {user && (
+                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
+                    <span className="font-semibold text-white">{user.name}</span>
+                    {role && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px]">{role}</span>}
+                    <button
+                      onClick={() => logout()}
+                      className="rounded-full bg-accent px-2 py-1 text-xs font-semibold text-slate-900 hover:brightness-110"
+                    >
+                      Salir
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
