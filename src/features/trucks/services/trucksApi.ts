@@ -27,6 +27,7 @@ export type CreateTruckInput = {
   dockNumber: string | number;
   entryType?: 'conos' | 'anden';
   scheduledArrival: Date | string;
+  hasBitacora?: boolean;
   loadType?: 'carga' | 'descarga' | 'mixto';
   notes?: string;
   delayReason?: string;
@@ -70,6 +71,7 @@ const mapTruck = (snap: any): Truck => {
     entryType: data.entryType,
     status: data.status,
     scheduledArrival: asDate(data.scheduledArrival) ?? new Date(),
+    hasBitacora: typeof data.hasBitacora === 'boolean' ? data.hasBitacora : true,
     loadType: data.loadType,
     checkInGateAt: asDate(data.checkInGateAt),
     checkInTime: asDate(data.checkInTime),
@@ -155,6 +157,7 @@ export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {
     entryType: input.entryType ?? 'conos',
     status,
     scheduledArrival: toTimestamp(input.scheduledArrival),
+    hasBitacora: input.hasBitacora ?? true,
     loadType: input.loadType ?? 'carga',
     notes: input.notes ?? '',
     delayReason: input.delayReason ?? '',
@@ -228,6 +231,7 @@ export const updateTruckDetails = async (
   if (update.scheduledArrival !== undefined) {
     payload.scheduledArrival = toTimestamp(update.scheduledArrival);
   }
+  if (update.hasBitacora !== undefined) payload.hasBitacora = update.hasBitacora;
   if (update.notes !== undefined) payload.notes = update.notes;
   if (update.loadType !== undefined) payload.loadType = update.loadType;
   if (update.guidePhotoUrl !== undefined) payload.guidePhotoUrl = update.guidePhotoUrl;

@@ -101,7 +101,7 @@ export const ManagerDashboard = () => {
           <div className="flex items-center justify-between bg-sky-700 px-5 py-4 text-white">
             <div className="flex items-center gap-3">
               <div className="h-10 w-28 overflow-hidden rounded-md bg-white/10">
-                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-contain" />
+                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.26em] text-sky-100">Friosan SPA</p>

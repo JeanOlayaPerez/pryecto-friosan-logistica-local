@@ -5,7 +5,7 @@ import type { Truck } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
 import { minutesBetween } from '../../../shared/utils/time';
 
-type ReportType = 'cliente' | 'dia' | 'anden';
+type ReportType = 'cliente' | 'dia' | 'bitacora';
 
 const formatDateInput = (d?: Date | null) => {
   if (!d) return '';
@@ -28,6 +28,7 @@ export const GerenciaReports = () => {
   const [search, setSearch] = useState('');
   const [dock, setDock] = useState('');
   const [day, setDay] = useState<string>(() => formatDateInput(new Date()));
+  const [bitacoraFilter, setBitacoraFilter] = useState<'con' | 'sin'>('con');
   const [emailTo, setEmailTo] = useState('');
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState<string | null>(null);
@@ -62,15 +63,22 @@ export const GerenciaReports = () => {
         t.plate.toLowerCase().includes(term) ||
         t.driverName.toLowerCase().includes(term);
       const matchesDock = !dock || `${t.dockNumber}` === dock;
+      const hasBitacora = typeof t.hasBitacora === 'boolean' ? t.hasBitacora : Boolean(t.scheduledArrival);
+      const daySource =
+        reportType === 'bitacora' && bitacoraFilter === 'sin'
+          ? t.checkInGateAt ?? t.checkInTime ?? t.createdAt
+          : t.scheduledArrival;
       const matchesDay =
         !dayDate ||
-        (t.scheduledArrival &&
-          t.scheduledArrival.getFullYear() === dayDate.getFullYear() &&
-          t.scheduledArrival.getMonth() === dayDate.getMonth() &&
-          t.scheduledArrival.getDate() === dayDate.getDate());
-      return matchesTerm && matchesDock && matchesDay;
+        (daySource &&
+          daySource.getFullYear() === dayDate.getFullYear() &&
+          daySource.getMonth() === dayDate.getMonth() &&
+          daySource.getDate() === dayDate.getDate());
+      const matchesBitacora =
+        reportType !== 'bitacora' || (bitacoraFilter === 'con' ? hasBitacora : !hasBitacora);
+      return matchesTerm && matchesDock && matchesDay && matchesBitacora;
     });
-  }, [trucks, search, dock, day]);
+  }, [trucks, search, dock, day, reportType, bitacoraFilter]);
 
   const metrics = useMemo(() => {
     const total = filtered.length;
@@ -91,8 +99,9 @@ export const GerenciaReports = () => {
   }, [filtered]);
 
   const rowsForReport = filtered.slice(0, 50).map((t, idx) => {
-    const bitDate = dateOrDash(t.scheduledArrival);
-    const bitHour = timeOrDash(t.scheduledArrival);
+    const hasBitacora = typeof t.hasBitacora === 'boolean' ? t.hasBitacora : Boolean(t.scheduledArrival);
+    const bitDate = hasBitacora ? dateOrDash(t.scheduledArrival) : '--';
+    const bitHour = hasBitacora ? timeOrDash(t.scheduledArrival) : '--';
     const inDate = dateOrDash(t.checkInGateAt);
     const inHour = timeOrDash(t.checkInGateAt);
     const outDate = dateOrDash(t.updatedAt);
@@ -106,7 +115,7 @@ export const GerenciaReports = () => {
     return {
       idx: idx + 1,
       empresa: t.clientName,
-      bitacora: bitDate !== '--',
+      bitacora: hasBitacora,
       bitDate,
       bitHour,
       inDate,
@@ -242,7 +251,7 @@ export const GerenciaReports = () => {
           <div className="flex items-center justify-between bg-sky-700 px-5 py-4 text-white">
             <div className="flex items-center gap-3">
               <div className="h-10 w-28 overflow-hidden rounded-md bg-white/10">
-                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-contain" />
+                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.26em] text-sky-100">Friosan SPA</p>
@@ -274,8 +283,8 @@ export const GerenciaReports = () => {
           <div className="grid gap-3 md:grid-cols-4">
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Tipo de reporte</p>
-              <div className="flex flex-wrap gap-2">
-                {(['cliente', 'dia', 'anden'] as ReportType[]).map((opt) => (
+              <div className="flex flex-wrap items-center gap-2">
+                {(['cliente', 'dia', 'bitacora'] as ReportType[]).map((opt) => (
                   <button
                     key={opt}
                     onClick={() => setReportType(opt)}
@@ -283,9 +292,19 @@ export const GerenciaReports = () => {
                       reportType === opt ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-800 border border-slate-200'
                     }`}
                   >
-                    {opt === 'cliente' ? 'Cliente' : opt === 'dia' ? 'Dia' : 'Anden'}
+                    {opt === 'cliente' ? 'Cliente' : opt === 'dia' ? 'Dia' : 'Bitacora'}
                   </button>
                 ))}
+                {reportType === 'bitacora' && (
+                  <select
+                    value={bitacoraFilter}
+                    onChange={(e) => setBitacoraFilter(e.target.value as 'con' | 'sin')}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-800 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                  >
+                    <option value="con">Con bitacora</option>
+                    <option value="sin">Sin bitacora</option>
+                  </select>
+                )}
               </div>
             </div>
             <div className="space-y-1">

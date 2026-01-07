@@ -140,6 +140,7 @@ export const PorteriaDesk = () => {
           entryType,
           loadType: form.loadType,
           scheduledArrival: new Date(),
+          hasBitacora: false,
           notes: form.notes,
           initialStatus: "en_espera",
         },
@@ -190,7 +191,7 @@ export const PorteriaDesk = () => {
           <div className="flex items-center justify-between bg-sky-700 px-4 py-3 text-white">
             <div className="flex items-center gap-3">
               <div className="h-10 w-28 overflow-hidden rounded-md bg-white/10">
-                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-contain" />
+                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-sky-100">Friosan · Porteria</p>
@@ -233,7 +234,6 @@ export const PorteriaDesk = () => {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Bitacora de ingresos</p>
-                <h3 className="text-xl font-semibold text-slate-900">Camiones agendados por Comercial</h3>
                 <p className="text-xs text-slate-500">Marca el estado: en camino, en portería o en espera.</p>
               </div>
               <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
@@ -248,11 +248,11 @@ export const PorteriaDesk = () => {
                   <tr className="bg-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-600">
                     <th className="border border-slate-200 px-3 py-2 text-left w-[18%]">Razón social</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[14%]">Patente</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[20%]">Cliente / Conductor / Rut</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[16%]">Proceso</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[18%]">Cliente / Conductor / Rut</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[14%]">Proceso</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[12%]">Agendada</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[10%]">Ult. cambio</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[10%]">Estado</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[14%]">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,18 +290,22 @@ export const PorteriaDesk = () => {
                         {t.updatedAt ? formatHour(t.updatedAt) : "--"}
                       </td>
                       <td className="border border-slate-200 px-3 py-3 align-top text-sm">
-                        <select
-                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800 shadow-sm"
-                          value={t.status}
-                          onChange={(e) => handleStatus(t.id, e.target.value as TruckStatus)}
-                        >
-                          <option value="en_camino">En camino</option>
-                          <option value="en_porteria">En porteria</option>
-                          <option value="en_espera">En espera</option>
-                          <option value="en_curso">En curso</option>
-                        </select>
-                        <div className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] ${statusChip[t.status]}`}>
-                          {statusLabel[t.status]}
+                        <div className="space-y-2">
+                          <select
+                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800 shadow-sm"
+                            value={t.status}
+                            onChange={(e) => handleStatus(t.id, e.target.value as TruckStatus)}
+                          >
+                            <option value="en_camino">En camino</option>
+                            <option value="en_porteria">En porteria</option>
+                            <option value="en_espera">En espera</option>
+                            <option value="en_curso">En curso</option>
+                          </select>
+                          <div
+                            className={`flex w-full items-center justify-center rounded-full px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap ${statusChip[t.status]}`}
+                          >
+                            {statusLabel[t.status]}
+                          </div>
                         </div>
                       </td>
                     </tr>

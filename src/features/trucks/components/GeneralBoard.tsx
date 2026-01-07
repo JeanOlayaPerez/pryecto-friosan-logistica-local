@@ -65,10 +65,26 @@ export const GeneralBoard = () => {
   const [search, setSearch] = useState('');
   const [listenerError, setListenerError] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const trigger = () => {
+      setSyncing(true);
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => setSyncing(false), 1400);
+    };
+    trigger();
+    const intervalId = setInterval(trigger, 30000);
+    return () => {
+      clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
@@ -163,8 +179,8 @@ export const GeneralBoard = () => {
         <div className="rounded-3xl border border-[#1a3762] bg-[#0c1c3a] px-6 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-40 rounded-lg border border-[#1a3762] bg-[#0b142e] p-2">
-                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-contain" />
+              <div className="h-16 w-40 overflow-hidden rounded-lg border border-[#1a3762] bg-[#0b142e]">
+                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
               </div>
               <h1 className="text-3xl font-black uppercase tracking-[0.18em] text-[#f2c744]">
                 Bitacora de camiones
@@ -175,6 +191,15 @@ export const GeneralBoard = () => {
                 {formatDate(now)}, {formatHour(now)}
               </p>
               <p className="text-xs text-slate-200">Ultima actualizacion: {formatHour(now)}</p>
+              <div className="mt-2 inline-flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-200">
+                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                  {syncing && (
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#f2c744] opacity-60" />
+                  )}
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#f2c744]" />
+                </span>
+                <span className={syncing ? 'animate-pulse' : ''}>{syncing ? 'Actualizando' : 'Actualizado'}</span>
+              </div>
             </div>
           </div>
         </div>

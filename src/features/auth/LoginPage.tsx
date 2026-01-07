@@ -77,11 +77,9 @@ export const LoginPage = () => {
       <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col justify-center gap-8 px-4 py-10 lg:flex-row lg:items-center">
         <div className="flex-1 space-y-4">
           <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-800/70 px-4 py-3 shadow-md backdrop-blur">
-            <img
-              src={brandLogo}
-              alt="Friosan Logo"
-              className="h-12 w-auto rounded-lg bg-white/80 px-2 py-1"
-            />
+            <div className="h-12 w-28 overflow-hidden rounded-lg bg-white/80">
+              <img src={brandLogo} alt="Friosan Logo" className="h-full w-full object-cover" />
+            </div>
             <div>
             <p className="text-xs uppercase tracking-[0.25em] text-slate-200">Friosan SPA</p>
           </div>

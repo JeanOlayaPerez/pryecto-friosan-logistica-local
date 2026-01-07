@@ -20,9 +20,11 @@ const Shell = ({ children }: AppProps) => {
         <header className="px-4 py-4 sm:px-8">
           <div className="glass rounded-2xl px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Friosan Logistica</p>
-                <h1 className="text-xl font-semibold text-white">Panel operativo</h1>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-28 overflow-hidden rounded-md bg-white/10 logo-header">
+                  <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
+                </div>
+                <p className="text-sm uppercase tracking-[0.28em] text-slate-200">Friosan SPA</p>
               </div>
               {user && (
                 <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">

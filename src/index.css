@@ -118,6 +118,68 @@ body {
   }
 }
 
+@keyframes logoFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.6deg) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) rotate(0.6deg) scale(1.03);
+  }
+}
+
+@keyframes logoGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(56, 189, 248, 0), 0 0 0 rgba(59, 130, 246, 0);
+  }
+  50% {
+    box-shadow: 0 12px 30px rgba(15, 118, 110, 0.35), 0 0 28px rgba(56, 189, 248, 0.45);
+  }
+}
+
+@keyframes logoSweep {
+  0% {
+    transform: translateX(-140%) rotate(10deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(140%) rotate(10deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(140%) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+.logo-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  animation: logoFloat 4.8s ease-in-out infinite, logoGlow 6.5s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+.logo-header::after {
+  content: '';
+  position: absolute;
+  inset: -30% -60%;
+  background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 35%,
+      rgba(255, 255, 255, 0.55) 50%,
+      rgba(255, 255, 255, 0) 65%
+    );
+  transform: translateX(-140%) rotate(10deg);
+  animation: logoSweep 3.4s ease-in-out infinite;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
 @keyframes floatGlow {
   from {
     transform: translate3d(0, 0, 0);

@@ -31,6 +31,7 @@ export interface Truck {
   entryType?: EntryType;
   status: TruckStatus;
   scheduledArrival: Date;
+  hasBitacora?: boolean;
   loadType?: 'carga' | 'descarga' | 'mixto';
   checkInGateAt?: Date | null;
   checkInTime?: Date | null;
