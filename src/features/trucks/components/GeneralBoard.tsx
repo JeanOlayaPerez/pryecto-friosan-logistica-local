@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
@@ -89,16 +89,16 @@ const tableGrid =
   'grid min-w-[1660px] grid-cols-[150px,240px,150px,110px,150px,110px,260px,330px,100px,60px]';
 
 const TableHeader = () => (
-  <div className={`${tableGrid} border-b border-[#1a3762] bg-[#0b234a] text-sm font-semibold uppercase tracking-[0.06em] text-[#f2c744] whitespace-nowrap`}>
-    <div className="border-r border-[#1a3762] px-4 py-3">Patente</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Nombre empresa</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Fec. bitacora</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Hora bitacora</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Fec. ingreso</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Hora ingreso</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Estado</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Proceso</div>
-    <div className="border-r border-[#1a3762] px-4 py-3">Anden</div>
+  <div className={`${tableGrid} border-b border-[#2f2f34] bg-[#1f1f23] text-sm font-semibold uppercase tracking-[0.06em] text-[#e6cf6a] whitespace-nowrap`}>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Patente</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Nombre empresa</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Fec. bitacora</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Hora bitacora</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Fec. ingreso</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Hora ingreso</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Estado</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Proceso</div>
+    <div className="border-r border-[#2f2f34] px-4 py-3">Anden</div>
     <div className="px-4 py-3">Tiempo</div>
   </div>
 );
@@ -114,63 +114,63 @@ const TableRow = ({ truck, idx, now }: { truck: Truck; idx: number; now: Date })
 
   const stateClass =
     truck.status === 'en_curso'
-      ? 'bg-[#2196f3]'
+      ? 'bg-[#2f66cf]'
       : truck.status === 'en_espera' || truck.status === 'en_porteria'
-        ? 'bg-[#e74c3c]'
+        ? 'bg-[#c05a36]'
         : ['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(truck.status)
-          ? 'bg-[#1abc9c]'
-          : 'bg-[#f39c12]';
+          ? 'bg-[#2d8e6f]'
+          : 'bg-[#caa83f]';
 
   const processClass =
     (truck.loadType ?? 'carga') === 'carga'
-      ? 'bg-[#3498db]'
+      ? 'bg-[#2f66cf]'
       : (truck.loadType ?? 'descarga') === 'descarga'
-        ? 'bg-[#e74c3c]'
-        : 'bg-[#9b59b6]';
+        ? 'bg-[#c05a36]'
+        : 'bg-[#5c4ea8]';
 
   return (
     <motion.div
       key={truck.id}
       layout
       transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-      className={`${tableGrid} border-b border-[#1a3762] ${idx % 2 === 0 ? 'bg-[#0c2b52]' : 'bg-[#0a2748]'}`}
+      className={`${tableGrid} border-b border-[#2f2f34] ${idx % 2 === 0 ? 'bg-[#2c3f98]' : 'bg-[#202024]'}`}
     >
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold uppercase tracking-[0.14em] text-[#f2c744]">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg font-semibold uppercase tracking-[0.14em] text-[#e6cf6a]">
         {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold text-white">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg font-semibold text-[#e9dda1]">
         <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
         {bitacoraDate}
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
         {bitacoraHour}
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
         {ingresoDate}
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
         {ingresoHour}
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3">
+      <div className="border-r border-[#2f2f34] px-4 py-3">
         <span
-          className={`inline-flex min-w-[11rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-bold uppercase tracking-[0.14em] text-white whitespace-nowrap ${stateClass}`}
+          className={`inline-flex min-w-[11rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-bold uppercase tracking-[0.14em] text-[#e9dda1] whitespace-nowrap ${stateClass}`}
         >
           {statusLabel[truck.status]}
         </span>
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1]">
         <span
-          className={`inline-flex min-w-[13rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-semibold uppercase tracking-[0.08em] text-white whitespace-nowrap ${processClass}`}
+          className={`inline-flex min-w-[13rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-semibold uppercase tracking-[0.08em] text-[#e9dda1] whitespace-nowrap ${processClass}`}
         >
           {process}
         </span>
       </div>
-      <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold text-purple-200 whitespace-nowrap">
+      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg font-semibold text-[#e6cf6a] whitespace-nowrap">
         {gate}
       </div>
-      <div className="px-4 py-3 text-lg font-mono font-semibold text-[#f2c744] whitespace-nowrap">
+      <div className="px-4 py-3 text-lg font-mono font-semibold text-[#e6cf6a] whitespace-nowrap">
         {elapsed}
       </div>
     </motion.div>
@@ -329,26 +329,26 @@ export const GeneralBoard = () => {
   }, [historyRows]);
 
   return (
-    <div className="min-h-screen space-y-4 bg-[#0a1024] px-4 pb-8 pt-3 text-white sm:px-6 sm:pb-8 md:px-[2cm] md:pb-[2cm]">
+    <div className="min-h-screen space-y-4 bg-[#0f0f12] px-4 pb-8 pt-3 text-[#e9dda1] sm:px-6 sm:pb-8 md:px-[2cm] md:pb-[2cm]">
       <div className="w-full space-y-3">
-        <div className="rounded-2xl border border-[#1a3762] bg-[#0c1c3a] px-5 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
+        <div className="rounded-2xl border border-[#2f2f34] bg-[#1a1a1d] px-5 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-32 overflow-hidden rounded-lg border border-[#1a3762] bg-[#0b142e]">
+              <div className="h-12 w-32 overflow-hidden rounded-lg border border-[#2f2f34] bg-[#1c1c20]">
                 <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
               </div>
-              <h1 className="text-2xl font-black uppercase tracking-[0.16em] text-[#f2c744]">
+              <h1 className="text-2xl font-black uppercase tracking-[0.16em] text-[#e6cf6a]">
                 Bitacora de camiones
               </h1>
             </div>
             <div className="text-right">
-              <p className="font-mono text-base tracking-[0.2em] text-[#f2c744]">
+              <p className="font-mono text-base tracking-[0.2em] text-[#e6cf6a]">
                 {formatDate(now)}, {formatHour(now)}
               </p>
-              <p className="text-xs text-slate-200">Ultima actualizacion: {formatHour(now)}</p>
-              <div className="mt-1 inline-flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-200">
+              <p className="text-xs text-[#cdbf86]">Ultima actualizacion: {formatHour(now)}</p>
+              <div className="mt-1 inline-flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.2em] text-[#cdbf86]">
                 <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#f2c744]" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#e6cf6a]" />
                 </span>
                 <span>Actualizado</span>
               </div>
@@ -362,31 +362,31 @@ export const GeneralBoard = () => {
           </div>
         )}
 
-        <div className="rounded-2xl border border-[#1a3762] bg-[#0f2248] px-4 py-2 shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-200">
+        <div className="rounded-2xl border border-[#2f2f34] bg-[#1e1e21] px-4 py-2 shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs text-[#cdbf86]">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[#f2c744]">Tablero visor</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#e6cf6a]">Tablero visor</p>
               <p className="text-sm">Estado general de camiones</p>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-[#b4a770]">
                 Filtros: {filterDock === 'todos' ? 'Recepcion + Despacho' : filterDock === 'recepcion' ? 'Solo recepcion' : 'Solo despacho'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-slate-200">
-              <span className="rounded-full border border-[#f2c744]/40 bg-[#13264b] px-2.5 py-0.5">Total: {stats.total}</span>
-              <span className="rounded-full border border-[#f2c744]/40 bg-[#13264b] px-2.5 py-0.5">Porteria: {stats.enPorteria}</span>
-              <span className="rounded-full border border-[#f2c744]/40 bg-[#13264b] px-2.5 py-0.5">Espera: {stats.enEspera}</span>
-              <span className="rounded-full border border-[#f2c744]/40 bg-[#13264b] px-2.5 py-0.5">En curso: {stats.enCurso}</span>
+            <div className="flex flex-wrap gap-2 text-xs text-[#cdbf86]">
+              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Total: {stats.total}</span>
+              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Porteria: {stats.enPorteria}</span>
+              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Espera: {stats.enEspera}</span>
+              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">En curso: {stats.enCurso}</span>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex rounded-full border border-[#f2c744]/50 bg-[#13264b] p-1 text-xs">
+            <div className="inline-flex rounded-full border border-[#e6cf6a]/50 bg-[#242428] p-1 text-xs">
               {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
                 <button
                   key={dock}
                   onClick={() => setFilterDock(dock)}
                   className={`rounded-full px-3 py-1.5 transition ${
-                    filterDock === dock ? 'bg-[#f2c744] text-[#0b142e] font-semibold' : 'text-slate-100 hover:text-white'
+                    filterDock === dock ? 'bg-[#e6cf6a] text-[#1c1c20] font-semibold' : 'text-[#ded293] hover:text-[#e9dda1]'
                   }`}
                 >
                   {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
@@ -397,25 +397,25 @@ export const GeneralBoard = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar cliente, patente, conductor o anden"
-              className="flex-1 min-w-[260px] rounded-full border border-[#f2c744]/30 bg-[#0b142e] px-4 py-1.5 text-sm text-white outline-none focus:border-[#f2c744] focus:ring-2 focus:ring-[#f2c744]/40"
+              className="flex-1 min-w-[260px] rounded-full border border-[#e6cf6a]/30 bg-[#1c1c20] px-4 py-1.5 text-sm text-[#e9dda1] outline-none focus:border-[#e6cf6a] focus:ring-2 focus:ring-[#e6cf6a]/40"
             />
             <button
               type="button"
               onClick={() => setShowHistory((prev) => !prev)}
-              className="rounded-full border border-[#f2c744]/40 bg-[#13264b] px-4 py-1.5 text-sm text-slate-100 hover:bg-[#1a3562]"
+              className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-4 py-1.5 text-sm text-[#ded293] hover:bg-[#2f2f34]"
             >
               {showHistory ? 'Ocultar historico' : 'Ver historico'}
             </button>
           </div>
         </div>
 
-        <div className="visor-table relative overflow-x-auto rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-          <div className="pointer-events-none absolute right-4 top-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#f2c744]/80">
+        <div className="visor-table relative overflow-x-auto rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+          <div className="pointer-events-none absolute right-4 top-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#e6cf6a]/80">
             <span className="relative flex h-2.5 w-2.5 items-center justify-center">
               {refreshing && (
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#f2c744] opacity-50" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e6cf6a] opacity-50" />
               )}
-              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${refreshing ? 'bg-[#f2c744]' : 'bg-[#f2c744]/60'}`} />
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${refreshing ? 'bg-[#e6cf6a]' : 'bg-[#e6cf6a]/60'}`} />
             </span>
             <span className={refreshing ? 'animate-pulse' : ''}>{refreshing ? 'Refrescando' : 'Actualizado'}</span>
           </div>
@@ -428,59 +428,59 @@ export const GeneralBoard = () => {
           </LayoutGroup>
 
           {displayRows.length === 0 && (
-            <div className="flex h-32 items-center justify-center text-sm text-slate-200">
+            <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
               No hay camiones activos para mostrar en el tablero.
             </div>
           )}
         </div>
 
         {showHistory && (
-          <div className="rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+          <div className="rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#f2c744]">Historico diario</p>
-                <p className="text-lg font-semibold text-white">Registros del panel</p>
-                <p className="text-xs text-slate-300">Selecciona un dia para ver su informacion.</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#e6cf6a]">Historico diario</p>
+                <p className="text-lg font-semibold text-[#e9dda1]">Registros del panel</p>
+                <p className="text-xs text-[#b4a770]">Selecciona un dia para ver su informacion.</p>
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
-                <label className="text-xs text-slate-300">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-[#cdbf86]">
+                <label className="text-xs text-[#b4a770]">
                   Dia
                   <input
                     type="date"
                     value={historyDay}
                     onChange={(e) => setHistoryDay(e.target.value)}
-                    className="mt-1 rounded-lg border border-white/10 bg-[#0b142e] px-3 py-2 text-sm text-white"
+                    className="mt-1 rounded-lg border border-[#2f2f34] bg-[#1c1c20] px-3 py-2 text-sm text-[#e9dda1]"
                   />
                 </label>
                 <button
                   type="button"
                   onClick={() => setHistoryDay(toInputDate(new Date()))}
-                  className="rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-slate-100 hover:bg-white/15"
+                  className="rounded-lg border border-[#2f2f34] bg-[#242428] px-3 py-2 text-sm text-[#ded293] hover:bg-[#2f2f34]"
                 >
                   Hoy
                 </button>
               </div>
             </div>
-            <div className="border-t border-[#1a3762] px-5 py-3">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-200">
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+            <div className="border-t border-[#2f2f34] px-5 py-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#cdbf86]">
+                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
                   Mostrando: {formatHistoryDay(historyDay)}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
                   Total: {historyStats.total}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
                   Porteria: {historyStats.enPorteria}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
                   Espera: {historyStats.enEspera}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
                   En curso: {historyStats.enCurso}
                 </span>
               </div>
             </div>
-            <div className="visor-table relative max-h-[45vh] overflow-auto border-t border-[#1a3762]">
+            <div className="visor-table relative max-h-[45vh] overflow-auto border-t border-[#2f2f34]">
               <TableHeader />
               <LayoutGroup>
                 {historyRows.map((truck, idx) => (
@@ -488,7 +488,7 @@ export const GeneralBoard = () => {
                 ))}
               </LayoutGroup>
               {historyRows.length === 0 && (
-                <div className="flex h-28 items-center justify-center text-sm text-slate-200">
+                <div className="flex h-28 items-center justify-center text-sm text-[#cdbf86]">
                   No hay registros para el dia seleccionado.
                 </div>
               )}
@@ -499,6 +499,10 @@ export const GeneralBoard = () => {
     </div>
   );
 };
+
+
+
+
 
 
 
