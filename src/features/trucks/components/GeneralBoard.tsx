@@ -154,12 +154,16 @@ const TableRow = ({ truck, idx, now }: { truck: Truck; idx: number; now: Date })
         {ingresoHour}
       </div>
       <div className="border-r border-[#1a3762] px-4 py-3">
-        <span className={`inline-flex items-center justify-center rounded-md px-4 py-1.5 text-base font-bold uppercase tracking-[0.14em] text-white ${stateClass}`}>
+        <span
+          className={`inline-flex min-w-[11rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-bold uppercase tracking-[0.14em] text-white whitespace-nowrap ${stateClass}`}
+        >
           {statusLabel[truck.status]}
         </span>
       </div>
       <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white">
-        <span className={`inline-flex rounded-md px-4 py-1.5 text-base font-semibold uppercase tracking-[0.08em] text-white whitespace-nowrap ${processClass}`}>
+        <span
+          className={`inline-flex min-w-[13rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-semibold uppercase tracking-[0.08em] text-white whitespace-nowrap ${processClass}`}
+        >
           {process}
         </span>
       </div>
