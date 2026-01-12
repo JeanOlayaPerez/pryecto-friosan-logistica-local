@@ -60,6 +60,119 @@ const typeDisplay = (t: Truck) => {
   return `${main} / ${sub}`;
 };
 
+const toInputDate = (value: Date) => {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseInputDate = (value: string) => {
+  if (!value) return null;
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+};
+
+const formatHistoryDay = (value: string) => {
+  const parsed = parseInputDate(value);
+  if (!parsed) return 'Todos los dias';
+  return parsed.toLocaleDateString('es-CL', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
+const tableGrid =
+  'grid min-w-[1660px] grid-cols-[150px,240px,150px,110px,150px,110px,260px,330px,100px,60px]';
+
+const TableHeader = () => (
+  <div className={`${tableGrid} border-b border-[#1a3762] bg-[#0b234a] text-sm font-semibold uppercase tracking-[0.06em] text-[#f2c744] whitespace-nowrap`}>
+    <div className="border-r border-[#1a3762] px-4 py-3">Patente</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Nombre empresa</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Fec. bitacora</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Hora bitacora</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Fec. ingreso</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Hora ingreso</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Estado</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Proceso</div>
+    <div className="border-r border-[#1a3762] px-4 py-3">Anden</div>
+    <div className="px-4 py-3">Tiempo</div>
+  </div>
+);
+
+const TableRow = ({ truck, idx, now }: { truck: Truck; idx: number; now: Date }) => {
+  const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
+  const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
+  const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
+  const ingresoHour = formatHour(truck.checkInGateAt ?? truck.checkInTime ?? null);
+  const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
+  const process = typeDisplay(truck);
+  const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
+
+  const stateClass =
+    truck.status === 'en_curso'
+      ? 'bg-[#2196f3]'
+      : truck.status === 'en_espera' || truck.status === 'en_porteria'
+        ? 'bg-[#e74c3c]'
+        : ['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(truck.status)
+          ? 'bg-[#1abc9c]'
+          : 'bg-[#f39c12]';
+
+  const processClass =
+    (truck.loadType ?? 'carga') === 'carga'
+      ? 'bg-[#3498db]'
+      : (truck.loadType ?? 'descarga') === 'descarga'
+        ? 'bg-[#e74c3c]'
+        : 'bg-[#9b59b6]';
+
+  return (
+    <motion.div
+      key={truck.id}
+      layout
+      transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+      className={`${tableGrid} border-b border-[#1a3762] ${idx % 2 === 0 ? 'bg-[#0c2b52]' : 'bg-[#0a2748]'}`}
+    >
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold uppercase tracking-[0.14em] text-[#f2c744]">
+        {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold text-white">
+        <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+        {bitacoraDate}
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+        {bitacoraHour}
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+        {ingresoDate}
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
+        {ingresoHour}
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3">
+        <span className={`inline-flex items-center justify-center rounded-md px-4 py-1.5 text-base font-bold uppercase tracking-[0.14em] text-white ${stateClass}`}>
+          {statusLabel[truck.status]}
+        </span>
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white">
+        <span className={`inline-flex rounded-md px-4 py-1.5 text-base font-semibold uppercase tracking-[0.08em] text-white whitespace-nowrap ${processClass}`}>
+          {process}
+        </span>
+      </div>
+      <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold text-purple-200 whitespace-nowrap">
+        {gate}
+      </div>
+      <div className="px-4 py-3 text-lg font-mono font-semibold text-[#f2c744] whitespace-nowrap">
+        {elapsed}
+      </div>
+    </motion.div>
+  );
+};
+
 export const GeneralBoard = () => {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filterDock, setFilterDock] = useState<'todos' | DockType>('todos');
@@ -68,6 +181,8 @@ export const GeneralBoard = () => {
   const [now, setNow] = useState(() => new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [shiftIndex, setShiftIndex] = useState(0);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -179,6 +294,36 @@ export const GeneralBoard = () => {
     };
   }, [filtered]);
 
+  const historyRows = useMemo(() => {
+    const dayStart = parseInputDate(historyDay);
+    if (!dayStart) return [];
+    const dayEnd = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1);
+
+    return filtered
+      .filter((t) => {
+        const created = t.createdAt ?? t.scheduledArrival;
+        if (!created) return false;
+        return created >= dayStart && created < dayEnd;
+      })
+      .sort((a, b) => {
+        const aDate = a.createdAt ?? a.scheduledArrival;
+        const bDate = b.createdAt ?? b.scheduledArrival;
+        return (bDate?.getTime() ?? 0) - (aDate?.getTime() ?? 0);
+      });
+  }, [filtered, historyDay]);
+
+  const historyStats = useMemo(() => {
+    const enPorteria = historyRows.filter((t) => t.status === 'en_porteria').length;
+    const enEspera = historyRows.filter((t) => t.status === 'en_espera').length;
+    const enCurso = historyRows.filter((t) => t.status === 'en_curso').length;
+    return {
+      total: historyRows.length,
+      enPorteria,
+      enEspera,
+      enCurso,
+    };
+  }, [historyRows]);
+
   return (
     <div className="min-h-screen space-y-4 bg-[#0a1024] px-4 pb-8 pt-3 text-white sm:px-6 sm:pb-8 md:px-[2cm] md:pb-[2cm]">
       <div className="w-full space-y-3">
@@ -250,6 +395,13 @@ export const GeneralBoard = () => {
               placeholder="Buscar cliente, patente, conductor o anden"
               className="flex-1 min-w-[260px] rounded-full border border-[#f2c744]/30 bg-[#0b142e] px-4 py-1.5 text-sm text-white outline-none focus:border-[#f2c744] focus:ring-2 focus:ring-[#f2c744]/40"
             />
+            <button
+              type="button"
+              onClick={() => setShowHistory((prev) => !prev)}
+              className="rounded-full border border-[#f2c744]/40 bg-[#13264b] px-4 py-1.5 text-sm text-slate-100 hover:bg-[#1a3562]"
+            >
+              {showHistory ? 'Ocultar historico' : 'Ver historico'}
+            </button>
           </div>
         </div>
 
@@ -263,91 +415,12 @@ export const GeneralBoard = () => {
             </span>
             <span className={refreshing ? 'animate-pulse' : ''}>{refreshing ? 'Refrescando' : 'Actualizado'}</span>
           </div>
-          <div className="grid min-w-[1650px] grid-cols-[150px,240px,150px,110px,150px,110px,250px,320px,100px,70px] border-b border-[#1a3762] bg-[#0b234a] text-sm font-semibold uppercase tracking-[0.08em] text-[#f2c744] whitespace-nowrap">
-            <div className="border-r border-[#1a3762] px-4 py-3">Patente</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Nombre empresa</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Fec. bitacora</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Hora bitacora</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Fec. ingreso</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Hora ingreso</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Estado</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Proceso</div>
-            <div className="border-r border-[#1a3762] px-4 py-3">Anden</div>
-            <div className="px-4 py-3">Tiempo</div>
-          </div>
+          <TableHeader />
 
           <LayoutGroup>
-          {displayRows.map((truck, idx) => {
-            const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
-            const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
-            const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
-            const ingresoHour = formatHour(truck.checkInGateAt ?? truck.checkInTime ?? null);
-            const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
-            const process = typeDisplay(truck);
-            const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
-
-            const stateClass =
-              truck.status === 'en_curso'
-                ? 'bg-[#2196f3]'
-                : truck.status === 'en_espera' || truck.status === 'en_porteria'
-                  ? 'bg-[#e74c3c]'
-                  : ['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(truck.status)
-                    ? 'bg-[#1abc9c]'
-                    : 'bg-[#f39c12]';
-
-            const processClass =
-              (truck.loadType ?? 'carga') === 'carga'
-                ? 'bg-[#3498db]'
-                : (truck.loadType ?? 'descarga') === 'descarga'
-                  ? 'bg-[#e74c3c]'
-                  : 'bg-[#9b59b6]';
-
-            return (
-              <motion.div
-                key={truck.id}
-                layout
-                transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-                className={`grid min-w-[1650px] grid-cols-[150px,240px,150px,110px,150px,110px,250px,320px,100px,70px] border-b border-[#1a3762] ${
-                  idx % 2 === 0 ? 'bg-[#0c2b52]' : 'bg-[#0a2748]'
-                }`}
-              >
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold uppercase tracking-[0.14em] text-[#f2c744]">
-                  {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold text-white">
-                  <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
-                  {bitacoraDate}
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
-                  {bitacoraHour}
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
-                  {ingresoDate}
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white whitespace-nowrap">
-                  {ingresoHour}
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3">
-                  <span className={`inline-flex items-center justify-center rounded-md px-4 py-1.5 text-base font-bold uppercase tracking-[0.14em] text-white ${stateClass}`}>
-                    {statusLabel[truck.status]}
-                  </span>
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg text-white">
-                  <span className={`inline-flex rounded-md px-4 py-1.5 text-base font-semibold uppercase tracking-[0.08em] text-white whitespace-nowrap ${processClass}`}>
-                    {process}
-                  </span>
-                </div>
-                <div className="border-r border-[#1a3762] px-4 py-3 text-lg font-semibold text-purple-200 whitespace-nowrap">
-                  {gate}
-                </div>
-                <div className="px-4 py-3 text-lg font-mono font-semibold text-[#f2c744] whitespace-nowrap">
-                  {elapsed}
-                </div>
-              </motion.div>
-            );
-          })}
+            {displayRows.map((truck, idx) => (
+              <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
+            ))}
           </LayoutGroup>
 
           {displayRows.length === 0 && (
@@ -356,6 +429,68 @@ export const GeneralBoard = () => {
             </div>
           )}
         </div>
+
+        {showHistory && (
+          <div className="rounded-3xl border border-[#1a3762] bg-[#0c1c3a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#f2c744]">Historico diario</p>
+                <p className="text-lg font-semibold text-white">Registros del panel</p>
+                <p className="text-xs text-slate-300">Selecciona un dia para ver su informacion.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
+                <label className="text-xs text-slate-300">
+                  Dia
+                  <input
+                    type="date"
+                    value={historyDay}
+                    onChange={(e) => setHistoryDay(e.target.value)}
+                    className="mt-1 rounded-lg border border-white/10 bg-[#0b142e] px-3 py-2 text-sm text-white"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setHistoryDay(toInputDate(new Date()))}
+                  className="rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-slate-100 hover:bg-white/15"
+                >
+                  Hoy
+                </button>
+              </div>
+            </div>
+            <div className="border-t border-[#1a3762] px-5 py-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-200">
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                  Mostrando: {formatHistoryDay(historyDay)}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                  Total: {historyStats.total}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                  Porteria: {historyStats.enPorteria}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                  Espera: {historyStats.enEspera}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                  En curso: {historyStats.enCurso}
+                </span>
+              </div>
+            </div>
+            <div className="visor-table relative max-h-[45vh] overflow-auto border-t border-[#1a3762]">
+              <TableHeader />
+              <LayoutGroup>
+                {historyRows.map((truck, idx) => (
+                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
+                ))}
+              </LayoutGroup>
+              {historyRows.length === 0 && (
+                <div className="flex h-28 items-center justify-center text-sm text-slate-200">
+                  No hay registros para el dia seleccionado.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

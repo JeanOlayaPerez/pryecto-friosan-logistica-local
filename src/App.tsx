@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './features/auth/AuthProvider';
 
 type AppProps = {
@@ -8,6 +9,10 @@ type AppProps = {
 const Shell = ({ children }: AppProps) => {
   const { user, role, logout } = useAuth();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const location = useLocation();
+  const isVisor = location.pathname === '/visor';
+  const mainClassName = isVisor ? 'flex-1 px-0 pb-0' : 'flex-1 px-4 pb-10 sm:px-8';
+  const contentClassName = isVisor ? 'mx-auto w-full max-w-none' : 'mx-auto w-full max-w-screen-2xl';
 
   useEffect(() => {
     const updateFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -68,8 +73,8 @@ const Shell = ({ children }: AppProps) => {
             </div>
           </div>
         </header>
-        <main className="flex-1 px-4 pb-10 sm:px-8">
-          <div className="mx-auto w-full max-w-screen-2xl">{children}</div>
+        <main className={mainClassName}>
+          <div className={contentClassName}>{children}</div>
         </main>
       </div>
     </div>

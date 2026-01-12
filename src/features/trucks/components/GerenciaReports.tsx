@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { Truck } from '../types';
@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { minutesBetween } from '../../../shared/utils/time';
 
 type ReportType = 'cliente' | 'dia' | 'bitacora';
+type ExportFormat = 'pdf' | 'excel' | 'word';
 
 const formatDateInput = (d?: Date | null) => {
   if (!d) return '';
@@ -19,6 +20,40 @@ const timeOrDash = (d?: Date | null) =>
   d ? d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--';
 const dateOrDash = (d?: Date | null) =>
   d ? d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--';
+
+const reportColumns = [
+  { key: 'idx', label: 'Cod. Usuario' },
+  { key: 'empresa', label: 'Empresa' },
+  { key: 'bitacora', label: 'Con Bitacora' },
+  { key: 'bitDate', label: 'F. Bitacora' },
+  { key: 'bitHour', label: 'H. Bitacora' },
+  { key: 'inDate', label: 'F. Ingreso' },
+  { key: 'inHour', label: 'H. Ingreso' },
+  { key: 'outDate', label: 'F. Salida' },
+  { key: 'outHour', label: 'H. Salida' },
+  { key: 'proceso', label: 'Proceso' },
+  { key: 'plate', label: 'Patente' },
+  { key: 'gate', label: 'Anden' },
+  { key: 'hrsTotales', label: 'Hrs Totales' },
+] as const;
+
+type ReportRow = {
+  idx: number;
+  empresa: string;
+  bitacora: boolean;
+  bitDate: string;
+  bitHour: string;
+  inDate: string;
+  inHour: string;
+  outDate: string;
+  outHour: string;
+  proceso: string;
+  plate: string;
+  gate: string;
+  hrsTotales: string;
+};
+
+type ReportColumnKey = (typeof reportColumns)[number]['key'];
 
 type DemoTruckSeed = {
   id: string;
@@ -349,7 +384,8 @@ export const GerenciaReports = () => {
   const [emailTo, setEmailTo] = useState('');
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [metricsRange, setMetricsRange] = useState<'dia' | '7d'>('dia');
   const [useDemo, setUseDemo] = useState(false);
 
@@ -465,7 +501,7 @@ export const GerenciaReports = () => {
     return { total, delayed, enCurso, finalizados, promEspera };
   }, [filtered]);
 
-  const rowsForReport = filtered.slice(0, 50).map((t, idx) => {
+  const rowsForReport: ReportRow[] = filtered.slice(0, 50).map((t, idx) => {
     const hasBitacora = typeof t.hasBitacora === 'boolean' ? t.hasBitacora : Boolean(t.scheduledArrival);
     const bitDate = hasBitacora ? dateOrDash(t.scheduledArrival) : '--';
     const bitHour = hasBitacora ? timeOrDash(t.scheduledArrival) : '--';
@@ -495,6 +531,107 @@ export const GerenciaReports = () => {
       hrsTotales,
     };
   });
+
+  const formatReportCell = (row: ReportRow, key: ReportColumnKey) => {
+    if (key === 'bitacora') return row.bitacora ? 'Si' : 'No';
+    return row[key];
+  };
+
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  const buildReportHtml = (rows: ReportRow[]) => {
+    const headerHtml = reportColumns.map((col) => `<th>${escapeHtml(col.label)}</th>`).join('');
+    const bodyHtml = rows
+      .map(
+        (row) =>
+          `<tr>${reportColumns
+            .map((col) => `<td>${escapeHtml(String(formatReportCell(row, col.key)))}</td>`)
+            .join('')}</tr>`,
+      )
+      .join('');
+
+    return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Informe logistico</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px; color: #0f172a; }
+      h1 { margin: 0 0 12px 0; }
+      .subtitle { margin: 0 0 16px 0; color: #475569; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; }
+      th { background: #6b9eab; color: #fff; text-transform: uppercase; letter-spacing: 0.06em; }
+      tbody tr:nth-child(even) { background: #f8fafc; }
+    </style>
+  </head>
+  <body>
+    <h1>Informe logistico</h1>
+    <p class="subtitle">Generado: ${new Date().toLocaleString('es-CL')} | Registros: ${filtered.length}</p>
+    <table>
+      <thead>
+        <tr>
+          ${headerHtml}
+        </tr>
+      </thead>
+      <tbody>
+        ${bodyHtml || `<tr><td colspan="${reportColumns.length}">Sin datos para exportar.</td></tr>`}
+      </tbody>
+    </table>
+  </body>
+</html>`;
+  };
+
+  const downloadBlob = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const runExport = (format: ExportFormat) => {
+    if (exporting) return;
+    setExportOpen(false);
+    setExporting(format);
+    setSendMsg(null);
+    try {
+      const html = buildReportHtml(rowsForReport);
+      if (format === 'pdf') {
+        const popup = window.open('', '_blank', 'width=1200,height=900');
+        if (!popup) throw new Error('No se pudo abrir la ventana de impresion.');
+        popup.document.write(html);
+        popup.document.close();
+        popup.focus();
+        popup.print();
+        popup.close();
+        setSendMsg('Se genero la vista de impresion. Guarda como PDF.');
+        return;
+      }
+
+      const safeDay = day || formatDateInput(new Date());
+      const baseName = `reporte-gerencia-${safeDay}`;
+      const fileName = format === 'excel' ? `${baseName}.xls` : `${baseName}.doc`;
+      const mime =
+        format === 'excel' ? 'application/vnd.ms-excel;charset=utf-8' : 'application/msword;charset=utf-8';
+      downloadBlob(new Blob([html], { type: mime }), fileName);
+      setSendMsg(`Descarga ${format === 'excel' ? 'Excel' : 'Word'} iniciada.`);
+    } catch (err) {
+      console.error(err);
+      setSendMsg('No se pudo exportar el informe.');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   const buildEmailBody = () => {
     const lines = rowsForReport
@@ -530,87 +667,6 @@ export const GerenciaReports = () => {
     }
   };
 
-  const handleDownloadPdf = () => {
-    setDownloading(true);
-    try {
-      const rowsHtml = rowsForReport
-        .map(
-          (r) => `<tr>
-            <td>${r.idx}</td>
-            <td>${r.empresa}</td>
-            <td>${r.bitacora ? 'Si' : 'No'}</td>
-            <td>${r.bitDate}</td>
-            <td>${r.bitHour}</td>
-            <td>${r.inDate}</td>
-            <td>${r.inHour}</td>
-            <td>${r.outDate}</td>
-            <td>${r.outHour}</td>
-            <td>${r.proceso}</td>
-            <td>${r.plate}</td>
-            <td>${r.gate}</td>
-            <td>${r.hrsTotales}</td>
-          </tr>`,
-        )
-        .join('');
-
-      const html = `
-      <html>
-      <head>
-        <title>Informe logistico</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; color: #0f172a; }
-          h1 { margin: 0 0 12px 0; }
-          .subtitle { margin: 0 0 16px 0; color: #475569; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; }
-          th { background: #6b9eab; color: #fff; text-transform: uppercase; letter-spacing: 0.06em; }
-          tbody tr:nth-child(even) { background: #f8fafc; }
-        </style>
-      </head>
-      <body>
-        <h1>Informe logistico</h1>
-        <p class="subtitle">Generado: ${new Date().toLocaleString('es-CL')} · Registros: ${filtered.length}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Cód. Usuario</th>
-              <th>Empresa</th>
-              <th>Con Bitácora</th>
-              <th>F. Bitácora</th>
-              <th>H. Bitácora</th>
-              <th>F. Ingreso</th>
-              <th>H. Ingreso</th>
-              <th>F. Salida</th>
-              <th>H. Salida</th>
-              <th>Proceso</th>
-              <th>Patente</th>
-              <th>Andén</th>
-              <th>Hrs Totales</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml || '<tr><td colspan="13">Sin datos para exportar.</td></tr>'}
-          </tbody>
-        </table>
-      </body>
-      </html>`;
-
-      const popup = window.open('', '_blank', 'width=1200,height=900');
-      if (!popup) throw new Error('No se pudo abrir la ventana de impresión.');
-      popup.document.write(html);
-      popup.document.close();
-      popup.focus();
-      popup.print();
-      popup.close();
-      setSendMsg('Se generó la vista de impresión. Guarda como PDF.');
-    } catch (err) {
-      console.error(err);
-      setSendMsg('No se pudo generar el PDF. Usa la vista previa o imprime la página.');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen space-y-6 bg-gradient-to-b from-slate-100 via-slate-50 to-sky-50 px-3 pb-10 pt-4">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -635,7 +691,7 @@ export const GerenciaReports = () => {
             </div>
           </div>
           <div className="bg-white px-5 py-3 text-sm text-slate-700">
-            Genera y envía informes logísticos por cliente, día o andén. Exporta a PDF o envía por correo.
+            Genera y envia informes logisticos por cliente, dia o anden. Exporta a PDF, Excel o Word o envia por correo.
           </div>
         </div>
 
@@ -750,7 +806,7 @@ export const GerenciaReports = () => {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Métricas rápidas</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">M+®tricas r+ípidas</p>
             <div className="mt-3 space-y-2">
               <BarRow label="Retrasos" value={metrics.delayed} max={Math.max(1, metrics.total)} tone="sky" />
               <BarRow label="En curso" value={metrics.enCurso} max={Math.max(1, metrics.total)} tone="emerald" />
@@ -769,7 +825,7 @@ export const GerenciaReports = () => {
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" id="gerencia-report-header">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Informe logístico</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Informe log+¡stico</p>
               <h3 className="text-xl font-semibold text-slate-900">Vista previa</h3>
               <p className="text-sm text-slate-600">Hasta 50 filas, mismo formato que el PDF.</p>
             </div>
@@ -789,14 +845,41 @@ export const GerenciaReports = () => {
               >
                 {sending ? 'Generando...' : 'Enviar por correo'}
               </button>
-              <button
-                type="button"
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-60"
-                onClick={handleDownloadPdf}
-                disabled={downloading}
-              >
-                {downloading ? 'Generando PDF...' : 'Descargar PDF'}
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-60"
+                  onClick={() => setExportOpen((prev) => !prev)}
+                  disabled={Boolean(exporting)}
+                >
+                  {exporting ? 'Exportando...' : 'Exportar'}
+                </button>
+                {exportOpen && (
+                  <div className="absolute right-0 z-10 mt-2 w-40 rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => runExport('pdf')}
+                      className="w-full rounded-lg px-3 py-2 text-left text-slate-700 hover:bg-slate-100"
+                    >
+                      PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => runExport('excel')}
+                      className="w-full rounded-lg px-3 py-2 text-left text-slate-700 hover:bg-slate-100"
+                    >
+                      Excel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => runExport('word')}
+                      className="w-full rounded-lg px-3 py-2 text-left text-slate-700 hover:bg-slate-100"
+                    >
+                      Word
+                    </button>
+                  </div>
+                )}
+              </div>
               {sendMsg && <span className="text-xs text-slate-600">{sendMsg}</span>}
             </div>
           </div>
@@ -805,18 +888,18 @@ export const GerenciaReports = () => {
             <table className="min-w-full table-fixed border-collapse text-sm text-slate-800">
               <thead className="bg-slate-100 text-[11px] uppercase tracking-[0.12em] text-slate-700">
                 <tr>
-                  <th className="border border-slate-200 px-3 py-2">Cód. Usuario</th>
+                  <th className="border border-slate-200 px-3 py-2">C+¦d. Usuario</th>
                   <th className="border border-slate-200 px-3 py-2">Empresa</th>
-                  <th className="border border-slate-200 px-3 py-2">Con Bitácora</th>
-                  <th className="border border-slate-200 px-3 py-2">F. Bitácora</th>
-                  <th className="border border-slate-200 px-3 py-2">H. Bitácora</th>
+                  <th className="border border-slate-200 px-3 py-2">Con Bit+ícora</th>
+                  <th className="border border-slate-200 px-3 py-2">F. Bit+ícora</th>
+                  <th className="border border-slate-200 px-3 py-2">H. Bit+ícora</th>
                   <th className="border border-slate-200 px-3 py-2">F. Ingreso</th>
                   <th className="border border-slate-200 px-3 py-2">H. Ingreso</th>
                   <th className="border border-slate-200 px-3 py-2">F. Salida</th>
                   <th className="border border-slate-200 px-3 py-2">H. Salida</th>
                   <th className="border border-slate-200 px-3 py-2">Proceso</th>
                   <th className="border border-slate-200 px-3 py-2">Patente</th>
-                  <th className="border border-slate-200 px-3 py-2">Andén</th>
+                  <th className="border border-slate-200 px-3 py-2">And+®n</th>
                   <th className="border border-slate-200 px-3 py-2">Hrs Totales</th>
                 </tr>
               </thead>
@@ -886,3 +969,6 @@ const BarRow = ({
     </div>
   );
 };
+
+
+
