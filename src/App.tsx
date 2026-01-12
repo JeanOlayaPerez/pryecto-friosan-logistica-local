@@ -55,7 +55,6 @@ const Shell = ({ children }: AppProps) => {
                 </button>
                 {user && (
                   <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
-                    <span className="font-semibold text-white">{user.name}</span>
                     {role && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px]">{role}</span>}
                     <button
                       onClick={() => logout()}
