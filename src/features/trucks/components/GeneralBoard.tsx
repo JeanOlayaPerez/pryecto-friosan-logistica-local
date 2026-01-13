@@ -86,24 +86,39 @@ const formatHistoryDay = (value: string) => {
 };
 
 const tableGrid =
-  'grid min-w-[1660px] grid-cols-[150px,240px,150px,110px,150px,110px,260px,330px,100px,60px]';
+  'grid min-w-[1780px] grid-cols-[130px,210px,170px,170px,170px,170px,250px,290px,110px,110px]';
 
-const TableHeader = () => (
-  <div className={`${tableGrid} border-b border-[#2f2f34] bg-[#1f1f23] text-sm font-semibold uppercase tracking-[0.06em] text-[#e6cf6a] whitespace-nowrap`}>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Patente</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Nombre empresa</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Fec. bitacora</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Hora bitacora</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Fec. ingreso</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Hora ingreso</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Estado</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Proceso</div>
-    <div className="border-r border-[#2f2f34] px-4 py-3">Anden</div>
-    <div className="px-4 py-3">Tiempo</div>
-  </div>
-);
+const TableHeader = ({ projector }: { projector?: boolean }) => {
+  const headerText = projector ? 'text-xl' : 'text-lg';
+  const headerPadding = projector ? 'py-4' : 'py-3';
 
-const TableRow = ({ truck, idx, now }: { truck: Truck; idx: number; now: Date }) => {
+  return (
+    <div className={`${tableGrid} border-b border-[#2f2f34] bg-[#1f1f23] ${headerText} font-semibold uppercase tracking-[0.1em] text-[#e6cf6a] whitespace-nowrap`}>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Patente</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Nombre empresa</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Fec. bitacora</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Hora bitacora</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Fec. ingreso</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Hora ingreso</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Estado</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Proceso</div>
+      <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Anden</div>
+      <div className={`px-4 ${headerPadding}`}>Tiempo</div>
+    </div>
+  );
+};
+
+const TableRow = ({
+  truck,
+  idx,
+  now,
+  projector,
+}: {
+  truck: Truck;
+  idx: number;
+  now: Date;
+  projector?: boolean;
+}) => {
   const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
   const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
   const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
@@ -111,6 +126,11 @@ const TableRow = ({ truck, idx, now }: { truck: Truck; idx: number; now: Date })
   const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
   const process = typeDisplay(truck);
   const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
+  const rowText = projector ? 'text-2xl' : 'text-xl';
+  const rowPadding = projector ? 'py-4' : 'py-3';
+  const rowTextClass = `${rowText} font-semibold uppercase tracking-[0.1em]`;
+  const badgeText = rowText;
+  const badgePadding = projector ? 'px-5 py-2.5' : 'px-5 py-2';
 
   const stateClass =
     truck.status === 'en_curso'
@@ -135,42 +155,42 @@ const TableRow = ({ truck, idx, now }: { truck: Truck; idx: number; now: Date })
       transition={{ type: 'spring', stiffness: 220, damping: 26 }}
       className={`${tableGrid} border-b border-[#2f2f34] ${idx % 2 === 0 ? 'bg-[#2c3f98]' : 'bg-[#202024]'}`}
     >
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg font-semibold uppercase tracking-[0.14em] text-[#e6cf6a]">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a]`}>
         {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg font-semibold text-[#e9dda1]">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1]`}>
         <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1] whitespace-nowrap`}>
         {bitacoraDate}
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1] whitespace-nowrap`}>
         {bitacoraHour}
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1] whitespace-nowrap`}>
         {ingresoDate}
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1] whitespace-nowrap">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1] whitespace-nowrap`}>
         {ingresoHour}
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding}`}>
         <span
-          className={`inline-flex min-w-[11rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-bold uppercase tracking-[0.14em] text-[#e9dda1] whitespace-nowrap ${stateClass}`}
+          className={`inline-flex w-[13.5rem] items-center justify-center rounded-md ${badgePadding} ${badgeText} font-semibold uppercase tracking-[0.1em] text-[#e9dda1] whitespace-nowrap ${stateClass}`}
         >
           {statusLabel[truck.status]}
         </span>
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg text-[#e9dda1]">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1]`}>
         <span
-          className={`inline-flex min-w-[13rem] items-center justify-center rounded-md px-4 py-1.5 text-base font-semibold uppercase tracking-[0.08em] text-[#e9dda1] whitespace-nowrap ${processClass}`}
+          className={`inline-flex w-[15rem] items-center justify-center rounded-md ${badgePadding} ${badgeText} font-semibold uppercase tracking-[0.1em] text-[#e9dda1] whitespace-nowrap ${processClass}`}
         >
           {process}
         </span>
       </div>
-      <div className="border-r border-[#2f2f34] px-4 py-3 text-lg font-semibold text-[#e6cf6a] whitespace-nowrap">
+      <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a] whitespace-nowrap`}>
         {gate}
       </div>
-      <div className="px-4 py-3 text-lg font-mono font-semibold text-[#e6cf6a] whitespace-nowrap">
+      <div className={`px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a] whitespace-nowrap`}>
         {elapsed}
       </div>
     </motion.div>
@@ -187,6 +207,7 @@ export const GeneralBoard = () => {
   const [shiftIndex, setShiftIndex] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
   const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
+  const [projectorMode, setProjectorMode] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -329,101 +350,134 @@ export const GeneralBoard = () => {
   }, [historyRows]);
 
   return (
-    <div className="min-h-screen space-y-4 bg-[#0f0f12] px-4 pb-8 pt-3 text-[#e9dda1] sm:px-6 sm:pb-8 md:px-[2cm] md:pb-[2cm]">
-      <div className="w-full space-y-3">
-        <div className="rounded-2xl border border-[#2f2f34] bg-[#1a1a1d] px-5 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-32 overflow-hidden rounded-lg border border-[#2f2f34] bg-[#1c1c20]">
-                <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
+    <div
+      className={`${projectorMode ? 'min-h-screen bg-[#0f0f12] px-0 pb-0 pt-0' : 'min-h-screen space-y-4 bg-[#0f0f12] px-4 pb-8 pt-3 sm:px-6 sm:pb-8 md:px-[2cm] md:pb-[2cm]'} text-[#e9dda1]`}
+    >
+      <div className={`${projectorMode ? 'w-full' : 'w-full space-y-3'}`}>
+        {!projectorMode && (
+          <div className="rounded-2xl border border-[#2f2f34] bg-[#1a1a1d] px-5 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-32 overflow-hidden rounded-lg border border-[#2f2f34] bg-[#1c1c20]">
+                  <img src="/friosan-logo.png" alt="Friosan" className="h-full w-full object-cover" />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-black uppercase tracking-[0.16em] text-[#e6cf6a]">
+                    Bitacora de camiones
+                  </h1>
+                  <button
+                    type="button"
+                    onClick={() => setProjectorMode(true)}
+                    className="rounded-full border border-[#e6cf6a]/50 bg-[#242428] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34]"
+                  >
+                    Proyectar tablero
+                  </button>
+                </div>
               </div>
-              <h1 className="text-2xl font-black uppercase tracking-[0.16em] text-[#e6cf6a]">
-                Bitacora de camiones
-              </h1>
-            </div>
-            <div className="text-right">
-              <p className="font-mono text-base tracking-[0.2em] text-[#e6cf6a]">
-                {formatDate(now)}, {formatHour(now)}
-              </p>
-              <p className="text-xs text-[#cdbf86]">Ultima actualizacion: {formatHour(now)}</p>
-              <div className="mt-1 inline-flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.2em] text-[#cdbf86]">
-                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#e6cf6a]" />
-                </span>
-                <span>Actualizado</span>
+              <div className="text-right">
+                <p className="font-mono text-base tracking-[0.2em] text-[#e6cf6a]">
+                  {formatDate(now)}, {formatHour(now)}
+                </p>
+                <p className="text-xs text-[#cdbf86]">Ultima actualizacion: {formatHour(now)}</p>
+                <div className="mt-1 inline-flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.2em] text-[#cdbf86]">
+                  <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#e6cf6a]" />
+                  </span>
+                  <span>Actualizado</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {listenerError && (
+        {!projectorMode && listenerError && (
           <div className="rounded-xl border border-amber-400/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             {listenerError}
           </div>
         )}
 
-        <div className="rounded-2xl border border-[#2f2f34] bg-[#1e1e21] px-4 py-2 shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs text-[#cdbf86]">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[#e6cf6a]">Tablero visor</p>
-              <p className="text-sm">Estado general de camiones</p>
-              <p className="text-xs text-[#b4a770]">
-                Filtros: {filterDock === 'todos' ? 'Recepcion + Despacho' : filterDock === 'recepcion' ? 'Solo recepcion' : 'Solo despacho'}
-              </p>
+        {!projectorMode && (
+          <div className="rounded-2xl border border-[#2f2f34] bg-[#1e1e21] px-4 py-2 shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-xs text-[#cdbf86]">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#e6cf6a]">Tablero visor</p>
+                <p className="text-sm">Estado general de camiones</p>
+                <p className="text-xs text-[#b4a770]">
+                  Filtros: {filterDock === 'todos' ? 'Recepcion + Despacho' : filterDock === 'recepcion' ? 'Solo recepcion' : 'Solo despacho'}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-[#cdbf86]">
+                <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Total: {stats.total}</span>
+                <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Porteria: {stats.enPorteria}</span>
+                <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Espera: {stats.enEspera}</span>
+                <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">En curso: {stats.enCurso}</span>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-[#cdbf86]">
-              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Total: {stats.total}</span>
-              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Porteria: {stats.enPorteria}</span>
-              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Espera: {stats.enEspera}</span>
-              <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">En curso: {stats.enCurso}</span>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex rounded-full border border-[#e6cf6a]/50 bg-[#242428] p-1 text-xs">
+                {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
+                  <button
+                    key={dock}
+                    onClick={() => setFilterDock(dock)}
+                    className={`rounded-full px-3 py-1.5 transition ${
+                      filterDock === dock ? 'bg-[#e6cf6a] text-[#1c1c20] font-semibold' : 'text-[#ded293] hover:text-[#e9dda1]'
+                    }`}
+                  >
+                    {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar cliente, patente, conductor o anden"
+                className="flex-1 min-w-[260px] rounded-full border border-[#e6cf6a]/30 bg-[#1c1c20] px-4 py-1.5 text-sm text-[#e9dda1] outline-none focus:border-[#e6cf6a] focus:ring-2 focus:ring-[#e6cf6a]/40"
+              />
+              <button
+                type="button"
+                onClick={() => setShowHistory((prev) => !prev)}
+                className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-4 py-1.5 text-sm text-[#ded293] hover:bg-[#2f2f34]"
+              >
+                {showHistory ? 'Ocultar historico' : 'Ver historico'}
+              </button>
             </div>
           </div>
+        )}
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex rounded-full border border-[#e6cf6a]/50 bg-[#242428] p-1 text-xs">
-              {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
-                <button
-                  key={dock}
-                  onClick={() => setFilterDock(dock)}
-                  className={`rounded-full px-3 py-1.5 transition ${
-                    filterDock === dock ? 'bg-[#e6cf6a] text-[#1c1c20] font-semibold' : 'text-[#ded293] hover:text-[#e9dda1]'
-                  }`}
-                >
-                  {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
-                </button>
-              ))}
-            </div>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar cliente, patente, conductor o anden"
-              className="flex-1 min-w-[260px] rounded-full border border-[#e6cf6a]/30 bg-[#1c1c20] px-4 py-1.5 text-sm text-[#e9dda1] outline-none focus:border-[#e6cf6a] focus:ring-2 focus:ring-[#e6cf6a]/40"
-            />
+        <div
+          className={`visor-table relative overflow-x-auto ${
+            projectorMode
+              ? 'min-h-screen rounded-none border-0 bg-[#1a1a1d] shadow-none'
+              : 'rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]'
+          }`}
+        >
+          {projectorMode && (
             <button
               type="button"
-              onClick={() => setShowHistory((prev) => !prev)}
-              className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-4 py-1.5 text-sm text-[#ded293] hover:bg-[#2f2f34]"
+              onClick={() => setProjectorMode(false)}
+              className="absolute right-4 top-3 z-10 rounded-full border border-[#e6cf6a]/50 bg-[#242428]/90 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[#ded293] hover:bg-[#2f2f34]"
             >
-              {showHistory ? 'Ocultar historico' : 'Ver historico'}
+              Salir proyeccion
             </button>
-          </div>
-        </div>
-
-        <div className="visor-table relative overflow-x-auto rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-          <div className="pointer-events-none absolute right-4 top-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#e6cf6a]/80">
+          )}
+          <div
+            className={`pointer-events-none absolute right-4 ${
+              projectorMode ? 'top-12' : 'top-3'
+            } flex items-center text-[#e6cf6a]/80`}
+          >
             <span className="relative flex h-2.5 w-2.5 items-center justify-center">
               {refreshing && (
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e6cf6a] opacity-50" />
               )}
               <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${refreshing ? 'bg-[#e6cf6a]' : 'bg-[#e6cf6a]/60'}`} />
             </span>
-            <span className={refreshing ? 'animate-pulse' : ''}>{refreshing ? 'Refrescando' : 'Actualizado'}</span>
           </div>
-          <TableHeader />
+          <TableHeader projector={projectorMode} />
 
           <LayoutGroup>
             {displayRows.map((truck, idx) => (
-              <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
+              <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
             ))}
           </LayoutGroup>
 
@@ -434,7 +488,7 @@ export const GeneralBoard = () => {
           )}
         </div>
 
-        {showHistory && (
+        {!projectorMode && showHistory && (
           <div className="rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <div>
