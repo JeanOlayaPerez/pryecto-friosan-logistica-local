@@ -1,4 +1,4 @@
-ï»¿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { Truck } from '../types';
@@ -24,7 +24,7 @@ const dateOrDash = (d?: Date | null) =>
 const reportColumns = [
   { key: 'idx', label: 'Cod. Usuario' },
   { key: 'empresa', label: 'Empresa' },
-  { key: 'bitacora', label: 'Con Bitacora' },
+  { key: 'bitacora', label: 'C/S Bitacora' },
   { key: 'bitDate', label: 'F. Bitacora' },
   { key: 'bitHour', label: 'H. Bitacora' },
   { key: 'inDate', label: 'F. Ingreso' },
@@ -533,7 +533,7 @@ export const GerenciaReports = () => {
   });
 
   const formatReportCell = (row: ReportRow, key: ReportColumnKey) => {
-    if (key === 'bitacora') return row.bitacora ? 'Si' : 'No';
+    if (key === 'bitacora') return row.bitacora ? 'Con' : 'Sin';
     return row[key];
   };
 
@@ -806,7 +806,7 @@ export const GerenciaReports = () => {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">M+Â®tricas r+Ã­pidas</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">M+®tricas r+ípidas</p>
             <div className="mt-3 space-y-2">
               <BarRow label="Retrasos" value={metrics.delayed} max={Math.max(1, metrics.total)} tone="sky" />
               <BarRow label="En curso" value={metrics.enCurso} max={Math.max(1, metrics.total)} tone="emerald" />
@@ -825,7 +825,7 @@ export const GerenciaReports = () => {
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" id="gerencia-report-header">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Informe log+Â¡stico</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Informe log+¡stico</p>
               <h3 className="text-xl font-semibold text-slate-900">Vista previa</h3>
               <p className="text-sm text-slate-600">Hasta 50 filas, mismo formato que el PDF.</p>
             </div>
@@ -888,18 +888,21 @@ export const GerenciaReports = () => {
             <table className="min-w-full table-fixed border-collapse text-sm text-slate-800">
               <thead className="bg-slate-100 text-[11px] uppercase tracking-[0.12em] text-slate-700">
                 <tr>
-                  <th className="border border-slate-200 px-3 py-2">C+Â¦d. Usuario</th>
+                  <th className="border border-slate-200 px-3 py-2">C+¦d. Usuario</th>
                   <th className="border border-slate-200 px-3 py-2">Empresa</th>
-                  <th className="border border-slate-200 px-3 py-2">Con Bit+Ã­cora</th>
-                  <th className="border border-slate-200 px-3 py-2">F. Bit+Ã­cora</th>
-                  <th className="border border-slate-200 px-3 py-2">H. Bit+Ã­cora</th>
+                  <th className="border border-slate-200 px-3 py-2">
+                    <span className="block">C/S</span>
+                    <span className="block">Bitacora</span>
+                  </th>
+                  <th className="border border-slate-200 px-3 py-2">F. Bit+ícora</th>
+                  <th className="border border-slate-200 px-3 py-2">H. Bit+ícora</th>
                   <th className="border border-slate-200 px-3 py-2">F. Ingreso</th>
                   <th className="border border-slate-200 px-3 py-2">H. Ingreso</th>
                   <th className="border border-slate-200 px-3 py-2">F. Salida</th>
                   <th className="border border-slate-200 px-3 py-2">H. Salida</th>
                   <th className="border border-slate-200 px-3 py-2">Proceso</th>
                   <th className="border border-slate-200 px-3 py-2">Patente</th>
-                  <th className="border border-slate-200 px-3 py-2">And+Â®n</th>
+                  <th className="border border-slate-200 px-3 py-2">And+®n</th>
                   <th className="border border-slate-200 px-3 py-2">Hrs Totales</th>
                 </tr>
               </thead>
@@ -908,7 +911,7 @@ export const GerenciaReports = () => {
                   <tr key={r.idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                     <td className="border border-slate-200 px-3 py-2 text-center">{r.idx}</td>
                     <td className="border border-slate-200 px-3 py-2">{r.empresa}</td>
-                    <td className="border border-slate-200 px-3 py-2 text-center">{r.bitacora ? 'Si' : 'No'}</td>
+                    <td className="border border-slate-200 px-3 py-2 text-center">{r.bitacora ? 'Con' : 'Sin'}</td>
                     <td className="border border-slate-200 px-3 py-2 text-center">{r.bitDate}</td>
                     <td className="border border-slate-200 px-3 py-2 text-center">{r.bitHour}</td>
                     <td className="border border-slate-200 px-3 py-2 text-center">{r.inDate}</td>
@@ -969,6 +972,7 @@ const BarRow = ({
     </div>
   );
 };
+
 
 
 

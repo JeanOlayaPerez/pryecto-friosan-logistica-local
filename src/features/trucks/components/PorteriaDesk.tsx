@@ -51,6 +51,12 @@ const processLabel = (t: Truck) => {
   return `${load} · ${entry}`;
 };
 
+const bitacoraLabel = (t: Truck) =>
+  (typeof t.hasBitacora === "boolean" ? t.hasBitacora : Boolean(t.scheduledArrival))
+    ? "Con"
+    : "Sin";
+
+
 export const PorteriaDesk = () => {
   const { user, role, logout, loading } = useAuth();
   const [form, setForm] = useState({
@@ -246,19 +252,21 @@ export const PorteriaDesk = () => {
               <table className="min-w-full table-fixed border-collapse">
                 <thead>
                   <tr className="bg-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-600">
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[18%]">Razón social</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[14%]">Patente</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[18%]">Cliente / Conductor / Rut</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[14%]">Proceso</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[12%]">Agendada</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[10%]">Ult. cambio</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[14%]">Estado</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Raz?n social</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[12%]">Patente</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Cliente / Conductor / Rut</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[13%]">Proceso</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[11%]">Agendada</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[8%]">C/S Bitacora</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[9%]">Ult. cambio</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[13%]">Estado</th>
                   </tr>
+
                 </thead>
                 <tbody>
                   {agendaList.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-3 py-4 text-center text-sm text-slate-500">
+                      <td colSpan={8} className="px-3 py-4 text-center text-sm text-slate-500">
                         No hay camiones en bitácora.
                       </td>
                     </tr>
@@ -286,6 +294,10 @@ export const PorteriaDesk = () => {
                       <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-700 break-words">
                         {t.scheduledArrival ? `${formatDate(t.scheduledArrival)} · ${formatHour(t.scheduledArrival)}` : "--"}
                       </td>
+                      <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-700">
+                        {bitacoraLabel(t)}
+                      </td>
+
                       <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-700">
                         {t.updatedAt ? formatHour(t.updatedAt) : "--"}
                       </td>
@@ -522,3 +534,12 @@ export const PorteriaDesk = () => {
     </div>
   );
 };
+
+
+
+
+
+
+
+
+
