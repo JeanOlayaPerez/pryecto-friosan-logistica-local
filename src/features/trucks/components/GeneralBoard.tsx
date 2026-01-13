@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
@@ -208,6 +208,10 @@ export const GeneralBoard = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
   const [projectorMode, setProjectorMode] = useState(false);
+  const tableViewportRef = useRef<HTMLDivElement | null>(null);
+  const tableContentRef = useRef<HTMLDivElement | null>(null);
+  const [tableScale, setTableScale] = useState(1);
+  const [tableScaledSize, setTableScaledSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -349,6 +353,33 @@ export const GeneralBoard = () => {
     };
   }, [historyRows]);
 
+  const updateTableScale = useCallback(() => {
+    const viewport = tableViewportRef.current;
+    const content = tableContentRef.current;
+    if (!viewport || !content) return;
+    const contentWidth = content.scrollWidth;
+    const contentHeight = content.scrollHeight;
+    if (!contentWidth || !contentHeight) return;
+    const viewportWidth = viewport.clientWidth;
+    const viewportHeight = projectorMode ? viewport.clientHeight : contentHeight;
+    if (!viewportWidth || !viewportHeight) return;
+    const scaleWidth = viewportWidth / contentWidth;
+    const scaleHeight = viewportHeight / contentHeight;
+    const maxScale = projectorMode ? Number.POSITIVE_INFINITY : 1;
+    const nextScale = Math.min(scaleWidth, scaleHeight, maxScale);
+    setTableScale(nextScale);
+    setTableScaledSize({ width: contentWidth * nextScale, height: contentHeight * nextScale });
+  }, [projectorMode]);
+
+  useLayoutEffect(() => {
+    updateTableScale();
+  }, [updateTableScale, displayRows.length, projectorMode]);
+
+  useEffect(() => {
+    window.addEventListener('resize', updateTableScale);
+    return () => window.removeEventListener('resize', updateTableScale);
+  }, [updateTableScale]);
+
   return (
     <div
       className={`${projectorMode ? 'min-h-screen bg-[#0f0f12] px-0 pb-0 pt-0' : 'min-h-screen space-y-4 bg-[#0f0f12] px-4 pb-8 pt-3 sm:px-6 sm:pb-8 md:px-[2cm] md:pb-[2cm]'} text-[#e9dda1]`}
@@ -446,9 +477,10 @@ export const GeneralBoard = () => {
         )}
 
         <div
-          className={`visor-table relative overflow-x-auto ${
+          ref={tableViewportRef}
+          className={`visor-table relative overflow-hidden ${
             projectorMode
-              ? 'min-h-screen rounded-none border-0 bg-[#1a1a1d] shadow-none'
+              ? 'h-screen rounded-none border-0 bg-[#1a1a1d] shadow-none'
               : 'rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]'
           }`}
         >
@@ -473,19 +505,33 @@ export const GeneralBoard = () => {
               <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${refreshing ? 'bg-[#e6cf6a]' : 'bg-[#e6cf6a]/60'}`} />
             </span>
           </div>
-          <TableHeader projector={projectorMode} />
+          <div
+            style={
+              tableScaledSize.width
+                ? { width: tableScaledSize.width, height: tableScaledSize.height }
+                : undefined
+            }
+          >
+            <div
+              ref={tableContentRef}
+              className="inline-block"
+              style={{ transform: `scale(${tableScale})`, transformOrigin: 'top left' }}
+            >
+              <TableHeader projector={projectorMode} />
 
-          <LayoutGroup>
-            {displayRows.map((truck, idx) => (
-              <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
-            ))}
-          </LayoutGroup>
+              <LayoutGroup>
+                {displayRows.map((truck, idx) => (
+                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
+                ))}
+              </LayoutGroup>
 
-          {displayRows.length === 0 && (
-            <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
-              No hay camiones activos para mostrar en el tablero.
+              {displayRows.length === 0 && (
+                <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
+                  No hay camiones activos para mostrar en el tablero.
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {!projectorMode && showHistory && (
