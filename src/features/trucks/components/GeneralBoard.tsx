@@ -86,7 +86,7 @@ const formatHistoryDay = (value: string) => {
 };
 
 const tableGrid =
-  'grid min-w-[1780px] grid-cols-[130px,210px,170px,170px,170px,170px,250px,290px,110px,110px]';
+  'grid table-grid min-w-[1780px] grid-cols-[130px,210px,170px,170px,170px,170px,250px,290px,110px,110px]';
 
 const TableHeader = ({ projector }: { projector?: boolean }) => {
   const headerText = projector ? 'text-xl' : 'text-lg';
