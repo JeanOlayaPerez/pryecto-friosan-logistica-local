@@ -88,6 +88,32 @@ const formatHistoryDay = (value: string) => {
 const tableGrid =
   'grid table-grid min-w-[1780px] grid-cols-[130px,210px,170px,170px,170px,170px,250px,290px,110px,110px]';
 
+const compatColumns = [
+  { label: 'Patente', width: 130 },
+  { label: 'Nombre empresa', width: 210 },
+  { label: 'Fec. bitacora', width: 170 },
+  { label: 'Hora bitacora', width: 170 },
+  { label: 'Fec. ingreso', width: 170 },
+  { label: 'Hora ingreso', width: 170 },
+  { label: 'Estado', width: 250 },
+  { label: 'Proceso', width: 290 },
+  { label: 'Anden', width: 110 },
+  { label: 'Tiempo', width: 110 },
+];
+
+const statusTone = (status: TruckStatus) => {
+  if (status === 'en_curso') return '#2f66cf';
+  if (status === 'en_espera' || status === 'en_porteria') return '#c05a36';
+  if (['recepcionado', 'almacenado', 'cerrado', 'terminado'].includes(status)) return '#2d8e6f';
+  return '#caa83f';
+};
+
+const processTone = (loadType?: Truck['loadType']) => {
+  if (loadType === 'descarga') return '#c05a36';
+  if (loadType === 'mixto') return '#5c4ea8';
+  return '#2f66cf';
+};
+
 const TableHeader = ({ projector }: { projector?: boolean }) => {
   const headerText = projector ? 'text-xl' : 'text-lg';
   const headerPadding = projector ? 'py-4' : 'py-3';
@@ -197,6 +223,78 @@ const TableRow = ({
   );
 };
 
+const CompatTable = ({
+  rows,
+  now,
+  projector,
+  emptyMessage,
+}: {
+  rows: Truck[];
+  now: Date;
+  projector?: boolean;
+  emptyMessage: string;
+}) => (
+  <div className="compat-table-wrap">
+    <table className={`compat-table ${projector ? 'compat-table--projector' : ''}`}>
+      <colgroup>
+        {compatColumns.map((col) => (
+          <col key={col.label} style={{ width: `${col.width}px` }} />
+        ))}
+      </colgroup>
+      <thead>
+        <tr>
+          {compatColumns.map((col) => (
+            <th key={col.label}>{col.label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.length === 0 ? (
+          <tr>
+            <td colSpan={compatColumns.length} className="compat-table-empty">
+              {emptyMessage}
+            </td>
+          </tr>
+        ) : (
+          rows.map((truck, idx) => {
+            const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
+            const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
+            const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
+            const ingresoHour = formatHour(truck.checkInGateAt ?? truck.checkInTime ?? null);
+            const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
+            const process = typeDisplay(truck);
+            const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
+            const rowClass = idx % 2 === 0 ? 'compat-row-even' : 'compat-row-odd';
+
+            return (
+              <tr key={truck.id} className={rowClass}>
+                <td className="compat-cell">{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</td>
+                <td className="compat-cell compat-cell-wrap">{truck.clientName || 'Sin cliente'}</td>
+                <td className="compat-cell">{bitacoraDate}</td>
+                <td className="compat-cell">{bitacoraHour}</td>
+                <td className="compat-cell">{ingresoDate}</td>
+                <td className="compat-cell">{ingresoHour}</td>
+                <td className="compat-cell">
+                  <span className="compat-badge" style={{ backgroundColor: statusTone(truck.status) }}>
+                    {statusLabel[truck.status]}
+                  </span>
+                </td>
+                <td className="compat-cell">
+                  <span className="compat-badge" style={{ backgroundColor: processTone(truck.loadType) }}>
+                    {process}
+                  </span>
+                </td>
+                <td className="compat-cell">{gate}</td>
+                <td className="compat-cell">{elapsed}</td>
+              </tr>
+            );
+          })
+        )}
+      </tbody>
+    </table>
+  </div>
+);
+
 export const GeneralBoard = () => {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filterDock, setFilterDock] = useState<'todos' | DockType>('todos');
@@ -208,6 +306,7 @@ export const GeneralBoard = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
   const [projectorMode, setProjectorMode] = useState(false);
+  const [isCompat, setIsCompat] = useState(false);
   const tableViewportRef = useRef<HTMLDivElement | null>(null);
   const tableContentRef = useRef<HTMLDivElement | null>(null);
   const [tableScale, setTableScale] = useState(1);
@@ -216,6 +315,10 @@ export const GeneralBoard = () => {
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    setIsCompat(document.documentElement.classList.contains('compat-tv'));
   }, []);
 
   useEffect(() => {
@@ -354,6 +457,11 @@ export const GeneralBoard = () => {
   }, [historyRows]);
 
   const updateTableScale = useCallback(() => {
+    if (isCompat) {
+      setTableScale(1);
+      setTableScaledSize({ width: 0, height: 0 });
+      return;
+    }
     const viewport = tableViewportRef.current;
     const content = tableContentRef.current;
     if (!viewport || !content) return;
@@ -369,7 +477,7 @@ export const GeneralBoard = () => {
     const nextScale = Math.min(scaleWidth, scaleHeight, maxScale);
     setTableScale(nextScale);
     setTableScaledSize({ width: contentWidth * nextScale, height: contentHeight * nextScale });
-  }, [projectorMode]);
+  }, [projectorMode, isCompat]);
 
   useLayoutEffect(() => {
     updateTableScale();
@@ -505,33 +613,42 @@ export const GeneralBoard = () => {
               <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${refreshing ? 'bg-[#e6cf6a]' : 'bg-[#e6cf6a]/60'}`} />
             </span>
           </div>
-          <div
-            style={
-              tableScaledSize.width
-                ? { width: tableScaledSize.width, height: tableScaledSize.height }
-                : undefined
-            }
-          >
+          {isCompat ? (
+            <CompatTable
+              rows={displayRows}
+              now={now}
+              projector={projectorMode}
+              emptyMessage="No hay camiones activos para mostrar en el tablero."
+            />
+          ) : (
             <div
-              ref={tableContentRef}
-              className="inline-block"
-              style={{ transform: `scale(${tableScale})`, transformOrigin: 'top left' }}
+              style={
+                tableScaledSize.width
+                  ? { width: tableScaledSize.width, height: tableScaledSize.height }
+                  : undefined
+              }
             >
-              <TableHeader projector={projectorMode} />
+              <div
+                ref={tableContentRef}
+                className="inline-block"
+                style={{ transform: `scale(${tableScale})`, transformOrigin: 'top left' }}
+              >
+                <TableHeader projector={projectorMode} />
 
-              <LayoutGroup>
-                {displayRows.map((truck, idx) => (
-                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
-                ))}
-              </LayoutGroup>
+                <LayoutGroup>
+                  {displayRows.map((truck, idx) => (
+                    <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
+                  ))}
+                </LayoutGroup>
 
-              {displayRows.length === 0 && (
-                <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
-                  No hay camiones activos para mostrar en el tablero.
-                </div>
-              )}
+                {displayRows.length === 0 && (
+                  <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
+                    No hay camiones activos para mostrar en el tablero.
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {!projectorMode && showHistory && (
@@ -581,16 +698,26 @@ export const GeneralBoard = () => {
               </div>
             </div>
             <div className="visor-table relative max-h-[45vh] overflow-auto border-t border-[#2f2f34]">
-              <TableHeader />
-              <LayoutGroup>
-                {historyRows.map((truck, idx) => (
-                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
-                ))}
-              </LayoutGroup>
-              {historyRows.length === 0 && (
-                <div className="flex h-28 items-center justify-center text-sm text-[#cdbf86]">
-                  No hay registros para el dia seleccionado.
-                </div>
+              {isCompat ? (
+                <CompatTable
+                  rows={historyRows}
+                  now={now}
+                  emptyMessage="No hay registros para el dia seleccionado."
+                />
+              ) : (
+                <>
+                  <TableHeader />
+                  <LayoutGroup>
+                    {historyRows.map((truck, idx) => (
+                      <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
+                    ))}
+                  </LayoutGroup>
+                  {historyRows.length === 0 && (
+                    <div className="flex h-28 items-center justify-center text-sm text-[#cdbf86]">
+                      No hay registros para el dia seleccionado.
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
