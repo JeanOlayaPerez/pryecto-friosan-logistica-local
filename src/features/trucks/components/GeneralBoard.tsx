@@ -300,6 +300,7 @@ export const GeneralBoard = () => {
   const [filterDock, setFilterDock] = useState<'todos' | DockType>('todos');
   const [search, setSearch] = useState('');
   const [listenerError, setListenerError] = useState<string | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [shiftIndex, setShiftIndex] = useState(0);
@@ -307,6 +308,11 @@ export const GeneralBoard = () => {
   const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
   const [projectorMode, setProjectorMode] = useState(false);
   const [isCompat, setIsCompat] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
+  const [diagRunning, setDiagRunning] = useState(false);
+  const [diagItems, setDiagItems] = useState<
+    Array<{ label: string; value: string; status: 'ok' | 'warn' | 'fail' | 'info' }>
+  >([]);
   const tableViewportRef = useRef<HTMLDivElement | null>(null);
   const tableContentRef = useRef<HTMLDivElement | null>(null);
   const [tableScale, setTableScale] = useState(1);
@@ -341,10 +347,12 @@ export const GeneralBoard = () => {
       (data) => {
         setListenerError(null);
         setTrucks(data);
+        setDataLoaded(true);
       },
       (err) => {
         console.error(err);
         setListenerError('No se pudieron cargar los camiones (permisos o red).');
+        setDataLoaded(true);
       },
     );
     return () => unsub();
@@ -455,6 +463,115 @@ export const GeneralBoard = () => {
       enCurso,
     };
   }, [historyRows]);
+
+  const canShowDiagnostics = dataLoaded && trucks.length === 0;
+
+  const runDiagnostics = async () => {
+    if (!canShowDiagnostics) return;
+    setDiagRunning(true);
+    const items: Array<{ label: string; value: string; status: 'ok' | 'warn' | 'fail' | 'info' }> = [];
+    const envProject = import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined;
+    const envAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined;
+    const envStorage = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined;
+
+    items.push({
+      label: 'Conexion',
+      value: navigator.onLine ? 'online' : 'offline',
+      status: navigator.onLine ? 'ok' : 'fail',
+    });
+    items.push({
+      label: 'URL',
+      value: window.location.href,
+      status: 'info',
+    });
+    items.push({
+      label: 'Proyecto Firebase',
+      value: envProject ?? 'no definido',
+      status: envProject ? 'ok' : 'fail',
+    });
+    items.push({
+      label: 'Auth domain',
+      value: envAuthDomain ?? 'no definido',
+      status: envAuthDomain ? 'ok' : 'fail',
+    });
+    items.push({
+      label: 'Storage bucket',
+      value: envStorage ?? 'no definido',
+      status: envStorage ? 'info' : 'warn',
+    });
+    items.push({
+      label: 'Hora local',
+      value: new Date().toISOString(),
+      status: 'info',
+    });
+    items.push({
+      label: 'Compat',
+      value: isCompat ? 'activo' : 'inactivo',
+      status: isCompat ? 'info' : 'ok',
+    });
+    items.push({
+      label: 'Filtro dock',
+      value: filterDock,
+      status: 'info',
+    });
+    items.push({
+      label: 'Busqueda',
+      value: search ? search : 'sin filtro',
+      status: search ? 'warn' : 'info',
+    });
+    items.push({
+      label: 'Datos',
+      value: `trucks=${trucks.length}, filtrados=${filtered.length}`,
+      status: trucks.length > 0 ? 'ok' : 'warn',
+    });
+    items.push({
+      label: 'Listener',
+      value: listenerError ?? 'sin error',
+      status: listenerError ? 'fail' : 'ok',
+    });
+    items.push({
+      label: 'User agent',
+      value: navigator.userAgent || 'N/A',
+      status: 'info',
+    });
+
+    const tryFetch = async (url: string) => {
+      if (typeof fetch !== 'function') {
+        return { ok: false, error: 'fetch no soportado' };
+      }
+      try {
+        await fetch(url, { mode: 'no-cors', cache: 'no-store' });
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : 'error' };
+      }
+    };
+
+    const gstatic = await tryFetch('https://www.gstatic.com/generate_204');
+    items.push({
+      label: 'Acceso gstatic',
+      value: gstatic.ok ? 'ok' : `fallo (${gstatic.error ?? 'sin detalle'})`,
+      status: gstatic.ok ? 'ok' : 'fail',
+    });
+
+    const firestorePing = await tryFetch('https://firestore.googleapis.com/');
+    items.push({
+      label: 'Acceso Firestore',
+      value: firestorePing.ok ? 'ok' : `fallo (${firestorePing.error ?? 'sin detalle'})`,
+      status: firestorePing.ok ? 'ok' : 'fail',
+    });
+
+    setDiagItems(items);
+    setDiagOpen(true);
+    setDiagRunning(false);
+  };
+
+  const diagStatusClass = (status: 'ok' | 'warn' | 'fail' | 'info') => {
+    if (status === 'ok') return 'bg-emerald-400';
+    if (status === 'warn') return 'bg-amber-400';
+    if (status === 'fail') return 'bg-rose-500';
+    return 'bg-slate-400';
+  };
 
   const updateTableScale = useCallback(() => {
     if (isCompat) {
@@ -650,6 +767,43 @@ export const GeneralBoard = () => {
             </div>
           )}
         </div>
+
+        {canShowDiagnostics && (
+          <div className="rounded-2xl border border-[#2f2f34] bg-[#1a1a1d] px-5 py-4 shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#e6cf6a]">Diagnostico visor</p>
+                <p className="text-sm text-[#cdbf86]">
+                  No se recibieron datos del tablero. Ejecuta el diagnostico para revisar red y configuracion.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={runDiagnostics}
+                disabled={diagRunning}
+                className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34] disabled:opacity-60"
+              >
+                {diagRunning ? 'Diagnosticando...' : diagOpen ? 'Reintentar diagnostico' : 'Ejecutar diagnostico'}
+              </button>
+            </div>
+            {diagOpen && (
+              <div className="mt-3 grid gap-2">
+                {diagItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-start gap-3 rounded-xl border border-[#2f2f34] bg-[#1c1c20] px-3 py-2 text-xs"
+                  >
+                    <span className={`mt-1 h-2 w-2 rounded-full ${diagStatusClass(item.status)}`} />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#e9dda1]">{item.label}</p>
+                      <p className="break-words text-[#cdbf86]">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {!projectorMode && showHistory && (
           <div className="rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
