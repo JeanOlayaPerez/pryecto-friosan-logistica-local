@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { subscribeAllTrucks } from '../services/trucksApi';
-import type { Truck } from '../types';
+import type { Truck, TruckStatus } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
 import { minutesBetween } from '../../../shared/utils/time';
 
@@ -14,6 +14,13 @@ const formatDateInput = (d?: Date | null) => {
   const month = `${d.getMonth() + 1}`.padStart(2, '0');
   const day = `${d.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const formatShortDate = (value: string) => {
+  if (!value) return '';
+  const [year, month, day] = value.split('-');
+  if (!year || !month || !day) return value;
+  return `${day}/${month}`;
 };
 
 const timeOrDash = (d?: Date | null) =>
@@ -54,6 +61,31 @@ type ReportRow = {
 };
 
 type ReportColumnKey = (typeof reportColumns)[number]['key'];
+
+type LineSeries = {
+  label: string;
+  values: number[];
+  color: string;
+};
+
+type LineChartData = {
+  labels: string[];
+  series: LineSeries[];
+};
+
+type StatusSlice = {
+  key: TruckStatus;
+  label: string;
+  color: string;
+  count: number;
+  pct: number;
+};
+
+type DockWaitItem = {
+  dock: string;
+  avg: number;
+  count: number;
+};
 
 type DemoTruckSeed = {
   id: string;
@@ -372,6 +404,20 @@ const buildDemoTrucks = (dayValue: string): Truck[] => {
   });
 };
 
+const linePalette = ['#0f172a', '#0ea5e9', '#f97316', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b'];
+
+const statusMeta: Array<{ key: TruckStatus; label: string; color: string }> = [
+  { key: 'agendado', label: 'Agendado', color: '#94a3b8' },
+  { key: 'en_camino', label: 'En camino', color: '#38bdf8' },
+  { key: 'en_porteria', label: 'En porteria', color: '#f59e0b' },
+  { key: 'en_espera', label: 'En espera', color: '#f97316' },
+  { key: 'en_curso', label: 'En curso', color: '#0ea5e9' },
+  { key: 'recepcionado', label: 'Recepcionado', color: '#22c55e' },
+  { key: 'almacenado', label: 'Almacenado', color: '#14b8a6' },
+  { key: 'cerrado', label: 'Cerrado', color: '#64748b' },
+  { key: 'terminado', label: 'Terminado', color: '#10b981' },
+];
+
 export const GerenciaReports = () => {
   const { role } = useAuth();
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -500,6 +546,106 @@ export const GerenciaReports = () => {
     })();
     return { total, delayed, enCurso, finalizados, promEspera };
   }, [filtered]);
+  const metricsRangeLabel = metricsRange === '7d' ? 'Ultimos 7 dias' : 'Dia seleccionado';
+
+  const trendData = useMemo<LineChartData>(() => {
+    const windowDays = metricsRange === '7d' ? 7 : 6;
+    const endDate = day ? new Date(day) : new Date();
+    endDate.setHours(0, 0, 0, 0);
+
+    const labels: string[] = [];
+    for (let i = windowDays - 1; i >= 0; i -= 1) {
+      const d = new Date(endDate);
+      d.setDate(d.getDate() - i);
+      labels.push(formatDateInput(d));
+    }
+
+    const labelSet = new Set(labels);
+    const byClient: Record<string, Record<string, number>> = {};
+
+    baseFiltered.forEach((t) => {
+      const source = getDaySource(t);
+      if (!source) return;
+      const key = formatDateInput(source);
+      if (!labelSet.has(key)) return;
+      const client = t.clientName || t.companyName || 'Sin cliente';
+      if (!byClient[client]) byClient[client] = {};
+      byClient[client][key] = (byClient[client][key] ?? 0) + 1;
+    });
+
+    const totals = Object.entries(byClient).map(([label, values]) => ({
+      label,
+      total: Object.values(values).reduce((sum, value) => sum + value, 0),
+    }));
+    totals.sort((a, b) => b.total - a.total);
+
+    const mainClients = totals.slice(0, 6).map((item) => item.label);
+    const restClients = totals.slice(6).map((item) => item.label);
+
+    const series: LineSeries[] = mainClients.map((client, idx) => ({
+      label: client,
+      values: labels.map((key) => byClient[client]?.[key] ?? 0),
+      color: linePalette[idx % linePalette.length],
+    }));
+
+    if (restClients.length) {
+      const values = labels.map((key) =>
+        restClients.reduce((sum, client) => sum + (byClient[client]?.[key] ?? 0), 0),
+      );
+      series.push({
+        label: 'Otros',
+        values,
+        color: linePalette[mainClients.length % linePalette.length],
+      });
+    }
+
+    return { labels, series };
+  }, [baseFiltered, day, metricsRange, reportType, bitacoraFilter]);
+
+  const trendRangeLabel = useMemo(() => {
+    if (!trendData.labels.length) return 'Sin rango';
+    const start = formatShortDate(trendData.labels[0]);
+    const end = formatShortDate(trendData.labels[trendData.labels.length - 1]);
+    return start === end ? start : `${start} - ${end}`;
+  }, [trendData.labels]);
+
+  const statusData = useMemo(() => {
+    const total = metricsSource.length;
+    const counts = new Map<TruckStatus, number>();
+    metricsSource.forEach((t) => {
+      counts.set(t.status, (counts.get(t.status) ?? 0) + 1);
+    });
+    const series: StatusSlice[] = statusMeta.map((meta) => {
+      const count = counts.get(meta.key) ?? 0;
+      return {
+        ...meta,
+        count,
+        pct: total ? (count / total) * 100 : 0,
+      };
+    });
+    return { total, series };
+  }, [metricsSource]);
+
+  const dockWaitRows = useMemo<DockWaitItem[]>(() => {
+    const byDock: Record<string, number[]> = {};
+    metricsSource.forEach((t) => {
+      if (!t.dockNumber) return;
+      if (!t.checkInGateAt || !t.checkInTime) return;
+      const wait = minutesBetween(t.checkInGateAt, t.checkInTime);
+      if (!Number.isFinite(wait)) return;
+      const dockKey = `A-${t.dockNumber}`;
+      if (!byDock[dockKey]) byDock[dockKey] = [];
+      byDock[dockKey].push(wait);
+    });
+
+    const rows = Object.entries(byDock).map(([dock, waits]) => ({
+      dock,
+      avg: Math.round(waits.reduce((sum, value) => sum + value, 0) / waits.length),
+      count: waits.length,
+    }));
+    rows.sort((a, b) => b.avg - a.avg);
+    return rows.slice(0, 6);
+  }, [metricsSource]);
 
   const rowsForReport: ReportRow[] = filtered.slice(0, 50).map((t, idx) => {
     const hasBitacora = typeof t.hasBitacora === 'boolean' ? t.hasBitacora : Boolean(t.scheduledArrival);
@@ -816,6 +962,35 @@ export const GerenciaReports = () => {
           </div>
         </div>
 
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Graficos de gestion</p>
+            <p className="text-xs text-slate-500">Rango: {metricsRangeLabel}</p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <ChartCard
+              title="Flujo por cliente"
+              description={`Conteo diario (${trendRangeLabel})`}
+              className="lg:col-span-2"
+            >
+              <LineChart labels={trendData.labels} series={trendData.series} />
+            </ChartCard>
+            <ChartCard
+              title="Estado de procesos"
+              description={`Distribucion de estados (${metricsRangeLabel})`}
+            >
+              <StatusStack total={statusData.total} series={statusData.series} />
+            </ChartCard>
+            <ChartCard
+              title="Espera promedio por anden"
+              description={`Minutos promedio por anden (${metricsRangeLabel})`}
+              className="lg:col-span-3"
+            >
+              <DockWaitList rows={dockWaitRows} />
+            </ChartCard>
+          </div>
+        </div>
+
         {listenerError && !showDemo && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
             {listenerError}
@@ -972,7 +1147,180 @@ const BarRow = ({
     </div>
   );
 };
+const ChartCard = ({
+  title,
+  description,
+  children,
+  className = '',
+}: {
+  title: string;
+  description?: string;
+  children: JSX.Element | JSX.Element[];
+  className?: string;
+}) => (
+  <div className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60 ${className}`}>
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{title}</p>
+        {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
+      </div>
+    </div>
+    <div className="mt-4">{children}</div>
+  </div>
+);
 
+const EmptyState = ({ label }: { label: string }) => (
+  <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-slate-200 text-sm text-slate-500">
+    {label}
+  </div>
+);
 
+const LineChart = ({ labels, series }: { labels: string[]; series: LineSeries[] }) => {
+  const hasData = series.some((item) => item.values.some((value) => value > 0));
+  if (!labels.length || !series.length || !hasData) {
+    return <EmptyState label="Sin datos para graficar." />;
+  }
 
+  const width = 640;
+  const height = 260;
+  const padding = { top: 16, right: 18, bottom: 36, left: 46 };
+  const values = series.flatMap((item) => item.values);
+  const maxValue = Math.max(1, ...values);
+  const steps = 4;
+  const stepValue = Math.ceil(maxValue / steps) || 1;
+  const maxTick = stepValue * steps;
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = height - padding.top - padding.bottom;
+  const xStep = innerWidth / Math.max(1, labels.length - 1);
 
+  const getX = (index: number) => padding.left + index * xStep;
+  const getY = (value: number) => padding.top + (maxTick - value) * (innerHeight / maxTick);
+
+  const ticks = Array.from({ length: steps + 1 }, (_, idx) => idx * stepValue);
+
+  return (
+    <div className="space-y-3">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full" role="img" aria-label="Grafico de lineas">
+        <rect x="0" y="0" width={width} height={height} fill="white" />
+        {ticks.map((tick) => {
+          const y = getY(tick);
+          return (
+            <g key={tick}>
+              <line x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke="#e2e8f0" />
+              <text x={padding.left - 8} y={y + 4} textAnchor="end" className="fill-slate-400 text-[10px]">
+                {tick}
+              </text>
+            </g>
+          );
+        })}
+        <line
+          x1={padding.left}
+          x2={padding.left}
+          y1={padding.top}
+          y2={height - padding.bottom}
+          stroke="#cbd5e1"
+        />
+        <line
+          x1={padding.left}
+          x2={width - padding.right}
+          y1={height - padding.bottom}
+          y2={height - padding.bottom}
+          stroke="#cbd5e1"
+        />
+        {labels.map((label, idx) => (
+          <text
+            key={`${label}-${idx}`}
+            x={getX(idx)}
+            y={height - padding.bottom + 16}
+            textAnchor="middle"
+            className="fill-slate-400 text-[10px]"
+          >
+            {formatShortDate(label)}
+          </text>
+        ))}
+        {series.map((item) => {
+          const path = item.values
+            .map((value, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(idx)} ${getY(value)}`)
+            .join(' ');
+          return (
+            <g key={item.label}>
+              <path d={path} fill="none" stroke={item.color} strokeWidth="2" />
+              {item.values.map((value, idx) => (
+                <circle key={`${item.label}-${idx}`} cx={getX(idx)} cy={getY(value)} r="3" fill={item.color} />
+              ))}
+            </g>
+          );
+        })}
+      </svg>
+      <LineLegend series={series} />
+    </div>
+  );
+};
+
+const LineLegend = ({ series }: { series: LineSeries[] }) => (
+  <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+    {series.map((item) => (
+      <div key={item.label} className="flex items-center gap-2">
+        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+        <span className="max-w-[140px] truncate">{item.label}</span>
+      </div>
+    ))}
+  </div>
+);
+
+const StatusStack = ({ total, series }: { total: number; series: StatusSlice[] }) => {
+  if (!total) {
+    return <EmptyState label="Sin datos para estados." />;
+  }
+  const visible = series.filter((item) => item.count > 0);
+  return (
+    <div className="space-y-3">
+      <div className="flex h-3 overflow-hidden rounded-full bg-slate-100">
+        {visible.map((item) => (
+          <div key={item.key} style={{ width: `${item.pct}%`, backgroundColor: item.color }} />
+        ))}
+      </div>
+      <div className="grid gap-2">
+        {series.map((item) => (
+          <div key={item.key} className="flex items-center justify-between text-xs text-slate-700">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+              <span>{item.label}</span>
+            </div>
+            <span>{item.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const DockWaitList = ({ rows }: { rows: DockWaitItem[] }) => {
+  if (!rows.length) {
+    return <EmptyState label="Sin datos de espera." />;
+  }
+  const maxAvg = Math.max(1, ...rows.map((row) => row.avg));
+  return (
+    <div className="space-y-3">
+      {rows.map((row) => {
+        const pct = Math.min(100, (row.avg / maxAvg) * 100);
+        return (
+          <div key={row.dock}>
+            <div className="flex items-center justify-between text-xs text-slate-700">
+              <span>{row.dock}</span>
+              <span>
+                {row.avg} min ({row.count})
+              </span>
+            </div>
+            <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full bg-gradient-to-r from-sky-500 to-emerald-400"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
