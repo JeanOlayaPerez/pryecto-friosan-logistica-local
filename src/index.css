@@ -114,6 +114,59 @@ body {
   }
 }
 
+:root.compat-tv {
+  color-scheme: dark;
+}
+
+:root.compat-tv body,
+:root.compat-tv #app {
+  background: #0b111a;
+}
+
+:root.compat-tv #app::before,
+:root.compat-tv #app::after,
+:root.compat-tv .logistics-bg {
+  display: none;
+}
+
+:root.compat-tv .glass {
+  background-color: #111827;
+  border-color: rgba(148, 163, 184, 0.28);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+:root.compat-tv .logo-header,
+:root.compat-tv .logo-header::after {
+  animation: none;
+}
+
+:root.compat-tv [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+:root.compat-tv [class*="bg-white/80"] {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+:root.compat-tv [class*="bg-surface-panel/"] {
+  background-color: rgba(17, 24, 39, 0.95) !important;
+}
+
+:root.compat-tv [class*="bg-black/"] {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+:root.compat-tv [class*="border-white/"] {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+:root.compat-tv [class*="text-slate-300"],
+:root.compat-tv [class*="text-slate-400"],
+:root.compat-tv [class*="text-slate-500"] {
+  color: #e2e8f0 !important;
+}
+
 @keyframes convoy {
   from {
     transform: translateX(0);
