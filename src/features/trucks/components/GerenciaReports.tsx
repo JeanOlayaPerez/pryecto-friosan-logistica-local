@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { subscribeAllTrucks } from '../services/trucksApi';
 import type { Truck, TruckStatus } from '../types';
@@ -16,11 +16,27 @@ const formatDateInput = (d?: Date | null) => {
   return `${year}-${month}-${day}`;
 };
 
+const parseDateInput = (value: string) => {
+  if (!value) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
+};
+
 const formatShortDate = (value: string) => {
   if (!value) return '';
   const [year, month, day] = value.split('-');
   if (!year || !month || !day) return value;
   return `${day}/${month}`;
+};
+
+const formatShortDateWithYear = (value: Date) => {
+  const key = formatDateInput(value);
+  const short = formatShortDate(key);
+  return `${short}/${value.getFullYear()}`;
 };
 
 const timeOrDash = (d?: Date | null) =>
@@ -61,6 +77,17 @@ type ReportRow = {
 };
 
 type ReportColumnKey = (typeof reportColumns)[number]['key'];
+
+type CustomRange = 'dia' | 'semana' | 'mes' | 'anio';
+type CustomMetric = 'empresa' | 'total' | 'top_camiones' | 'top_volumen';
+
+type CustomSummary = {
+  title: string;
+  detail: string;
+  topCompanies: Array<{ name: string; count: number; volume: number }>;
+  volumeLabel: string;
+  showVolume: boolean;
+};
 
 type LineSeries = {
   label: string;
@@ -104,6 +131,9 @@ type DemoTruckSeed = {
   checkInGate?: string;
   checkIn?: string;
   updated?: string;
+  pallets?: number;
+  boxes?: number;
+  kilos?: number;
 };
 
 const buildDemoTrucks = (dayValue: string): Truck[] => {
@@ -374,6 +404,229 @@ const buildDemoTrucks = (dayValue: string): Truck[] => {
       checkIn: '07:00',
       updated: '09:00',
     },
+    {
+      id: 'demo-15',
+      companyName: 'Agrosuper',
+      clientName: 'Agrosuper',
+      plate: 'LNR501',
+      driverName: 'Sebastian Silva',
+      dockType: 'recepcion',
+      dockNumber: 2,
+      entryType: 'conos',
+      status: 'en_espera',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: -3,
+      scheduled: '15:10',
+      checkInGate: '14:40',
+      checkIn: '14:55',
+      updated: '16:10',
+      pallets: 24,
+      kilos: 12000,
+    },
+    {
+      id: 'demo-16',
+      companyName: 'Soprole',
+      clientName: 'Soprole',
+      plate: 'QWT332',
+      driverName: 'Rocio Diaz',
+      dockType: 'despacho',
+      dockNumber: 6,
+      entryType: 'anden',
+      status: 'en_curso',
+      hasBitacora: true,
+      loadType: 'descarga',
+      dayOffset: -5,
+      scheduled: '09:15',
+      checkInGate: '09:00',
+      checkIn: '09:05',
+      updated: '11:45',
+      boxes: 480,
+    },
+    {
+      id: 'demo-17',
+      companyName: 'Frutera Sur',
+      clientName: 'Frutera Sur',
+      plate: 'PQA772',
+      driverName: 'Carolina Baeza',
+      dockType: 'despacho',
+      dockNumber: 4,
+      entryType: 'conos',
+      status: 'terminado',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: -8,
+      scheduled: '18:00',
+      checkInGate: '17:30',
+      checkIn: '17:40',
+      updated: '20:00',
+      pallets: 30,
+    },
+    {
+      id: 'demo-18',
+      companyName: 'Donihue',
+      clientName: 'Donihue',
+      plate: 'VRT219',
+      driverName: 'Marco Lopez',
+      dockType: 'recepcion',
+      dockNumber: 5,
+      entryType: 'anden',
+      status: 'recepcionado',
+      hasBitacora: true,
+      loadType: 'mixto',
+      dayOffset: -10,
+      scheduled: '10:30',
+      checkInGate: '10:05',
+      checkIn: '10:20',
+      updated: '12:00',
+      kilos: 7800,
+    },
+    {
+      id: 'demo-19',
+      companyName: 'Pacific Fresh',
+      clientName: 'Pacific Fresh',
+      plate: 'KTP118',
+      driverName: 'Natalia Rios',
+      dockType: 'recepcion',
+      dockNumber: 1,
+      entryType: 'conos',
+      status: 'en_porteria',
+      hasBitacora: true,
+      loadType: 'descarga',
+      dayOffset: -14,
+      scheduled: '06:20',
+      checkInGate: '06:10',
+      checkIn: '06:15',
+      updated: '07:05',
+      kilos: 6200,
+    },
+    {
+      id: 'demo-20',
+      companyName: 'Del Monte',
+      clientName: 'Del Monte',
+      plate: 'XCL209',
+      driverName: 'Bruno Tapia',
+      dockType: 'despacho',
+      dockNumber: 3,
+      entryType: 'anden',
+      status: 'cerrado',
+      hasBitacora: true,
+      loadType: 'mixto',
+      dayOffset: -21,
+      scheduled: '10:10',
+      checkInGate: '09:45',
+      checkIn: '09:55',
+      updated: '11:50',
+      pallets: 16,
+    },
+    {
+      id: 'demo-21',
+      companyName: 'Copefrut',
+      clientName: 'Copefrut',
+      plate: 'HJD445',
+      driverName: 'Oscar Vargas',
+      dockType: 'recepcion',
+      dockNumber: 7,
+      entryType: 'anden',
+      status: 'agendado',
+      hasBitacora: false,
+      loadType: 'carga',
+      dayOffset: -28,
+      scheduled: '12:45',
+      pallets: 14,
+    },
+    {
+      id: 'demo-22',
+      companyName: 'Agro Norte',
+      clientName: 'Agro Norte',
+      plate: 'MNV663',
+      driverName: 'Lorena Fuentes',
+      dockType: 'recepcion',
+      dockNumber: 5,
+      entryType: 'anden',
+      status: 'en_camino',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: -35,
+      scheduled: '05:20',
+      boxes: 300,
+    },
+    {
+      id: 'demo-23',
+      companyName: 'Sopravol',
+      clientName: 'Sopravol',
+      plate: 'ZBD909',
+      driverName: 'Valeria Acevedo',
+      dockType: 'recepcion',
+      dockNumber: 6,
+      entryType: 'anden',
+      status: 'almacenado',
+      hasBitacora: true,
+      loadType: 'descarga',
+      dayOffset: -45,
+      scheduled: '16:00',
+      checkInGate: '15:30',
+      checkIn: '15:45',
+      updated: '18:10',
+      boxes: 540,
+    },
+    {
+      id: 'demo-24',
+      companyName: 'Lacteos Sur',
+      clientName: 'Lacteos Sur',
+      plate: 'BKM981',
+      driverName: 'Hector Soto',
+      dockType: 'recepcion',
+      dockNumber: 9,
+      entryType: 'anden',
+      status: 'terminado',
+      hasBitacora: true,
+      loadType: 'mixto',
+      dayOffset: -60,
+      scheduled: '07:30',
+      checkInGate: '07:05',
+      checkIn: '07:15',
+      updated: '09:30',
+      kilos: 9100,
+    },
+    {
+      id: 'demo-25',
+      companyName: 'Frutera Central',
+      clientName: 'Frutera Central',
+      plate: 'VPL781',
+      driverName: 'Cecilia Ramos',
+      dockType: 'recepcion',
+      dockNumber: 4,
+      entryType: 'anden',
+      status: 'cerrado',
+      hasBitacora: true,
+      loadType: 'mixto',
+      dayOffset: -90,
+      scheduled: '08:05',
+      checkInGate: '07:50',
+      checkIn: '08:00',
+      updated: '09:40',
+      pallets: 20,
+    },
+    {
+      id: 'demo-26',
+      companyName: 'Alta Fruta',
+      clientName: 'Alta Fruta',
+      plate: 'JRS330',
+      driverName: 'Matias Ponce',
+      dockType: 'despacho',
+      dockNumber: 2,
+      entryType: 'conos',
+      status: 'en_espera',
+      hasBitacora: true,
+      loadType: 'carga',
+      dayOffset: -120,
+      scheduled: '11:25',
+      checkInGate: '10:50',
+      checkIn: '11:05',
+      updated: '12:40',
+      kilos: 7000,
+    },
   ];
 
   return demoSeeds.map((seed) => {
@@ -399,6 +652,9 @@ const buildDemoTrucks = (dayValue: string): Truck[] => {
       checkInTime,
       updatedAt,
       createdAt: scheduledArrival,
+      pallets: seed.pallets,
+      boxes: seed.boxes,
+      kilos: seed.kilos,
       history: [],
     };
   });
@@ -435,6 +691,11 @@ export const GerenciaReports = () => {
   const [metricsRange, setMetricsRange] = useState<'dia' | '7d'>('dia');
   const [useDemo, setUseDemo] = useState(false);
 
+  const [customRange, setCustomRange] = useState<CustomRange>('semana');
+  const [customMetric, setCustomMetric] = useState<CustomMetric>('empresa');
+  const [customCompany, setCustomCompany] = useState('');
+  const [customDay, setCustomDay] = useState<string>('');
+
   useEffect(() => {
     const unsub = subscribeAllTrucks(
       (data) => {
@@ -464,6 +725,24 @@ export const GerenciaReports = () => {
     }
     return t.scheduledArrival ?? null;
   };
+
+  const getEntryDate = (t: Truck) => {
+    return t.checkInGateAt ?? t.checkInTime ?? t.scheduledArrival ?? t.createdAt ?? null;
+  };
+
+  const latestEntryDate = useMemo(() => {
+    const dates = sourceTrucks
+      .map((t) => getEntryDate(t))
+      .filter((value): value is Date => Boolean(value));
+    if (!dates.length) return null;
+    return new Date(Math.max(...dates.map((d) => d.getTime())));
+  }, [sourceTrucks]);
+
+  useEffect(() => {
+    if (customDay) return;
+    const base = latestEntryDate ?? new Date();
+    setCustomDay(formatDateInput(base));
+  }, [customDay, latestEntryDate]);
 
   const baseFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -546,6 +825,192 @@ export const GerenciaReports = () => {
     })();
     return { total, delayed, enCurso, finalizados, promEspera };
   }, [filtered]);
+
+  const companyOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(
+        sourceTrucks
+          .map((t) => t.clientName || t.companyName)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+    names.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    return names;
+  }, [sourceTrucks]);
+  useEffect(() => {
+    if (customMetric !== 'empresa') return;
+    if (customCompany) return;
+    if (!companyOptions.length) return;
+    setCustomCompany(companyOptions[0]);
+  }, [customMetric, customCompany, companyOptions]);
+
+  const customRangeDates = useMemo(() => {
+    let base = customDay ? new Date(customDay) : latestEntryDate ?? new Date();
+    if (Number.isNaN(base.getTime())) base = latestEntryDate ?? new Date();
+    base.setHours(0, 0, 0, 0);
+
+    let start = new Date(base);
+    let end = new Date(base);
+
+    if (customRange === 'semana') {
+      const dayOfWeek = (base.getDay() + 6) % 7;
+      start.setDate(base.getDate() - dayOfWeek);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+    } else if (customRange === 'mes') {
+      start = new Date(base.getFullYear(), base.getMonth(), 1);
+      end = new Date(base.getFullYear(), base.getMonth() + 1, 0);
+    } else if (customRange === 'anio') {
+      start = new Date(base.getFullYear(), 0, 1);
+      end = new Date(base.getFullYear(), 11, 31);
+    }
+
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }, [customDay, customRange, latestEntryDate]);
+
+  const customRangeLabel = useMemo(() => {
+    const startKey = formatDateInput(customRangeDates.start);
+    const endKey = formatDateInput(customRangeDates.end);
+    if (startKey === endKey) {
+      return formatShortDateWithYear(customRangeDates.start);
+    }
+    return `${formatShortDateWithYear(customRangeDates.start)} - ${formatShortDateWithYear(customRangeDates.end)}`;
+  }, [customRangeDates]);
+
+  const customFiltered = useMemo(() => {
+    return sourceTrucks.filter((t) => {
+      const entry = getEntryDate(t);
+      if (!entry) return false;
+      return entry >= customRangeDates.start && entry <= customRangeDates.end;
+    });
+  }, [sourceTrucks, customRangeDates]);
+
+  const customSummary = useMemo<CustomSummary>(() => {
+    const total = customFiltered.length;
+    const volumeMode = customFiltered.some((t) => typeof t.kilos === 'number')
+      ? 'kilos'
+      : customFiltered.some((t) => typeof t.pallets === 'number')
+        ? 'pallets'
+        : customFiltered.some((t) => typeof t.boxes === 'number')
+          ? 'boxes'
+          : 'count';
+
+    const volumeLabel =
+      volumeMode === 'kilos' ? 'kg' : volumeMode === 'pallets' ? 'pallets' : volumeMode === 'boxes' ? 'cajas' : 'camiones';
+
+    const byCompany: Record<string, { count: number; volume: number }> = {};
+    let totalVolume = 0;
+
+    customFiltered.forEach((t) => {
+      const name = t.clientName || t.companyName || 'Sin cliente';
+      if (!byCompany[name]) byCompany[name] = { count: 0, volume: 0 };
+      byCompany[name].count += 1;
+
+      let volume = 1;
+      if (volumeMode === 'kilos') volume = typeof t.kilos === 'number' ? t.kilos : 0;
+      if (volumeMode === 'pallets') volume = typeof t.pallets === 'number' ? t.pallets : 0;
+      if (volumeMode === 'boxes') volume = typeof t.boxes === 'number' ? t.boxes : 0;
+      if (volumeMode === 'count') volume = 1;
+
+      byCompany[name].volume += volume;
+      totalVolume += volume;
+    });
+
+    const sortedByCount = Object.entries(byCompany).sort((a, b) => b[1].count - a[1].count);
+    const sortedByVolume = Object.entries(byCompany).sort((a, b) => b[1].volume - a[1].volume);
+    const topCompanies = sortedByCount.slice(0, 5).map(([name, data]) => ({
+      name,
+      count: data.count,
+      volume: data.volume,
+    }));
+    const showVolume = volumeMode !== 'count';
+    const selectedCompany = customCompany || companyOptions[0] || '';
+    const selectedData = selectedCompany ? byCompany[selectedCompany] ?? { count: 0, volume: 0 } : null;
+    const topByCount = sortedByCount[0];
+    const topByVolume = sortedByVolume[0];
+
+    if (!total) {
+      return {
+        title: 'Sin datos para el rango',
+        detail: `Rango: ${customRangeLabel}`,
+        topCompanies,
+        volumeLabel,
+        showVolume,
+      };
+    }
+
+    if (customMetric === 'total') {
+      const volumeDetail =
+        volumeMode === 'count' ? '' : ` | Volumen total: ${Math.round(totalVolume)} ${volumeLabel}`;
+      return {
+        title: `Total de camiones: ${total}`,
+        detail: `Rango: ${customRangeLabel}${volumeDetail}`,
+        topCompanies,
+        volumeLabel,
+        showVolume,
+      };
+    }
+
+    if (customMetric === 'empresa') {
+      if (!selectedCompany) {
+        return {
+          title: 'Selecciona una empresa',
+          detail: `Rango: ${customRangeLabel}`,
+          topCompanies,
+          volumeLabel,
+          showVolume,
+        };
+      }
+      const volumeDetail =
+        volumeMode === 'count' ? '' : ` | Volumen: ${Math.round(selectedData?.volume ?? 0)} ${volumeLabel}`;
+      return {
+        title: `${selectedCompany}: ${selectedData?.count ?? 0} camiones`,
+        detail: `Rango: ${customRangeLabel}${volumeDetail}`,
+        topCompanies,
+        volumeLabel,
+        showVolume,
+      };
+    }
+
+    if (customMetric === 'top_camiones') {
+      if (!topByCount) {
+        return {
+          title: 'Sin datos para ranking',
+          detail: `Rango: ${customRangeLabel}`,
+          topCompanies,
+          volumeLabel,
+          showVolume,
+        };
+      }
+      return {
+        title: `Empresa con mas camiones: ${topByCount[0]} (${topByCount[1].count})`,
+        detail: `Rango: ${customRangeLabel}`,
+        topCompanies,
+        volumeLabel,
+        showVolume,
+      };
+    }
+
+    if (!topByVolume) {
+      return {
+        title: 'Sin datos para volumen',
+        detail: `Rango: ${customRangeLabel}`,
+        topCompanies,
+        volumeLabel,
+        showVolume,
+      };
+    }
+
+    return {
+      title: `Empresa con mayor volumen: ${topByVolume[0]} (${Math.round(topByVolume[1].volume)} ${volumeLabel})`,
+      detail: `Rango: ${customRangeLabel}`,
+      topCompanies,
+      volumeLabel,
+      showVolume,
+    };
+  }, [customFiltered, customRangeLabel, customMetric, customCompany, companyOptions]);
+
   const metricsRangeLabel = metricsRange === '7d' ? 'Ultimos 7 dias' : 'Dia seleccionado';
 
   const trendData = useMemo<LineChartData>(() => {
@@ -940,13 +1405,94 @@ export const GerenciaReports = () => {
             </div>
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Dia</p>
-              <input
-                type="date"
+              <CalendarInput
                 value={day}
-                onChange={(e) => setDay(e.target.value)}
-                className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                onChange={(value) => setDay(value)}
               />
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Reportes personalizados</p>
+            <p className="text-xs text-slate-500">Rango: {customRangeLabel}</p>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-4">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Periodo</p>
+              <select
+                value={customRange}
+                onChange={(e) => setCustomRange(e.target.value as CustomRange)}
+                className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+              >
+                <option value="dia">Dia</option>
+                <option value="semana">Semana</option>
+                <option value="mes">Mes</option>
+                <option value="anio">Anio</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Indicador</p>
+              <select
+                value={customMetric}
+                onChange={(e) => setCustomMetric(e.target.value as CustomMetric)}
+                className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+              >
+                <option value="empresa">Camiones por empresa</option>
+                <option value="total">Camiones en total</option>
+                <option value="top_camiones">Empresa con mas camiones</option>
+                <option value="top_volumen">Empresa con mayor volumen</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Empresa</p>
+              <select
+                value={customCompany}
+                onChange={(e) => setCustomCompany(e.target.value)}
+                disabled={customMetric !== 'empresa'}
+                className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="">Selecciona empresa</option>
+                {companyOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Fecha base</p>
+              <CalendarInput
+                value={customDay}
+                onChange={(value) => setCustomDay(value)}
+              />
+            </div>
+          </div>
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Resultado</p>
+            <p className="mt-2 text-lg font-semibold text-slate-900">{customSummary.title}</p>
+            <p className="text-sm text-slate-600">{customSummary.detail}</p>
+          </div>
+          <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Top empresas</p>
+            {customSummary.topCompanies.length > 0 ? (
+              <div className="mt-2 space-y-2">
+                {customSummary.topCompanies.map((item, idx) => (
+                  <div key={item.name} className="flex items-center justify-between text-sm text-slate-700">
+                    <span className="max-w-[220px] truncate">
+                      {idx + 1}. {item.name}
+                    </span>
+                    <span className="text-right">
+                      {item.count} camiones
+                      {customSummary.showVolume ? ` | ${Math.round(item.volume)} ${customSummary.volumeLabel}` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">Sin datos para el periodo.</p>
+            )}
           </div>
         </div>
 
@@ -1321,6 +1867,137 @@ const DockWaitList = ({ rows }: { rows: DockWaitItem[] }) => {
           </div>
         );
       })}
+    </div>
+  );
+};
+const CalendarInput = ({
+  value,
+  onChange,
+  className = '',
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [viewDate, setViewDate] = useState<Date>(() => parseDateInput(value) ?? new Date());
+  const selectedDate = parseDateInput(value);
+  const displayValue = selectedDate ? formatShortDateWithYear(selectedDate) : 'Seleccionar fecha';
+
+  useEffect(() => {
+    const parsed = parseDateInput(value);
+    if (parsed) setViewDate(parsed);
+  }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (event: MouseEvent) => {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const weekLabels = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
+  const monthLabel = `${monthLabels[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
+  const startOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+  const offset = (startOfMonth.getDay() + 6) % 7;
+  const startCell = new Date(startOfMonth);
+  startCell.setDate(startOfMonth.getDate() - offset);
+  const selectedKey = value;
+
+  const cells = Array.from({ length: 42 }, (_, idx) => {
+    const cellDate = new Date(startCell);
+    cellDate.setDate(startCell.getDate() + idx);
+    return {
+      key: formatDateInput(cellDate),
+      day: cellDate.getDate(),
+      inMonth: cellDate.getMonth() === viewDate.getMonth(),
+    };
+  });
+
+  return (
+    <div ref={wrapperRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+      >
+        <span>{displayValue}</span>
+        <span className="text-xs text-slate-400">Calendario</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 z-20 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+              onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
+            >
+              Ant
+            </button>
+            <span className="text-sm font-semibold text-slate-700">{monthLabel}</span>
+            <button
+              type="button"
+              className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+              onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
+            >
+              Sig
+            </button>
+          </div>
+          <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] text-slate-400">
+            {weekLabels.map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-7 gap-1 text-center">
+            {cells.map((cell) => {
+              const isSelected = cell.key === selectedKey;
+              return (
+                <button
+                  type="button"
+                  key={cell.key}
+                  className={`h-8 w-8 rounded-full text-xs ${
+                    cell.inMonth ? 'text-slate-700' : 'text-slate-300'
+                  } ${isSelected ? 'bg-sky-500 text-white' : 'hover:bg-slate-100'}`}
+                  onClick={() => {
+                    onChange(cell.key);
+                    setOpen(false);
+                  }}
+                >
+                  {cell.day}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <button
+              type="button"
+              className="text-xs text-slate-600 hover:text-slate-900"
+              onClick={() => {
+                const today = new Date();
+                onChange(formatDateInput(today));
+                setViewDate(today);
+                setOpen(false);
+              }}
+            >
+              Hoy
+            </button>
+            <button
+              type="button"
+              className="text-xs text-slate-600 hover:text-slate-900"
+              onClick={() => setOpen(false)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
