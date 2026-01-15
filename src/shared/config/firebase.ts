@@ -1,6 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,4 +14,23 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+const shouldUseLongPolling = () => {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const isTv = /Tizen|SMART-TV|SmartTV|Smart-TV|Samsung|Maple/i.test(ua);
+  const lacksFetch = typeof window.fetch !== 'function';
+  const lacksTextEncoder = typeof (window as Window & { TextEncoder?: unknown }).TextEncoder === 'undefined';
+  const lacksCrypto =
+    !('crypto' in window) ||
+    typeof window.crypto?.getRandomValues !== 'function';
+  return isTv || lacksFetch || lacksTextEncoder || lacksCrypto;
+};
+
+const useLongPolling = shouldUseLongPolling();
+
+export const db = useLongPolling
+  ? initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    })
+  : getFirestore(app);

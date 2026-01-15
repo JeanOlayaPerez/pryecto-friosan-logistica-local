@@ -161,6 +161,33 @@ body {
   border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
+:root.compat-tv body {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+:root.compat-tv button {
+  background-color: #242428 !important;
+  color: #e9dda1 !important;
+  border-color: rgba(230, 207, 106, 0.4) !important;
+}
+
+:root.compat-tv button:hover {
+  background-color: #2f2f34 !important;
+}
+
+:root.compat-tv input,
+:root.compat-tv select,
+:root.compat-tv textarea {
+  background-color: #1c1c20 !important;
+  color: #e9dda1 !important;
+  border-color: rgba(230, 207, 106, 0.3) !important;
+}
+
+:root.compat-tv ::placeholder {
+  color: rgba(201, 191, 134, 0.7);
+}
+
 :root.compat-tv [class*="text-slate-300"],
 :root.compat-tv [class*="text-slate-400"],
 :root.compat-tv [class*="text-slate-500"] {
