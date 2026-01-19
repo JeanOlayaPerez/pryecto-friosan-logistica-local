@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   inMemoryPersistence,
   onAuthStateChanged,
+  signInAnonymously,
   setPersistence,
   signInWithEmailAndPassword,
   signOut,
@@ -36,6 +37,15 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+const shouldAutoLoginVisor = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  if (path === '/visor') return true;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tv') === '1' || params.get('compat') === '1') return true;
+  return document.documentElement.classList.contains('compat-tv');
+};
 
 const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
   if (!data) return null;
@@ -101,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const autoLoginAttempted = useRef(false);
 
   useEffect(() => {
     // No persistir sesión: requiere login en cada refresh / pérdida de conexión
@@ -110,8 +121,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
+        if (shouldAutoLoginVisor() && !autoLoginAttempted.current) {
+          autoLoginAttempted.current = true;
+          try {
+            await signInAnonymously(auth);
+            return;
+          } catch (err) {
+            console.error('Error en login automatico de visor', err);
+          }
+        }
         setUser(null);
         setRole(null);
+        setLoading(false);
+        return;
+      }
+
+      if (fbUser.isAnonymous) {
+        setUser({
+          id: fbUser.uid,
+          email: fbUser.email ?? '',
+          name: 'Visor',
+        });
+        setRole('visor');
         setLoading(false);
         return;
       }
