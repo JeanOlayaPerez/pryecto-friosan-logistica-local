@@ -276,6 +276,411 @@ body {
   padding: 0.8rem 0.9rem;
 }
 
+.tv-board {
+  min-height: 100vh;
+  padding: 16px 18px 24px;
+  background: #0b111a;
+  color: #e9dda1;
+  font-family: 'Saira Condensed', 'Inter', sans-serif;
+  letter-spacing: 0.08em;
+}
+
+.tv-card {
+  border: 1px solid #2f2f34;
+  background: #12151f;
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.tv-header-row,
+.tv-controls-top,
+.tv-diagnostics-row,
+.tv-history-header {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tv-header-cell,
+.tv-controls-left,
+.tv-controls-right,
+.tv-history-controls,
+.tv-history-left {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.tv-header-left {
+  text-align: left;
+  width: 60%;
+}
+
+.tv-header-right,
+.tv-controls-right {
+  text-align: right;
+  width: 40%;
+}
+
+.tv-logo {
+  display: inline-block;
+  width: 130px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid #2f2f34;
+  background: #1c1c20;
+  overflow: hidden;
+  vertical-align: middle;
+  margin-right: 12px;
+}
+
+.tv-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tv-title-block {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.tv-brand {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #b7b7c6;
+}
+
+.tv-title {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #e6cf6a;
+}
+
+.tv-time {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  color: #e6cf6a;
+}
+
+.tv-update {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #cdbf86;
+}
+
+.tv-status {
+  margin-top: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #cdbf86;
+}
+
+.tv-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.tv-dot-ok {
+  background: #34d399;
+}
+
+.tv-dot-warn {
+  background: #fbbf24;
+}
+
+.tv-dot-fail {
+  background: #f87171;
+}
+
+.tv-dot-info {
+  background: #94a3b8;
+}
+
+.tv-alert {
+  border: 1px solid #f59e0b;
+  background: #3f2a0b;
+  color: #fde68a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.tv-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #e6cf6a;
+}
+
+.tv-desc {
+  font-size: 14px;
+  color: #e9dda1;
+  margin-top: 2px;
+}
+
+.tv-muted {
+  font-size: 11px;
+  color: #b4a770;
+  margin-top: 2px;
+  display: block;
+}
+
+.tv-controls-top {
+  margin-bottom: 8px;
+}
+
+.tv-controls-right {
+  white-space: normal;
+}
+
+.tv-controls-left {
+  width: 60%;
+}
+
+.tv-history-left {
+  width: 60%;
+}
+
+.tv-history-controls {
+  width: 40%;
+}
+
+.tv-pill {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 207, 106, 0.5);
+  background: #242428;
+  font-size: 11px;
+  color: #ded293;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.tv-controls-bottom {
+  margin-top: 6px;
+}
+
+.tv-filter-group {
+  display: inline-block;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 207, 106, 0.5);
+  background: #242428;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.tv-filter-btn {
+  border: 0;
+  background: transparent;
+  color: #ded293;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.tv-filter-btn.is-active {
+  background: #e6cf6a;
+  color: #1c1c20;
+  font-weight: 700;
+}
+
+.tv-search {
+  display: inline-block;
+  width: 40%;
+  min-width: 240px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 207, 106, 0.3);
+  background: #1c1c20;
+  color: #e9dda1;
+  padding: 6px 12px;
+  font-size: 12px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.tv-search::placeholder {
+  color: rgba(201, 191, 134, 0.7);
+}
+
+.tv-button {
+  border-radius: 999px;
+  border: 1px solid rgba(230, 207, 106, 0.4);
+  background: #242428;
+  color: #ded293;
+  padding: 6px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.tv-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tv-table-wrap {
+  border: 1px solid #2f2f34;
+  background: #121217;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.tv-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  color: #e9dda1;
+}
+
+.tv-table th,
+.tv-table td {
+  border-bottom: 1px solid #2f2f34;
+  border-right: 1px solid #2f2f34;
+  padding: 9px 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-table th:last-child,
+.tv-table td:last-child {
+  border-right: 0;
+}
+
+.tv-table thead th {
+  background: #1f1f23;
+  color: #e6cf6a;
+  font-weight: 700;
+}
+
+.tv-row-even {
+  background: #1f2430;
+}
+
+.tv-row-odd {
+  background: #171a22;
+}
+
+.tv-cell-wrap {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.tv-badge {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #f4e7b2;
+  white-space: nowrap;
+}
+
+.tv-table-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: #cdbf86;
+}
+
+.tv-diagnostics-row {
+  margin-bottom: 8px;
+}
+
+.tv-diagnostics-row > div,
+.tv-diagnostics-row > button {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.tv-diagnostics-row > button {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tv-diagnostics-list {
+  margin-top: 8px;
+}
+
+.tv-diagnostics-item {
+  border: 1px solid #2f2f34;
+  background: #1a1a1f;
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tv-diagnostics-item .tv-dot {
+  display: table-cell;
+  width: 14px;
+  vertical-align: top;
+}
+
+.tv-diagnostics-body {
+  display: table-cell;
+  vertical-align: top;
+  padding-left: 8px;
+}
+
+.tv-diagnostics-label {
+  font-size: 12px;
+  color: #e9dda1;
+  margin-bottom: 2px;
+}
+
+.tv-history-header {
+  margin-bottom: 8px;
+}
+
+.tv-history-controls {
+  text-align: right;
+}
+
+.tv-date-input {
+  display: block;
+  margin-top: 4px;
+  border-radius: 8px;
+  border: 1px solid #2f2f34;
+  background: #1c1c20;
+  color: #e9dda1;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.tv-history-stats {
+  margin-bottom: 8px;
+}
+
 @supports not (display: grid) {
   .grid {
     display: flex;

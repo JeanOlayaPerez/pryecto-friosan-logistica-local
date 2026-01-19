@@ -88,17 +88,17 @@ const formatHistoryDay = (value: string) => {
 const tableGrid =
   'grid table-grid min-w-[1780px] grid-cols-[130px,210px,170px,170px,170px,170px,250px,290px,110px,110px]';
 
-const compatColumns = [
-  { label: 'Patente', width: 130 },
-  { label: 'Nombre empresa', width: 210 },
-  { label: 'Fec. bitacora', width: 170 },
-  { label: 'Hora bitacora', width: 170 },
-  { label: 'Fec. ingreso', width: 170 },
-  { label: 'Hora ingreso', width: 170 },
-  { label: 'Estado', width: 250 },
-  { label: 'Proceso', width: 290 },
-  { label: 'Anden', width: 110 },
-  { label: 'Tiempo', width: 110 },
+const tvColumns = [
+  { label: 'Patente', width: '8%' },
+  { label: 'Nombre empresa', width: '16%' },
+  { label: 'Fec. bitacora', width: '10%' },
+  { label: 'Hora bitacora', width: '8%' },
+  { label: 'Fec. ingreso', width: '10%' },
+  { label: 'Hora ingreso', width: '8%' },
+  { label: 'Estado', width: '12%' },
+  { label: 'Proceso', width: '14%' },
+  { label: 'Anden', width: '7%' },
+  { label: 'Tiempo', width: '7%' },
 ];
 
 const statusTone = (status: TruckStatus) => {
@@ -223,27 +223,25 @@ const TableRow = ({
   );
 };
 
-const CompatTable = ({
+const TvTable = ({
   rows,
   now,
-  projector,
   emptyMessage,
 }: {
   rows: Truck[];
   now: Date;
-  projector?: boolean;
   emptyMessage: string;
 }) => (
-  <div className="compat-table-wrap">
-    <table className={`compat-table ${projector ? 'compat-table--projector' : ''}`}>
+  <div className="tv-table-wrap">
+    <table className="tv-table">
       <colgroup>
-        {compatColumns.map((col) => (
-          <col key={col.label} style={{ width: `${col.width}px` }} />
+        {tvColumns.map((col) => (
+          <col key={col.label} style={{ width: col.width }} />
         ))}
       </colgroup>
       <thead>
         <tr>
-          {compatColumns.map((col) => (
+          {tvColumns.map((col) => (
             <th key={col.label}>{col.label}</th>
           ))}
         </tr>
@@ -251,7 +249,7 @@ const CompatTable = ({
       <tbody>
         {rows.length === 0 ? (
           <tr>
-            <td colSpan={compatColumns.length} className="compat-table-empty">
+            <td colSpan={tvColumns.length} className="tv-table-empty">
               {emptyMessage}
             </td>
           </tr>
@@ -264,28 +262,28 @@ const CompatTable = ({
             const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
             const process = typeDisplay(truck);
             const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
-            const rowClass = idx % 2 === 0 ? 'compat-row-even' : 'compat-row-odd';
+            const rowClass = idx % 2 === 0 ? 'tv-row-even' : 'tv-row-odd';
 
             return (
               <tr key={truck.id} className={rowClass}>
-                <td className="compat-cell">{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</td>
-                <td className="compat-cell compat-cell-wrap">{truck.clientName || 'Sin cliente'}</td>
-                <td className="compat-cell">{bitacoraDate}</td>
-                <td className="compat-cell">{bitacoraHour}</td>
-                <td className="compat-cell">{ingresoDate}</td>
-                <td className="compat-cell">{ingresoHour}</td>
-                <td className="compat-cell">
-                  <span className="compat-badge" style={{ backgroundColor: statusTone(truck.status) }}>
+                <td className="tv-cell">{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</td>
+                <td className="tv-cell tv-cell-wrap">{truck.clientName || 'Sin cliente'}</td>
+                <td className="tv-cell">{bitacoraDate}</td>
+                <td className="tv-cell">{bitacoraHour}</td>
+                <td className="tv-cell">{ingresoDate}</td>
+                <td className="tv-cell">{ingresoHour}</td>
+                <td className="tv-cell">
+                  <span className="tv-badge" style={{ backgroundColor: statusTone(truck.status) }}>
                     {statusLabel[truck.status]}
                   </span>
                 </td>
-                <td className="compat-cell">
-                  <span className="compat-badge" style={{ backgroundColor: processTone(truck.loadType) }}>
+                <td className="tv-cell">
+                  <span className="tv-badge" style={{ backgroundColor: processTone(truck.loadType) }}>
                     {process}
                   </span>
                 </td>
-                <td className="compat-cell">{gate}</td>
-                <td className="compat-cell">{elapsed}</td>
+                <td className="tv-cell">{gate}</td>
+                <td className="tv-cell">{elapsed}</td>
               </tr>
             );
           })
@@ -307,7 +305,10 @@ export const GeneralBoard = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
   const [projectorMode, setProjectorMode] = useState(false);
-  const [isCompat, setIsCompat] = useState(false);
+  const [isCompat, setIsCompat] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.classList.contains('compat-tv');
+  });
   const [diagOpen, setDiagOpen] = useState(false);
   const [diagRunning, setDiagRunning] = useState(false);
   const [diagItems, setDiagItems] = useState<
@@ -572,6 +573,12 @@ export const GeneralBoard = () => {
     if (status === 'fail') return 'bg-rose-500';
     return 'bg-slate-400';
   };
+  const tvDiagStatusClass = (status: 'ok' | 'warn' | 'fail' | 'info') => {
+    if (status === 'ok') return 'tv-dot-ok';
+    if (status === 'warn') return 'tv-dot-warn';
+    if (status === 'fail') return 'tv-dot-fail';
+    return 'tv-dot-info';
+  };
 
   const updateTableScale = useCallback(() => {
     if (isCompat) {
@@ -604,6 +611,170 @@ export const GeneralBoard = () => {
     window.addEventListener('resize', updateTableScale);
     return () => window.removeEventListener('resize', updateTableScale);
   }, [updateTableScale]);
+
+  if (isCompat) {
+    return (
+      <div className="tv-board">
+        <div className="tv-card tv-header">
+          <div className="tv-header-row">
+            <div className="tv-header-cell tv-header-left">
+              <span className="tv-logo">
+                <img src="/friosan-logo.png" alt="Friosan" />
+              </span>
+              <span className="tv-title-block">
+                <span className="tv-brand">Friosan SPA</span>
+                <span className="tv-title">Bitacora de camiones</span>
+              </span>
+            </div>
+            <div className="tv-header-cell tv-header-right">
+              <div className="tv-time">
+                {formatDate(now)}, {formatHour(now)}
+              </div>
+              <div className="tv-update">Ultima actualizacion: {formatHour(now)}</div>
+              <div className="tv-status">
+                <span className="tv-dot tv-dot-ok" />
+                Actualizado
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {listenerError && <div className="tv-alert">{listenerError}</div>}
+
+        <div className="tv-card tv-controls">
+          <div className="tv-controls-top">
+            <div className="tv-controls-left">
+              <div className="tv-label">Tablero visor</div>
+              <div className="tv-desc">Estado general de camiones</div>
+              <div className="tv-muted">
+                Filtros:{' '}
+                {filterDock === 'todos'
+                  ? 'Recepcion + Despacho'
+                  : filterDock === 'recepcion'
+                    ? 'Solo recepcion'
+                    : 'Solo despacho'}
+              </div>
+            </div>
+            <div className="tv-controls-right">
+              <span className="tv-pill">Total: {stats.total}</span>
+              <span className="tv-pill">Porteria: {stats.enPorteria}</span>
+              <span className="tv-pill">Espera: {stats.enEspera}</span>
+              <span className="tv-pill">En curso: {stats.enCurso}</span>
+            </div>
+          </div>
+          <div className="tv-controls-bottom">
+            <div className="tv-filter-group">
+              {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
+                <button
+                  key={dock}
+                  type="button"
+                  onClick={() => setFilterDock(dock)}
+                  className={`tv-filter-btn ${filterDock === dock ? 'is-active' : ''}`}
+                >
+                  {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
+                </button>
+              ))}
+            </div>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar cliente, patente, conductor o anden"
+              className="tv-search"
+            />
+            <button
+              type="button"
+              onClick={() => setShowHistory((prev) => !prev)}
+              className="tv-button"
+            >
+              {showHistory ? 'Ocultar historico' : 'Ver historico'}
+            </button>
+          </div>
+        </div>
+
+        <TvTable
+          rows={displayRows}
+          now={now}
+          emptyMessage="No hay camiones activos para mostrar en el tablero."
+        />
+
+        {canShowDiagnostics && (
+          <div className="tv-card tv-diagnostics">
+            <div className="tv-diagnostics-row">
+              <div>
+                <div className="tv-label">Diagnostico visor</div>
+                <div className="tv-muted">
+                  No se recibieron datos del tablero. Ejecuta el diagnostico para revisar red y configuracion.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={runDiagnostics}
+                disabled={diagRunning}
+                className="tv-button"
+              >
+                {diagRunning ? 'Diagnosticando...' : diagOpen ? 'Reintentar diagnostico' : 'Ejecutar diagnostico'}
+              </button>
+            </div>
+            {diagOpen && (
+              <div className="tv-diagnostics-list">
+                {diagItems.map((item) => (
+                  <div key={item.label} className="tv-diagnostics-item">
+                    <span className={`tv-dot ${tvDiagStatusClass(item.status)}`} />
+                    <div className="tv-diagnostics-body">
+                      <div className="tv-diagnostics-label">{item.label}</div>
+                      <div className="tv-muted">{item.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {showHistory && (
+          <div className="tv-card tv-history">
+            <div className="tv-history-header">
+              <div className="tv-history-left">
+                <div className="tv-label">Historico diario</div>
+                <div className="tv-desc">Registros del panel</div>
+                <div className="tv-muted">Selecciona un dia para ver su informacion.</div>
+              </div>
+              <div className="tv-history-controls">
+                <label className="tv-muted">
+                  Dia
+                  <input
+                    type="date"
+                    value={historyDay}
+                    onChange={(e) => setHistoryDay(e.target.value)}
+                    className="tv-date-input"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setHistoryDay(toInputDate(new Date()))}
+                  className="tv-button"
+                >
+                  Hoy
+                </button>
+              </div>
+            </div>
+            <div className="tv-history-stats">
+              <span className="tv-pill">Mostrando: {formatHistoryDay(historyDay)}</span>
+              <span className="tv-pill">Total: {historyStats.total}</span>
+              <span className="tv-pill">Porteria: {historyStats.enPorteria}</span>
+              <span className="tv-pill">Espera: {historyStats.enEspera}</span>
+              <span className="tv-pill">En curso: {historyStats.enCurso}</span>
+            </div>
+            <TvTable
+              rows={historyRows}
+              now={now}
+              emptyMessage="No hay registros para el dia seleccionado."
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -730,42 +901,33 @@ export const GeneralBoard = () => {
               <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${refreshing ? 'bg-[#e6cf6a]' : 'bg-[#e6cf6a]/60'}`} />
             </span>
           </div>
-          {isCompat ? (
-            <CompatTable
-              rows={displayRows}
-              now={now}
-              projector={projectorMode}
-              emptyMessage="No hay camiones activos para mostrar en el tablero."
-            />
-          ) : (
+          <div
+            style={
+              tableScaledSize.width
+                ? { width: tableScaledSize.width, height: tableScaledSize.height }
+                : undefined
+            }
+          >
             <div
-              style={
-                tableScaledSize.width
-                  ? { width: tableScaledSize.width, height: tableScaledSize.height }
-                  : undefined
-              }
+              ref={tableContentRef}
+              className="inline-block"
+              style={{ transform: `scale(${tableScale})`, transformOrigin: 'top left' }}
             >
-              <div
-                ref={tableContentRef}
-                className="inline-block"
-                style={{ transform: `scale(${tableScale})`, transformOrigin: 'top left' }}
-              >
-                <TableHeader projector={projectorMode} />
+              <TableHeader projector={projectorMode} />
 
-                <LayoutGroup>
-                  {displayRows.map((truck, idx) => (
-                    <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
-                  ))}
-                </LayoutGroup>
+              <LayoutGroup>
+                {displayRows.map((truck, idx) => (
+                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
+                ))}
+              </LayoutGroup>
 
-                {displayRows.length === 0 && (
-                  <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
-                    No hay camiones activos para mostrar en el tablero.
-                  </div>
-                )}
-              </div>
+              {displayRows.length === 0 && (
+                <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
+                  No hay camiones activos para mostrar en el tablero.
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {canShowDiagnostics && (
@@ -852,26 +1014,16 @@ export const GeneralBoard = () => {
               </div>
             </div>
             <div className="visor-table relative max-h-[45vh] overflow-auto border-t border-[#2f2f34]">
-              {isCompat ? (
-                <CompatTable
-                  rows={historyRows}
-                  now={now}
-                  emptyMessage="No hay registros para el dia seleccionado."
-                />
-              ) : (
-                <>
-                  <TableHeader />
-                  <LayoutGroup>
-                    {historyRows.map((truck, idx) => (
-                      <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
-                    ))}
-                  </LayoutGroup>
-                  {historyRows.length === 0 && (
-                    <div className="flex h-28 items-center justify-center text-sm text-[#cdbf86]">
-                      No hay registros para el dia seleccionado.
-                    </div>
-                  )}
-                </>
+              <TableHeader />
+              <LayoutGroup>
+                {historyRows.map((truck, idx) => (
+                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
+                ))}
+              </LayoutGroup>
+              {historyRows.length === 0 && (
+                <div className="flex h-28 items-center justify-center text-sm text-[#cdbf86]">
+                  No hay registros para el dia seleccionado.
+                </div>
               )}
             </div>
           </div>
