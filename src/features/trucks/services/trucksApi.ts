@@ -6,6 +6,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getDocsFromServer,
   getDoc,
   onSnapshot,
   orderBy,
@@ -144,20 +145,38 @@ export const subscribeAllTrucks = (
 };
 
 export const fetchAllTrucksOnce = async () => {
+  const asSorted = (data: Truck[]) =>
+    data.sort((a, b) => {
+      const aTime = a.createdAt?.getTime() ?? 0;
+      const bTime = b.createdAt?.getTime() ?? 0;
+      return bTime - aTime;
+    });
+
+  try {
+    const q = query(trucksCol, orderBy('createdAt', 'desc'));
+    const snap = await getDocsFromServer(q);
+    return snap.docs.map(mapTruck);
+  } catch (err) {
+    console.warn('Fallo query server con orderBy, intentando cache/local', err);
+  }
+
   try {
     const q = query(trucksCol, orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
     return snap.docs.map(mapTruck);
   } catch (err) {
     console.warn('Fallo query con orderBy, usando lectura simple', err);
-    const snap = await getDocs(trucksCol);
-    const data = snap.docs.map(mapTruck);
-    return data.sort((a, b) => {
-      const aTime = a.createdAt?.getTime() ?? 0;
-      const bTime = b.createdAt?.getTime() ?? 0;
-      return bTime - aTime;
-    });
   }
+
+  try {
+    const snap = await getDocsFromServer(trucksCol);
+    return asSorted(snap.docs.map(mapTruck));
+  } catch (err) {
+    console.warn('Fallo lectura server simple, usando cache/local', err);
+  }
+
+  const snap = await getDocs(trucksCol);
+  return asSorted(snap.docs.map(mapTruck));
 };
 
 export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {
