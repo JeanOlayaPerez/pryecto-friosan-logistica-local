@@ -5,6 +5,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   getDoc,
   onSnapshot,
   orderBy,
@@ -140,6 +141,23 @@ export const subscribeAllTrucks = (
     },
   );
   return unsub;
+};
+
+export const fetchAllTrucksOnce = async () => {
+  try {
+    const q = query(trucksCol, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(mapTruck);
+  } catch (err) {
+    console.warn('Fallo query con orderBy, usando lectura simple', err);
+    const snap = await getDocs(trucksCol);
+    const data = snap.docs.map(mapTruck);
+    return data.sort((a, b) => {
+      const aTime = a.createdAt?.getTime() ?? 0;
+      const bTime = b.createdAt?.getTime() ?? 0;
+      return bTime - aTime;
+    });
+  }
 };
 
 export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {

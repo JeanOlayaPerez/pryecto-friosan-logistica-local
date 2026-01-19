@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
-import { subscribeAllTrucks } from '../services/trucksApi';
+import { fetchAllTrucksOnce, subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { minutesBetween } from '../../../shared/utils/time';
 
@@ -349,20 +349,49 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   }, []);
 
   useEffect(() => {
-    const unsub = subscribeAllTrucks(
-      (data) => {
+    let unsub: (() => void) | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let active = true;
+
+    const loadOnce = async () => {
+      try {
+        const data = await fetchAllTrucksOnce();
+        if (!active) return;
         setListenerError(null);
         setTrucks(data);
         setDataLoaded(true);
-      },
-      (err) => {
+      } catch (err) {
+        if (!active) return;
         console.error(err);
         setListenerError('No se pudieron cargar los camiones (permisos o red).');
         setDataLoaded(true);
-      },
-    );
-    return () => unsub();
-  }, []);
+      }
+    };
+
+    if (compatEnabled) {
+      void loadOnce();
+      intervalId = setInterval(loadOnce, 15000);
+    } else {
+      unsub = subscribeAllTrucks(
+        (data) => {
+          setListenerError(null);
+          setTrucks(data);
+          setDataLoaded(true);
+        },
+        (err) => {
+          console.error(err);
+          setListenerError('No se pudieron cargar los camiones (permisos o red).');
+          setDataLoaded(true);
+        },
+      );
+    }
+
+    return () => {
+      active = false;
+      if (unsub) unsub();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [compatEnabled]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
