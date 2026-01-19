@@ -293,7 +293,11 @@ const TvTable = ({
   </div>
 );
 
-export const GeneralBoard = () => {
+type GeneralBoardProps = {
+  forceCompat?: boolean;
+};
+
+export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) => {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filterDock, setFilterDock] = useState<'todos' | DockType>('todos');
   const [search, setSearch] = useState('');
@@ -318,6 +322,7 @@ export const GeneralBoard = () => {
   const tableContentRef = useRef<HTMLDivElement | null>(null);
   const [tableScale, setTableScale] = useState(1);
   const [tableScaledSize, setTableScaledSize] = useState({ width: 0, height: 0 });
+  const compatEnabled = forceCompat || isCompat;
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -507,8 +512,8 @@ export const GeneralBoard = () => {
     });
     items.push({
       label: 'Compat',
-      value: isCompat ? 'activo' : 'inactivo',
-      status: isCompat ? 'info' : 'ok',
+      value: compatEnabled ? 'activo' : 'inactivo',
+      status: compatEnabled ? 'info' : 'ok',
     });
     items.push({
       label: 'Filtro dock',
@@ -581,7 +586,7 @@ export const GeneralBoard = () => {
   };
 
   const updateTableScale = useCallback(() => {
-    if (isCompat) {
+    if (compatEnabled) {
       setTableScale(1);
       setTableScaledSize({ width: 0, height: 0 });
       return;
@@ -601,7 +606,7 @@ export const GeneralBoard = () => {
     const nextScale = Math.min(scaleWidth, scaleHeight, maxScale);
     setTableScale(nextScale);
     setTableScaledSize({ width: contentWidth * nextScale, height: contentHeight * nextScale });
-  }, [projectorMode, isCompat]);
+  }, [projectorMode, compatEnabled]);
 
   useLayoutEffect(() => {
     updateTableScale();
@@ -612,7 +617,7 @@ export const GeneralBoard = () => {
     return () => window.removeEventListener('resize', updateTableScale);
   }, [updateTableScale]);
 
-  if (isCompat) {
+  if (compatEnabled) {
     return (
       <div className="tv-board">
         <div className="tv-card tv-header">

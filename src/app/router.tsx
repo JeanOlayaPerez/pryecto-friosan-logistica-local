@@ -10,6 +10,7 @@ import { CommercialView } from '../features/trucks/components/CommercialView';
 import { GeneralBoard } from '../features/trucks/components/GeneralBoard';
 import { GerenciaReports } from '../features/trucks/components/GerenciaReports';
 import { ClientsView } from '../features/clients/ClientsView';
+import { VisorTvView } from '../features/trucks/components/VisorTvView';
 
 const HomeRoute = () => {
   const { role } = useAuth();
@@ -26,6 +27,7 @@ export const AppRouter = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/visortv" element={<VisorTvView />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomeRoute />} />

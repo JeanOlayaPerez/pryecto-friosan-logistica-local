@@ -168,6 +168,13 @@ export const LoginPage = () => {
                 >
                   {loading ? 'Ingresando...' : 'Iniciar sesión'}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/visortv')}
+                  className="flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Abrir visor TV
+                </button>
               </form>
             </div>
           </div>
