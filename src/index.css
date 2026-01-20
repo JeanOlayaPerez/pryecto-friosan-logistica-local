@@ -348,7 +348,7 @@ body {
 
 .tv-brand {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: #b7b7c6;
@@ -356,7 +356,7 @@ body {
 
 .tv-title {
   display: block;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -377,20 +377,20 @@ body {
 
 .tv-time {
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 0.2em;
   color: #e6cf6a;
 }
 
 .tv-update {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: #cdbf86;
 }
 
 .tv-status {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
   color: #cdbf86;
@@ -432,20 +432,20 @@ body {
 }
 
 .tv-label {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
   color: #e6cf6a;
 }
 
 .tv-desc {
-  font-size: 14px;
+  font-size: 16px;
   color: #e9dda1;
   margin-top: 2px;
 }
 
 .tv-muted {
-  font-size: 11px;
+  font-size: 12px;
   color: #b4a770;
   margin-top: 2px;
   display: block;
@@ -478,7 +478,7 @@ body {
   border-radius: 999px;
   border: 1px solid rgba(230, 207, 106, 0.5);
   background: #242428;
-  font-size: 11px;
+  font-size: 12px;
   color: #ded293;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -504,7 +504,7 @@ body {
   color: #ded293;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   cursor: pointer;
@@ -525,7 +525,7 @@ body {
   background: #1c1c20;
   color: #e9dda1;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 13px;
   vertical-align: middle;
   margin-right: 8px;
 }
@@ -540,7 +540,7 @@ body {
   background: #242428;
   color: #ded293;
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.16em;
   cursor: pointer;
@@ -592,10 +592,10 @@ body {
 .tv-table td {
   border-bottom: 1px solid #2f2f34;
   border-right: 1px solid #2f2f34;
-  padding: 9px 10px;
-  font-size: 13px;
+  padding: 11px 12px;
+  font-size: 15px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -612,18 +612,22 @@ body {
   font-weight: 700;
 }
 
+.tv-table td {
+  font-weight: 600;
+}
+
 .tv-table--projector th,
 .tv-table--projector td {
-  font-size: 14px;
-  padding: 11px 12px;
+  font-size: 18px;
+  padding: 14px 14px;
 }
 
 .tv-row-even {
-  background: #1f2430;
+  background: #2c3f98;
 }
 
 .tv-row-odd {
-  background: #171a22;
+  background: #202024;
 }
 
 .tv-cell-wrap {
@@ -645,7 +649,7 @@ body {
 .tv-table-empty {
   padding: 14px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: #cdbf86;
 }
 
