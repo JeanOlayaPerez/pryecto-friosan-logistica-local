@@ -15,7 +15,13 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
-import { db } from '../../../shared/config/firebase';
+import {
+  collection as collectionLite,
+  getDocs as getDocsLite,
+  orderBy as orderByLite,
+  query as queryLite,
+} from 'firebase/firestore/lite';
+import { db, dbLite } from '../../../shared/config/firebase';
 import type { UserRole } from '../../auth/AuthProvider';
 import type { DockType, Truck, TruckStatus } from '../types';
 
@@ -45,11 +51,13 @@ export type CreateTruckInput = {
 type Actor = { userId: string; role: UserRole | null };
 
 const trucksCol = collection(db, 'trucks');
+const trucksColLite = collectionLite(dbLite, 'trucks');
 
 const asDate = (value: any): Date | null => {
   if (!value) return null;
   if (value instanceof Date) return value;
   if (value instanceof Timestamp) return value.toDate();
+  if (typeof value?.toDate === 'function') return value.toDate();
   if (typeof value === 'string' || typeof value === 'number') return new Date(value);
   return null;
 };
@@ -59,10 +67,9 @@ const toTimestamp = (value: Date | string) => {
   return Timestamp.fromDate(as);
 };
 
-const mapTruck = (snap: any): Truck => {
-  const data = snap.data();
+const mapTruckData = (id: string, data: any): Truck => {
   return {
-    id: snap.id,
+    id,
     companyName: data.companyName ?? data.clientName,
     clientName: data.clientName,
     plate: data.plate,
@@ -100,6 +107,8 @@ const mapTruck = (snap: any): Truck => {
     })),
   };
 };
+
+const mapTruck = (snap: any): Truck => mapTruckData(snap.id, snap.data());
 
 const historyEntry = (status: TruckStatus, actor?: Actor, note?: string) => ({
   status,
@@ -144,39 +153,107 @@ export const subscribeAllTrucks = (
   return unsub;
 };
 
-export const fetchAllTrucksOnce = async () => {
-  const asSorted = (data: Truck[]) =>
-    data.sort((a, b) => {
-      const aTime = a.createdAt?.getTime() ?? 0;
-      const bTime = b.createdAt?.getTime() ?? 0;
-      return bTime - aTime;
-    });
+export type FetchTrucksResult = {
+  data: Truck[];
+  source: string;
+  error?: string;
+};
+
+const asSorted = (data: Truck[]) =>
+  data.sort((a, b) => {
+    const aTime = a.createdAt?.getTime() ?? 0;
+    const bTime = b.createdAt?.getTime() ?? 0;
+    return bTime - aTime;
+  });
+
+const fetchAllTrucksLite = async (): Promise<FetchTrucksResult> => {
+  try {
+    const q = queryLite(trucksColLite, orderByLite('createdAt', 'desc'));
+    const snap = await getDocsLite(q);
+    return { data: snap.docs.map(mapTruck), source: 'lite-order' };
+  } catch (err) {
+    console.warn('Fallo lectura lite con orderBy', err);
+  }
+
+  const snap = await getDocsLite(trucksColLite);
+  return { data: asSorted(snap.docs.map(mapTruck)), source: 'lite-plain' };
+};
+
+const fetchAllTrucksFromApi = async (): Promise<FetchTrucksResult> => {
+  if (typeof fetch !== 'function' || typeof window === 'undefined') {
+    throw new Error('fetch no soportado');
+  }
+  const url = `${window.location.origin}/api/visor-trucks?limit=200`;
+  const resp = await fetch(url, { cache: 'no-store' });
+  if (!resp.ok) {
+    throw new Error(`API status ${resp.status}`);
+  }
+  const payload = await resp.json();
+  const items = Array.isArray(payload?.data) ? payload.data : [];
+  return {
+    data: asSorted(items.map((item: any) => mapTruckData(item.id, item))),
+    source: payload?.source ? `api-${payload.source}` : 'api',
+  };
+};
+
+export const fetchAllTrucksOnce = async (options?: {
+  preferLite?: boolean;
+  preferApi?: boolean;
+}): Promise<FetchTrucksResult> => {
+  const errors: string[] = [];
+
+  if (options?.preferApi) {
+    try {
+      const apiResult = await fetchAllTrucksFromApi();
+      if (apiResult.data.length > 0) return apiResult;
+      errors.push('api: sin datos');
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : 'api error');
+    }
+  }
+
+  if (options?.preferLite) {
+    try {
+      const lite = await fetchAllTrucksLite();
+      if (lite.data.length > 0) return lite;
+      errors.push('lite: sin datos');
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : 'lite error');
+    }
+  }
 
   try {
     const q = query(trucksCol, orderBy('createdAt', 'desc'));
     const snap = await getDocsFromServer(q);
-    return snap.docs.map(mapTruck);
+    return { data: snap.docs.map(mapTruck), source: 'server-order' };
   } catch (err) {
     console.warn('Fallo query server con orderBy, intentando cache/local', err);
+    errors.push(err instanceof Error ? err.message : 'server-order error');
   }
 
   try {
     const q = query(trucksCol, orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
-    return snap.docs.map(mapTruck);
+    return { data: snap.docs.map(mapTruck), source: 'cache-order' };
   } catch (err) {
     console.warn('Fallo query con orderBy, usando lectura simple', err);
+    errors.push(err instanceof Error ? err.message : 'cache-order error');
   }
 
   try {
     const snap = await getDocsFromServer(trucksCol);
-    return asSorted(snap.docs.map(mapTruck));
+    return { data: asSorted(snap.docs.map(mapTruck)), source: 'server-plain' };
   } catch (err) {
     console.warn('Fallo lectura server simple, usando cache/local', err);
+    errors.push(err instanceof Error ? err.message : 'server-plain error');
   }
 
   const snap = await getDocs(trucksCol);
-  return asSorted(snap.docs.map(mapTruck));
+  return {
+    data: asSorted(snap.docs.map(mapTruck)),
+    source: 'cache-plain',
+    error: errors.length ? errors.join(' | ') : undefined,
+  };
 };
 
 export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {

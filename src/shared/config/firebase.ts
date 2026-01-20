@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { getFirestore as getFirestoreLite } from 'firebase/firestore/lite';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -34,3 +35,5 @@ export const db = useLongPolling
       experimentalForceLongPolling: true,
     })
   : getFirestore(app);
+
+export const dbLite = getFirestoreLite(app);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
 import { fetchAllTrucksOnce, subscribeAllTrucks } from '../services/trucksApi';
+import { auth } from '../../../shared/config/firebase';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { minutesBetween } from '../../../shared/utils/time';
 
@@ -16,10 +17,17 @@ const statusLabel: Record<TruckStatus, string> = {
   terminado: 'Terminado',
 };
 
+const TIME_ZONE = 'America/Santiago';
+
 const formatHour = (value?: Date | null) => {
   if (!value) return '--:--';
   try {
-    return value.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return new Intl.DateTimeFormat('es-CL', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: TIME_ZONE,
+    }).format(value);
   } catch {
     return '--:--';
   }
@@ -28,11 +36,12 @@ const formatHour = (value?: Date | null) => {
 const formatDate = (value?: Date | null) => {
   if (!value) return '--';
   try {
-    const d = value;
-    const day = `${d.getDate()}`.padStart(2, '0');
-    const month = `${d.getMonth() + 1}`.padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}-${month}-${year}`;
+    return new Intl.DateTimeFormat('es-CL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: TIME_ZONE,
+    }).format(value);
   } catch {
     return '--';
   }
@@ -318,6 +327,8 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   const [diagItems, setDiagItems] = useState<
     Array<{ label: string; value: string; status: 'ok' | 'warn' | 'fail' | 'info' }>
   >([]);
+  const [lastFetchSource, setLastFetchSource] = useState<string | null>(null);
+  const [lastFetchError, setLastFetchError] = useState<string | null>(null);
   const tableViewportRef = useRef<HTMLDivElement | null>(null);
   const tableContentRef = useRef<HTMLDivElement | null>(null);
   const [tableScale, setTableScale] = useState(1);
@@ -355,15 +366,18 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
     const loadOnce = async () => {
       try {
-        const data = await fetchAllTrucksOnce();
+        const result = await fetchAllTrucksOnce({ preferLite: compatEnabled, preferApi: compatEnabled });
         if (!active) return;
         setListenerError(null);
-        setTrucks(data);
+        setLastFetchSource(result.source);
+        setLastFetchError(result.error ?? null);
+        setTrucks(result.data);
         setDataLoaded(true);
       } catch (err) {
         if (!active) return;
         console.error(err);
         setListenerError('No se pudieron cargar los camiones (permisos o red).');
+        setLastFetchError(err instanceof Error ? err.message : 'Error cargando camiones');
         setDataLoaded(true);
       }
     };
@@ -375,12 +389,15 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       unsub = subscribeAllTrucks(
         (data) => {
           setListenerError(null);
+          setLastFetchSource('listener');
+          setLastFetchError(null);
           setTrucks(data);
           setDataLoaded(true);
         },
         (err) => {
           console.error(err);
           setListenerError('No se pudieron cargar los camiones (permisos o red).');
+          setLastFetchError(err instanceof Error ? err.message : 'Error cargando camiones');
           setDataLoaded(true);
         },
       );
@@ -545,6 +562,15 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       status: compatEnabled ? 'info' : 'ok',
     });
     items.push({
+      label: 'Sesion',
+      value: auth.currentUser
+        ? auth.currentUser.isAnonymous
+          ? `anon ${auth.currentUser.uid}`
+          : auth.currentUser.email ?? auth.currentUser.uid
+        : 'sin sesion',
+      status: auth.currentUser ? 'ok' : 'fail',
+    });
+    items.push({
       label: 'Filtro dock',
       value: filterDock,
       status: 'info',
@@ -564,6 +590,18 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       value: listenerError ?? 'sin error',
       status: listenerError ? 'fail' : 'ok',
     });
+    items.push({
+      label: 'Fuente datos',
+      value: lastFetchSource ?? 'N/A',
+      status: 'info',
+    });
+    if (lastFetchError) {
+      items.push({
+        label: 'Error fetch',
+        value: lastFetchError,
+        status: 'warn',
+      });
+    }
     items.push({
       label: 'User agent',
       value: navigator.userAgent || 'N/A',
