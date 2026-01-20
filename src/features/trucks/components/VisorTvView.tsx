@@ -10,12 +10,6 @@ export const VisorTvView = () => {
   const [authWorking, setAuthWorking] = useState(false);
   const [authAttempted, setAuthAttempted] = useState(false);
 
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.documentElement.classList.add('compat-tv');
-    return () => document.documentElement.classList.remove('compat-tv');
-  }, []);
-
   const startAnonymous = async () => {
     if (authWorking) return;
     setAuthError(null);
@@ -64,5 +58,5 @@ export const VisorTvView = () => {
     );
   }
 
-  return <GeneralBoard forceCompat />;
+  return <GeneralBoard />;
 };

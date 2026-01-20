@@ -11,7 +11,7 @@ const Shell = ({ children }: AppProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const isVisor = location.pathname === '/visor';
+  const isVisor = location.pathname === '/visor' || location.pathname === '/visortv';
   const mainClassName = isVisor ? 'flex-1 px-0 pb-0' : 'flex-1 px-4 pb-10 sm:px-8';
   const contentClassName = isVisor ? 'mx-auto w-full max-w-none' : 'mx-auto w-full max-w-screen-2xl';
 
