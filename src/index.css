@@ -363,6 +363,18 @@ body {
   color: #e6cf6a;
 }
 
+.tv-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tv-projector-btn {
+  padding: 4px 10px;
+  font-size: 10px;
+}
+
 .tv-time {
   font-family: 'Courier New', monospace;
   font-size: 14px;
@@ -545,7 +557,28 @@ body {
   background: #121217;
   border-radius: 16px;
   overflow: hidden;
+  position: relative;
   margin-bottom: 12px;
+}
+
+.tv-table-wrap--projector {
+  padding-top: 36px;
+}
+
+.tv-projector-exit {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 207, 106, 0.4);
+  background: #242428;
+  color: #ded293;
+  padding: 4px 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .tv-table {
@@ -577,6 +610,12 @@ body {
   background: #1f1f23;
   color: #e6cf6a;
   font-weight: 700;
+}
+
+.tv-table--projector th,
+.tv-table--projector td {
+  font-size: 14px;
+  padding: 11px 12px;
 }
 
 .tv-row-even {

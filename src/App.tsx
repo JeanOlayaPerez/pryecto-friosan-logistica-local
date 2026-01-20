@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './features/auth/AuthProvider';
 
 type AppProps = {
@@ -10,6 +10,7 @@ const Shell = ({ children }: AppProps) => {
   const { user, role, logout } = useAuth();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isVisor = location.pathname === '/visor';
   const mainClassName = isVisor ? 'flex-1 px-0 pb-0' : 'flex-1 px-4 pb-10 sm:px-8';
   const contentClassName = isVisor ? 'mx-auto w-full max-w-none' : 'mx-auto w-full max-w-screen-2xl';
@@ -30,6 +31,14 @@ const Shell = ({ children }: AppProps) => {
       }
     } catch (err) {
       console.error('No se pudo cambiar a pantalla completa', err);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate('/login', { replace: true });
     }
   };
 
@@ -62,7 +71,7 @@ const Shell = ({ children }: AppProps) => {
                   <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200">
                     {role && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px]">{role}</span>}
                     <button
-                      onClick={() => logout()}
+                      onClick={handleLogout}
                       className="rounded-full bg-accent px-2 py-1 text-xs font-semibold text-slate-900 hover:brightness-110"
                     >
                       Salir

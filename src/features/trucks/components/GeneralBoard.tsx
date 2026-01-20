@@ -236,13 +236,22 @@ const TvTable = ({
   rows,
   now,
   emptyMessage,
+  projector = false,
+  onExitProjector,
 }: {
   rows: Truck[];
   now: Date;
   emptyMessage: string;
+  projector?: boolean;
+  onExitProjector?: () => void;
 }) => (
-  <div className="tv-table-wrap">
-    <table className="tv-table">
+  <div className={`tv-table-wrap ${projector ? 'tv-table-wrap--projector' : ''}`}>
+    {projector && onExitProjector && (
+      <button type="button" onClick={onExitProjector} className="tv-projector-exit">
+        Salir proyeccion
+      </button>
+    )}
+    <table className={`tv-table ${projector ? 'tv-table--projector' : ''}`}>
       <colgroup>
         {tvColumns.map((col) => (
           <col key={col.label} style={{ width: col.width }} />
@@ -686,90 +695,105 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
   if (compatEnabled) {
     return (
-      <div className="tv-board">
-        <div className="tv-card tv-header">
-          <div className="tv-header-row">
-            <div className="tv-header-cell tv-header-left">
-              <span className="tv-logo">
-                <img src="/friosan-logo.png" alt="Friosan" />
-              </span>
-              <span className="tv-title-block">
-                <span className="tv-brand">Friosan SPA</span>
-                <span className="tv-title">Bitacora de camiones</span>
-              </span>
-            </div>
-            <div className="tv-header-cell tv-header-right">
-              <div className="tv-time">
-                {formatDate(now)}, {formatHour(now)}
+      <div className={`tv-board ${projectorMode ? 'tv-board--projector' : ''}`}>
+        {!projectorMode && (
+          <div className="tv-card tv-header">
+            <div className="tv-header-row">
+              <div className="tv-header-cell tv-header-left">
+                <span className="tv-logo">
+                  <img src="/friosan-logo.png" alt="Friosan" />
+                </span>
+                <span className="tv-title-block">
+                  <span className="tv-brand">Friosan SPA</span>
+                  <span className="tv-title-row">
+                    <span className="tv-title">Bitacora de camiones</span>
+                    <button
+                      type="button"
+                      onClick={() => setProjectorMode(true)}
+                      className="tv-button tv-projector-btn"
+                    >
+                      Proyectar tablero
+                    </button>
+                  </span>
+                </span>
               </div>
-              <div className="tv-update">Ultima actualizacion: {formatHour(now)}</div>
-              <div className="tv-status">
-                <span className="tv-dot tv-dot-ok" />
-                Actualizado
+              <div className="tv-header-cell tv-header-right">
+                <div className="tv-time">
+                  {formatDate(now)}, {formatHour(now)}
+                </div>
+                <div className="tv-update">Ultima actualizacion: {formatHour(now)}</div>
+                <div className="tv-status">
+                  <span className="tv-dot tv-dot-ok" />
+                  Actualizado
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {listenerError && <div className="tv-alert">{listenerError}</div>}
+        {!projectorMode && listenerError && <div className="tv-alert">{listenerError}</div>}
 
-        <div className="tv-card tv-controls">
-          <div className="tv-controls-top">
-            <div className="tv-controls-left">
-              <div className="tv-label">Tablero visor</div>
-              <div className="tv-desc">Estado general de camiones</div>
-              <div className="tv-muted">
-                Filtros:{' '}
-                {filterDock === 'todos'
-                  ? 'Recepcion + Despacho'
-                  : filterDock === 'recepcion'
-                    ? 'Solo recepcion'
-                    : 'Solo despacho'}
+        {!projectorMode && (
+          <div className="tv-card tv-controls">
+            <div className="tv-controls-top">
+              <div className="tv-controls-left">
+                <div className="tv-label">Tablero visor</div>
+                <div className="tv-desc">Estado general de camiones</div>
+                <div className="tv-muted">
+                  Filtros:{' '}
+                  {filterDock === 'todos'
+                    ? 'Recepcion + Despacho'
+                    : filterDock === 'recepcion'
+                      ? 'Solo recepcion'
+                      : 'Solo despacho'}
+                </div>
+              </div>
+              <div className="tv-controls-right">
+                <span className="tv-pill">Total: {stats.total}</span>
+                <span className="tv-pill">Porteria: {stats.enPorteria}</span>
+                <span className="tv-pill">Espera: {stats.enEspera}</span>
+                <span className="tv-pill">En curso: {stats.enCurso}</span>
               </div>
             </div>
-            <div className="tv-controls-right">
-              <span className="tv-pill">Total: {stats.total}</span>
-              <span className="tv-pill">Porteria: {stats.enPorteria}</span>
-              <span className="tv-pill">Espera: {stats.enEspera}</span>
-              <span className="tv-pill">En curso: {stats.enCurso}</span>
+            <div className="tv-controls-bottom">
+              <div className="tv-filter-group">
+                {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
+                  <button
+                    key={dock}
+                    type="button"
+                    onClick={() => setFilterDock(dock)}
+                    className={`tv-filter-btn ${filterDock === dock ? 'is-active' : ''}`}
+                  >
+                    {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar cliente, patente, conductor o anden"
+                className="tv-search"
+              />
+              <button
+                type="button"
+                onClick={() => setShowHistory((prev) => !prev)}
+                className="tv-button"
+              >
+                {showHistory ? 'Ocultar historico' : 'Ver historico'}
+              </button>
             </div>
           </div>
-          <div className="tv-controls-bottom">
-            <div className="tv-filter-group">
-              {(['todos', 'recepcion', 'despacho'] as Array<'todos' | DockType>).map((dock) => (
-                <button
-                  key={dock}
-                  type="button"
-                  onClick={() => setFilterDock(dock)}
-                  className={`tv-filter-btn ${filterDock === dock ? 'is-active' : ''}`}
-                >
-                  {dock === 'todos' ? 'Todos' : dock === 'recepcion' ? 'Recepcion' : 'Despacho'}
-                </button>
-              ))}
-            </div>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar cliente, patente, conductor o anden"
-              className="tv-search"
-            />
-            <button
-              type="button"
-              onClick={() => setShowHistory((prev) => !prev)}
-              className="tv-button"
-            >
-              {showHistory ? 'Ocultar historico' : 'Ver historico'}
-            </button>
-          </div>
-        </div>
+        )}
 
         <TvTable
           rows={displayRows}
           now={now}
+          projector={projectorMode}
+          onExitProjector={projectorMode ? () => setProjectorMode(false) : undefined}
           emptyMessage="No hay camiones activos para mostrar en el tablero."
         />
 
-        {canShowDiagnostics && (
+        {!projectorMode && canShowDiagnostics && (
           <div className="tv-card tv-diagnostics">
             <div className="tv-diagnostics-row">
               <div>
@@ -803,7 +827,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           </div>
         )}
 
-        {showHistory && (
+        {!projectorMode && showHistory && (
           <div className="tv-card tv-history">
             <div className="tv-history-header">
               <div className="tv-history-left">
