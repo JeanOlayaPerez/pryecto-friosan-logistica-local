@@ -145,13 +145,8 @@ export const PorteriaDesk = () => {
     }
 
     const currentDock = normalizeDockNumber(truck.dockNumber);
-    if (currentDock) {
-      void handleStatus(truck.id, status);
-      return;
-    }
-
     setDockSelectionId(truck.id);
-    setDockSelectionValue("");
+    setDockSelectionValue(currentDock ? String(currentDock) : "");
     setActionMsg("Selecciona un anden para pasar a en curso.");
   };
 
@@ -162,19 +157,43 @@ export const PorteriaDesk = () => {
         setActionMsg("Selecciona un anden antes de continuar.");
         return;
       }
+      const targetTruck = trucks.find((t) => t.id === truckId);
+      if (!targetTruck) {
+        setActionMsg("No se encontro el camion.");
+        return;
+      }
+      const occupant = findDockOccupant(dockSelectionValue, targetTruck);
+      if (occupant) {
+        const label = occupant.plate ? `${occupant.clientName ?? "Camion"} (${occupant.plate})` : (occupant.clientName ?? "Camion");
+        setActionMsg(`Anden ocupado por ${label}. Elige otro anden.`);
+        return;
+      }
       await updateTruckDetails(
         truckId,
         { entryType: "anden", dockNumber: dockSelectionValue },
         user ? { userId: user.id, role } : undefined,
       );
       await updateTruckStatus(truckId, "en_curso", { userId: user?.id ?? "system", role });
-      setActionMsg(`Derivado a A-${dockSelectionValue} y en curso`);
+      setActionMsg(`Derivado a ${dockSelectionValue} y en curso`);
       setDockSelectionId(null);
       setDockSelectionValue("");
     } catch (err) {
       console.error(err);
       setActionMsg("No se pudo asignar el anden (permiso/red).");
     }
+  };
+
+  const findDockOccupant = (dockValue: string, truck: Truck) => {
+    const dock = normalizeDockNumber(dockValue);
+    if (!dock) return null;
+    return (
+      trucks.find(
+        (other) =>
+          other.id !== truck.id &&
+          other.status === "en_curso" &&
+          normalizeDockNumber(other.dockNumber) === dock,
+      ) ?? null
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -399,7 +418,8 @@ export const PorteriaDesk = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleDockAssign(t.id)}
-                                  className="rounded-md bg-sky-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-sky-700"
+                                  disabled={Boolean(dockSelectionValue && findDockOccupant(dockSelectionValue, t))}
+                                  className="rounded-md bg-sky-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
                                   Asignar
                                 </button>
@@ -414,6 +434,14 @@ export const PorteriaDesk = () => {
                                   Cancelar
                                 </button>
                               </div>
+                              {dockSelectionValue && findDockOccupant(dockSelectionValue, t) && (
+                                <p className="mt-1 text-[11px] text-rose-600">
+                                  Anden ocupado por{" "}
+                                  {findDockOccupant(dockSelectionValue, t)?.plate
+                                    ? `${findDockOccupant(dockSelectionValue, t)?.clientName ?? "Camion"} (${findDockOccupant(dockSelectionValue, t)?.plate})`
+                                    : `${findDockOccupant(dockSelectionValue, t)?.clientName ?? "Camion"}`}.
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
