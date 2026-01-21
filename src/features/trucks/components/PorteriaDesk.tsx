@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createTruck, subscribeAllTrucks, updateTruckStatus } from "../services/trucksApi";
+import { createTruck, subscribeAllTrucks, updateTruckDetails, updateTruckStatus } from "../services/trucksApi";
 import type { DockType, Truck, TruckStatus } from "../types";
 import { useAuth } from "../../auth/AuthProvider";
 
@@ -25,6 +25,18 @@ const statusChip: Record<TruckStatus, string> = {
   almacenado: "bg-emerald-100 text-emerald-800 border border-emerald-200",
   cerrado: "bg-slate-100 text-slate-700 border border-slate-200",
   terminado: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+};
+
+const dockNumbers = Array.from({ length: 9 }, (_, i) => `${i + 1}`);
+
+const normalizeDockNumber = (value: Truck["dockNumber"]) => {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const numeric = Number(raw.replace(/[^\d]/g, ""));
+  if (!Number.isFinite(numeric)) return null;
+  if (numeric < 1 || numeric > 9) return null;
+  return numeric;
 };
 
 const formatHour = (d?: Date | null) => {
@@ -79,6 +91,8 @@ export const PorteriaDesk = () => {
   // Mostrar bitácora por defecto; el formulario solo para camión extra.
   const [showAgenda, setShowAgenda] = useState(true);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [dockSelectionId, setDockSelectionId] = useState<string | null>(null);
+  const [dockSelectionValue, setDockSelectionValue] = useState("");
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -117,6 +131,49 @@ export const PorteriaDesk = () => {
     } catch (err) {
       console.error(err);
       setActionMsg("No se pudo actualizar el estado (permiso/red).");
+    }
+  };
+
+  const handleStatusChange = (truck: Truck, status: TruckStatus) => {
+    if (status !== "en_curso") {
+      if (dockSelectionId === truck.id) {
+        setDockSelectionId(null);
+        setDockSelectionValue("");
+      }
+      void handleStatus(truck.id, status);
+      return;
+    }
+
+    const currentDock = normalizeDockNumber(truck.dockNumber);
+    if (currentDock) {
+      void handleStatus(truck.id, status);
+      return;
+    }
+
+    setDockSelectionId(truck.id);
+    setDockSelectionValue("");
+    setActionMsg("Selecciona un anden para pasar a en curso.");
+  };
+
+  const handleDockAssign = async (truckId: string) => {
+    setActionMsg(null);
+    try {
+      if (!dockSelectionValue) {
+        setActionMsg("Selecciona un anden antes de continuar.");
+        return;
+      }
+      await updateTruckDetails(
+        truckId,
+        { entryType: "anden", dockNumber: dockSelectionValue },
+        user ? { userId: user.id, role } : undefined,
+      );
+      await updateTruckStatus(truckId, "en_curso", { userId: user?.id ?? "system", role });
+      setActionMsg(`Derivado a A-${dockSelectionValue} y en curso`);
+      setDockSelectionId(null);
+      setDockSelectionValue("");
+    } catch (err) {
+      console.error(err);
+      setActionMsg("No se pudo asignar el anden (permiso/red).");
     }
   };
 
@@ -252,7 +309,7 @@ export const PorteriaDesk = () => {
               <table className="min-w-full table-fixed border-collapse">
                 <thead>
                   <tr className="bg-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-600">
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Raz?n social</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Razon social</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[12%]">Patente</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Cliente / Conductor / Rut</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[13%]">Proceso</th>
@@ -306,7 +363,7 @@ export const PorteriaDesk = () => {
                           <select
                             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800 shadow-sm"
                             value={t.status}
-                            onChange={(e) => handleStatus(t.id, e.target.value as TruckStatus)}
+                            onChange={(e) => handleStatusChange(t, e.target.value as TruckStatus)}
                           >
                             <option value="en_camino">En camino</option>
                             <option value="en_porteria">En porteria</option>
@@ -318,6 +375,47 @@ export const PorteriaDesk = () => {
                           >
                             {statusLabel[t.status]}
                           </div>
+                          {normalizeDockNumber(t.dockNumber) ? (
+                            <div className="text-[11px] text-slate-500">
+                              Anden: A-{normalizeDockNumber(t.dockNumber)}
+                            </div>
+                          ) : null}
+                          {dockSelectionId === t.id && (
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] text-slate-700">
+                              <p className="mb-1 font-semibold text-slate-800">Selecciona anden</p>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] text-slate-800"
+                                  value={dockSelectionValue}
+                                  onChange={(e) => setDockSelectionValue(e.target.value)}
+                                >
+                                  <option value="">Elegir...</option>
+                                  {dockNumbers.map((dock) => (
+                                    <option key={dock} value={dock}>
+                                      A-{dock}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDockAssign(t.id)}
+                                  className="rounded-md bg-sky-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-sky-700"
+                                >
+                                  Asignar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDockSelectionId(null);
+                                    setDockSelectionValue("");
+                                  }}
+                                  className="rounded-md border border-slate-200 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-100"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -177,7 +177,7 @@ export const TruckCard = ({ truck, role, actions = [], readOnly = false }: Props
         </div>
       )}
 
-      {delayed && (
+  {delayed && (
         <p className="mt-2 text-xs font-medium text-rose-300">
           Retraso: {formatDurationSince(truck.checkInTime)}
         </p>
