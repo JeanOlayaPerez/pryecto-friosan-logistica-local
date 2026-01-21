@@ -304,6 +304,21 @@ export const updateTruckStatus = async (
   if (!snap.exists()) throw new Error('Truck not found');
   const data = snap.data();
   const now = serverTimestamp();
+  const statusOrder: TruckStatus[] = [
+    'agendado',
+    'en_camino',
+    'en_porteria',
+    'en_espera',
+    'en_curso',
+    'recepcionado',
+    'almacenado',
+    'cerrado',
+    'terminado',
+  ];
+  const currentStatus = data.status as TruckStatus | undefined;
+  const currentIndex = currentStatus ? statusOrder.indexOf(currentStatus) : -1;
+  const nextIndex = statusOrder.indexOf(newStatus);
+  const isBackward = currentIndex !== -1 && nextIndex !== -1 && nextIndex < currentIndex;
 
   const patch: Record<string, any> = {
     status: newStatus,
@@ -317,6 +332,10 @@ export const updateTruckStatus = async (
   }
   if (newStatus === 'almacenado' && !data.storedAt) patch.storedAt = now;
   if (newStatus === 'cerrado' && !data.closedAt) patch.closedAt = now;
+  if (isBackward) {
+    patch.entryType = 'conos';
+    patch.dockNumber = '0';
+  }
 
   await updateDoc(ref, {
     ...patch,

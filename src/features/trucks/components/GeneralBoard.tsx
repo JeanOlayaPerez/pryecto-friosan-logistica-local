@@ -59,7 +59,20 @@ const formatElapsed = (start?: Date | null, nowValue?: Date | null) => {
   return `${hours}:${mins}`;
 };
 
-const gateFromTruck = (t: Truck) => `A-${t.dockNumber ?? '-'}`;
+const normalizeDockNumber = (value: Truck['dockNumber']) => {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const numeric = Number(raw.replace(/[^\d]/g, ''));
+  if (!Number.isFinite(numeric)) return null;
+  if (numeric < 1 || numeric > 9) return null;
+  return numeric;
+};
+
+const gateFromTruck = (t: Truck) => {
+  const dock = normalizeDockNumber(t.dockNumber);
+  return dock ? `${dock}` : 'N/A';
+};
 
 const typeDisplay = (t: Truck) => {
   const main = (t.loadType ?? 'carga').toUpperCase();
