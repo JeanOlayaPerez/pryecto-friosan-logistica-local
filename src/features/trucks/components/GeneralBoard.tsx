@@ -162,8 +162,6 @@ const TableRow = ({
   idx,
   now,
   projector,
-  canFinalize,
-  onFinalize,
   selected,
   onToggleSelect,
 }: {
@@ -171,8 +169,6 @@ const TableRow = ({
   idx: number;
   now: Date;
   projector?: boolean;
-  canFinalize?: boolean;
-  onFinalize?: (truck: Truck) => void;
   selected?: boolean;
   onToggleSelect?: (truck: Truck) => void;
 }) => {
@@ -188,7 +184,7 @@ const TableRow = ({
   const rowTextClass = `${rowText} font-semibold uppercase tracking-[0.1em]`;
   const badgeText = rowText;
   const badgePadding = projector ? 'px-5 py-2.5' : 'px-5 py-2';
-  const showSelect = !projector && canFinalize && Boolean(onToggleSelect);
+  const showSelect = !projector && Boolean(onToggleSelect);
   const statusBadgeWidth = showSelect ? 'w-[12.5rem]' : 'w-[13.5rem]';
 
   const stateClass =
@@ -206,9 +202,6 @@ const TableRow = ({
       : (truck.loadType ?? 'descarga') === 'descarga'
         ? 'bg-[#c05a36]'
         : 'bg-[#5c4ea8]';
-  const showFinalize =
-    !projector && canFinalize && truck.status !== 'cerrado' && truck.status !== 'terminado';
-
   return (
     <motion.div
       key={truck.id}
@@ -252,15 +245,6 @@ const TableRow = ({
             {statusLabel[truck.status]}
           </span>
         </div>
-        {showFinalize && (
-          <button
-            type="button"
-            onClick={() => onFinalize?.(truck)}
-            className="mt-2 w-full rounded-md border border-[#e6cf6a]/40 bg-[#242428] px-2 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#e6cf6a] hover:bg-[#2f2f34]"
-          >
-            Finalizar
-          </button>
-        )}
       </div>
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1]`}>
         <span
@@ -285,8 +269,6 @@ const TvTable = ({
   emptyMessage,
   projector = false,
   onExitProjector,
-  canFinalize,
-  onFinalize,
   selectedSet,
   onToggleSelect,
 }: {
@@ -295,12 +277,10 @@ const TvTable = ({
   emptyMessage: string;
   projector?: boolean;
   onExitProjector?: () => void;
-  canFinalize?: boolean;
-  onFinalize?: (truck: Truck) => void;
   selectedSet?: Set<string>;
   onToggleSelect?: (truck: Truck) => void;
 }) => {
-  const showSelect = !projector && canFinalize && Boolean(onToggleSelect) && Boolean(selectedSet);
+  const showSelect = !projector && Boolean(onToggleSelect) && Boolean(selectedSet);
 
   return (
     <div className={`tv-table-wrap ${projector ? 'tv-table-wrap--projector' : ''}`}>
@@ -349,12 +329,12 @@ const TvTable = ({
                   <td className="tv-cell">{bitacoraHour}</td>
                   <td className="tv-cell">{ingresoDate}</td>
                   <td className="tv-cell">{ingresoHour}</td>
-                  <td className="tv-cell">
-                    <span className="tv-badge" style={{ backgroundColor: statusTone(truck.status) }}>
-                      {statusLabel[truck.status]}
-                    </span>
-                    {showSelect && (
-                      <label className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#ded293]">
+                <td className="tv-cell">
+                  <span className="tv-badge" style={{ backgroundColor: statusTone(truck.status) }}>
+                    {statusLabel[truck.status]}
+                  </span>
+                  {showSelect && (
+                    <label className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#ded293]">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -366,20 +346,7 @@ const TvTable = ({
                         Lote
                       </label>
                     )}
-                    {!projector &&
-                      canFinalize &&
-                      truck.status !== 'cerrado' &&
-                      truck.status !== 'terminado' && (
-                        <button
-                          type="button"
-                          onClick={() => onFinalize?.(truck)}
-                          className="tv-button"
-                          style={{ marginTop: '6px' }}
-                        >
-                          Finalizar
-                        </button>
-                      )}
-                  </td>
+                </td>
                   <td className="tv-cell">
                     <span className="tv-badge" style={{ backgroundColor: processTone(truck.loadType) }}>
                       {process}
@@ -638,21 +605,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
   const canFinalize =
     Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
-
-  const handleFinalize = useCallback(
-    async (truck: Truck) => {
-      if (!user?.id || !canFinalize) return;
-      const ok = window.confirm(`Finalizar camion ${truck.plate || truck.clientName}?`);
-      if (!ok) return;
-      try {
-        await updateTruckStatus(truck.id, 'terminado', { userId: user.id, role });
-      } catch (err) {
-        console.error(err);
-        window.alert('No se pudo finalizar el camion. Revisa permisos o conexion.');
-      }
-    },
-    [canFinalize, role, user],
-  );
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedRows = useMemo(
@@ -1024,8 +976,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           projector={projectorMode}
           onExitProjector={projectorMode ? () => setProjectorMode(false) : undefined}
           emptyMessage="No hay camiones activos para mostrar en el tablero."
-          canFinalize={canFinalize}
-          onFinalize={handleFinalize}
           selectedSet={selectionMode ? selectedSet : undefined}
           onToggleSelect={selectionMode ? toggleSelect : undefined}
         />
@@ -1102,7 +1052,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
               rows={historyRows}
               now={now}
               emptyMessage="No hay registros para el dia seleccionado."
-              canFinalize={false}
             />
           </div>
         )}
@@ -1300,8 +1249,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                     idx={idx}
                     now={now}
                     projector={projectorMode}
-                    canFinalize={canFinalize}
-                    onFinalize={handleFinalize}
                     selected={selectionMode && selectedSet.has(truck.id)}
                     onToggleSelect={selectionMode ? toggleSelect : undefined}
                   />
