@@ -93,6 +93,14 @@ export const PorteriaDesk = () => {
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [dockSelectionId, setDockSelectionId] = useState<string | null>(null);
   const [dockSelectionValue, setDockSelectionValue] = useState("");
+  const [dockSelectionLoadType, setDockSelectionLoadType] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    plate: "",
+    driverName: "",
+    driverRut: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -123,6 +131,8 @@ export const PorteriaDesk = () => {
       .sort((a, b) => (a.scheduledArrival?.getTime() ?? 0) - (b.scheduledArrival?.getTime() ?? 0));
   }, [trucks]);
 
+  const statusOptions: TruckStatus[] = ["en_porteria", "en_espera", "en_curso"];
+
   const handleStatus = async (truckId: string, status: TruckStatus) => {
     setActionMsg(null);
     try {
@@ -139,6 +149,7 @@ export const PorteriaDesk = () => {
       if (dockSelectionId === truck.id) {
         setDockSelectionId(null);
         setDockSelectionValue("");
+        setDockSelectionLoadType("");
       }
       void handleStatus(truck.id, status);
       return;
@@ -147,7 +158,10 @@ export const PorteriaDesk = () => {
     const currentDock = normalizeDockNumber(truck.dockNumber);
     setDockSelectionId(truck.id);
     setDockSelectionValue(currentDock ? String(currentDock) : "");
-    setActionMsg("Selecciona un anden para pasar a en curso.");
+    setDockSelectionLoadType(
+      truck.loadType === "carga" || truck.loadType === "descarga" ? truck.loadType : "",
+    );
+    setActionMsg("Selecciona un anden y operacion para pasar a en curso.");
   };
 
   const handleDockAssign = async (truckId: string) => {
@@ -157,9 +171,17 @@ export const PorteriaDesk = () => {
         setActionMsg("Selecciona un anden antes de continuar.");
         return;
       }
+      if (!dockSelectionLoadType) {
+        setActionMsg("Selecciona carga o descarga antes de continuar.");
+        return;
+      }
       const targetTruck = trucks.find((t) => t.id === truckId);
       if (!targetTruck) {
         setActionMsg("No se encontro el camion.");
+        return;
+      }
+      if (!targetTruck.plate || !targetTruck.driverName || !targetTruck.driverRut) {
+        setActionMsg("Completa patente, conductor y RUT antes de pasar a en curso.");
         return;
       }
       const occupant = findDockOccupant(dockSelectionValue, targetTruck);
@@ -170,13 +192,14 @@ export const PorteriaDesk = () => {
       }
       await updateTruckDetails(
         truckId,
-        { entryType: "anden", dockNumber: dockSelectionValue },
+        { entryType: "anden", dockNumber: dockSelectionValue, loadType: dockSelectionLoadType as "carga" | "descarga" },
         user ? { userId: user.id, role } : undefined,
       );
       await updateTruckStatus(truckId, "en_curso", { userId: user?.id ?? "system", role });
       setActionMsg(`Derivado a ${dockSelectionValue} y en curso`);
       setDockSelectionId(null);
       setDockSelectionValue("");
+      setDockSelectionLoadType("");
     } catch (err) {
       console.error(err);
       setActionMsg("No se pudo asignar el anden (permiso/red).");
@@ -194,6 +217,70 @@ export const PorteriaDesk = () => {
           normalizeDockNumber(other.dockNumber) === dock,
       ) ?? null
     );
+  };
+
+  const startEdit = (truck: Truck) => {
+    setEditId(truck.id);
+    setEditForm({
+      plate: truck.plate ?? "",
+      driverName: truck.driverName ?? "",
+      driverRut: truck.driverRut ?? "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setEditForm({ plate: "", driverName: "", driverRut: "" });
+  };
+
+  const handleSaveDetails = async (truckId: string) => {
+    setActionMsg(null);
+    const plate = editForm.plate.trim().toUpperCase();
+    const driverName = editForm.driverName.trim();
+    const driverRut = editForm.driverRut.trim();
+    if (!plate || !driverName || !driverRut) {
+      setActionMsg("Completa patente, conductor y RUT antes de guardar.");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      await updateTruckDetails(
+        truckId,
+        { plate, driverName, driverRut },
+        user ? { userId: user.id, role } : undefined,
+      );
+      setActionMsg("Datos de conductor guardados.");
+      cancelEdit();
+    } catch (err) {
+      console.error(err);
+      setActionMsg("No se pudieron guardar los datos (permiso/red).");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleSavePlate = async (truckId: string) => {
+    setActionMsg(null);
+    const plate = editForm.plate.trim().toUpperCase();
+    if (!plate) {
+      setActionMsg("Completa la patente antes de guardar.");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      await updateTruckDetails(
+        truckId,
+        { plate },
+        user ? { userId: user.id, role } : undefined,
+      );
+      setEditForm((prev) => ({ ...prev, plate }));
+      setActionMsg("Patente guardada.");
+    } catch (err) {
+      console.error(err);
+      setActionMsg("No se pudo guardar la patente (permiso/red).");
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -316,7 +403,7 @@ export const PorteriaDesk = () => {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Bitacora de ingresos</p>
-                <p className="text-xs text-slate-500">Marca el estado: en camino, en portería o en espera.</p>
+                <p className="text-xs text-slate-500">Marca el estado: en porteria, en espera o en curso.</p>
               </div>
               <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-800">
                 {agendaList.length} en bitácora
@@ -330,7 +417,7 @@ export const PorteriaDesk = () => {
                   <tr className="bg-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-600">
                     <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Razon social</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[12%]">Patente</th>
-                    <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Cliente / Conductor / Rut</th>
+                    <th className="border border-slate-200 px-3 py-2 text-left w-[17%]">Conductor / Rut</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[13%]">Proceso</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[11%]">Agendada</th>
                     <th className="border border-slate-200 px-3 py-2 text-left w-[8%]">C/S Bitacora</th>
@@ -347,22 +434,89 @@ export const PorteriaDesk = () => {
                       </td>
                     </tr>
                   )}
-                  {agendaList.map((t, idx) => (
-                    <tr
-                      key={t.id}
-                      className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}
-                    >
+                  {agendaList.map((t, idx) => {
+                    const isEditing = editId === t.id;
+                    const missingDetails = !t.plate || !t.driverName || !t.driverRut;
+
+                    return (
+                      <tr
+                        key={t.id}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}
+                      >
                       <td className="border border-slate-200 px-3 py-3 align-top">
                         <p className="font-semibold text-slate-900 break-words">{t.clientName || "Sin cliente"}</p>
                       </td>
                       <td className="border border-slate-200 px-3 py-3 align-top text-sm font-semibold uppercase tracking-[0.12em] text-slate-900 break-words">
-                        {t.plate || "N/A"}
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <input
+                              className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-sm uppercase text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              value={editForm.plate}
+                              onChange={(e) => setEditForm({ ...editForm, plate: e.target.value })}
+                              disabled={editSaving}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSavePlate(t.id)}
+                              disabled={editSaving}
+                              className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white hover:bg-slate-800 disabled:opacity-60"
+                            >
+                              Guardar patente
+                            </button>
+                          </div>
+                        ) : (
+                          t.plate || "--"
+                        )}
                       </td>
                       <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-800 break-words">
-                        <div className="space-y-0.5">
-                          <p className="font-semibold">{t.driverName || "--"}</p>
-                          {t.driverRut && <p className="text-slate-600 text-xs">{t.driverRut}</p>}
-                        </div>
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <input
+                              className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              value={editForm.driverName}
+                              onChange={(e) => setEditForm({ ...editForm, driverName: e.target.value })}
+                              placeholder="Nombre conductor"
+                              disabled={editSaving}
+                            />
+                            <input
+                              className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                              value={editForm.driverRut}
+                              onChange={(e) => setEditForm({ ...editForm, driverRut: e.target.value })}
+                              placeholder="RUT conductor"
+                              disabled={editSaving}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSaveDetails(t.id)}
+                                disabled={editSaving}
+                                className="rounded-full bg-sky-600 px-3 py-1 text-[11px] font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+                              >
+                                {editSaving ? "Guardando..." : "Guardar datos"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEdit}
+                                disabled={editSaving}
+                                className="rounded-full border border-slate-200 px-3 py-1 text-[11px] text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <p className="font-semibold">{t.driverName || "--"}</p>
+                            <p className="text-slate-600 text-xs">{t.driverRut || "--"}</p>
+                            <button
+                              type="button"
+                              onClick={() => startEdit(t)}
+                              className="rounded-full border border-slate-200 px-3 py-1 text-[11px] text-slate-700 hover:bg-slate-100"
+                            >
+                              {missingDetails ? "Completar datos" : "Editar datos"}
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="border border-slate-200 px-3 py-3 align-top text-sm text-slate-800 break-words">
                         {processLabel(t)}
@@ -384,10 +538,16 @@ export const PorteriaDesk = () => {
                             value={t.status}
                             onChange={(e) => handleStatusChange(t, e.target.value as TruckStatus)}
                           >
-                            <option value="en_camino">En camino</option>
-                            <option value="en_porteria">En porteria</option>
-                            <option value="en_espera">En espera</option>
-                            <option value="en_curso">En curso</option>
+                            {!statusOptions.includes(t.status) && (
+                              <option value={t.status} disabled>
+                                {statusLabel[t.status]}
+                              </option>
+                            )}
+                            {statusOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {statusLabel[option]}
+                              </option>
+                            ))}
                           </select>
                           <div
                             className={`flex w-full items-center justify-center rounded-full px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap ${statusChip[t.status]}`}
@@ -401,7 +561,7 @@ export const PorteriaDesk = () => {
                           ) : null}
                           {dockSelectionId === t.id && (
                             <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] text-slate-700">
-                              <p className="mb-1 font-semibold text-slate-800">Selecciona anden</p>
+                              <p className="mb-1 font-semibold text-slate-800">Selecciona anden y operacion</p>
                               <div className="flex items-center gap-2">
                                 <select
                                   className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] text-slate-800"
@@ -415,10 +575,23 @@ export const PorteriaDesk = () => {
                                     </option>
                                   ))}
                                 </select>
+                                <select
+                                  className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] text-slate-800"
+                                  value={dockSelectionLoadType}
+                                  onChange={(e) => setDockSelectionLoadType(e.target.value)}
+                                >
+                                  <option value="">Operacion...</option>
+                                  <option value="carga">Carga</option>
+                                  <option value="descarga">Descarga</option>
+                                </select>
                                 <button
                                   type="button"
                                   onClick={() => handleDockAssign(t.id)}
-                                  disabled={Boolean(dockSelectionValue && findDockOccupant(dockSelectionValue, t))}
+                                  disabled={
+                                    !dockSelectionValue ||
+                                    !dockSelectionLoadType ||
+                                    Boolean(dockSelectionValue && findDockOccupant(dockSelectionValue, t))
+                                  }
                                   className="rounded-md bg-sky-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
                                   Asignar
@@ -428,6 +601,7 @@ export const PorteriaDesk = () => {
                                   onClick={() => {
                                     setDockSelectionId(null);
                                     setDockSelectionValue("");
+                                    setDockSelectionLoadType("");
                                   }}
                                   className="rounded-md border border-slate-200 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-100"
                                 >
@@ -447,7 +621,8 @@ export const PorteriaDesk = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
