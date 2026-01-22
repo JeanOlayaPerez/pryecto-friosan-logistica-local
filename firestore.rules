@@ -23,11 +23,25 @@ service cloud.firestore {
       return request.auth != null && userRole() != null && userRole() in list;
     }
 
+    function isAnonymous() {
+      return request.auth != null
+        && request.auth.token.firebase != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    function canAnonFinalize() {
+      return request.resource.data.status == 'terminado'
+        && resource.data.status != 'terminado'
+        && request.resource.data.diff(resource.data).changedKeys()
+          .hasOnly(['status', 'updatedAt', 'processEndTime', 'history']);
+    }
+
     match /trucks/{truckId} {
       allow read: if request.auth != null;
       // Porteria crea, Recepcion actualiza estados, Admin todo.
       allow create: if hasRole(['porteria', 'admin', 'superadmin']);
-      allow update: if hasRole(['recepcion', 'comercial', 'admin', 'superadmin']);
+      allow update: if hasRole(['recepcion', 'comercial', 'admin', 'superadmin', 'visor'])
+        || (isAnonymous() && canAnonFinalize());
       allow delete: if hasRole(['admin', 'recepcion', 'superadmin']);
     }
 

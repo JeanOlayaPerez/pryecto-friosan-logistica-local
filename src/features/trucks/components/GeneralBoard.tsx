@@ -407,6 +407,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   const [filterDock, setFilterDock] = useState<'todos' | DockType>('todos');
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const [listenerError, setListenerError] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -636,7 +637,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   }, [filtered, historyDay]);
 
   const canFinalize =
-    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin'].includes(role ?? '');
+    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
 
   const handleFinalize = useCallback(
     async (truck: Truck) => {
@@ -660,13 +661,17 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   );
 
   useEffect(() => {
-    if (!canFinalize) {
+    if (!canFinalize || !selectionMode) {
       setSelectedIds([]);
       return;
     }
     const boardIds = new Set(boardRows.map((truck) => truck.id));
     setSelectedIds((prev) => prev.filter((id) => boardIds.has(id)));
-  }, [boardRows, canFinalize]);
+  }, [boardRows, canFinalize, selectionMode]);
+
+  const toggleSelectionMode = useCallback(() => {
+    setSelectionMode((prev) => !prev);
+  }, []);
 
   const toggleSelect = useCallback((truck: Truck) => {
     setSelectedIds((prev) =>
@@ -937,6 +942,16 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 </div>
               </div>
               <div className="tv-controls-right">
+                {canFinalize && (
+                  <button
+                    type="button"
+                    onClick={toggleSelectionMode}
+                    className="tv-button"
+                    style={{ marginRight: '6px' }}
+                  >
+                    {selectionMode ? 'Cancelar seleccion' : 'Finalizar camiones'}
+                  </button>
+                )}
                 <span className="tv-pill">Total: {stats.total}</span>
                 <span className="tv-pill">Porteria: {stats.enPorteria}</span>
                 <span className="tv-pill">Espera: {stats.enEspera}</span>
@@ -970,7 +985,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 {showHistory ? 'Ocultar historico' : 'Ver historico'}
               </button>
             </div>
-            {canFinalize && (
+            {canFinalize && selectionMode && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="tv-pill">Seleccionados: {selectedIds.length}</span>
                 <span className="tv-pill">Visibles: {boardRows.length}</span>
@@ -1011,8 +1026,8 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           emptyMessage="No hay camiones activos para mostrar en el tablero."
           canFinalize={canFinalize}
           onFinalize={handleFinalize}
-          selectedSet={selectedSet}
-          onToggleSelect={toggleSelect}
+          selectedSet={selectionMode ? selectedSet : undefined}
+          onToggleSelect={selectionMode ? toggleSelect : undefined}
         />
 
         {!projectorMode && canShowDiagnostics && (
@@ -1153,6 +1168,15 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-[#cdbf86]">
+                {canFinalize && (
+                  <button
+                    type="button"
+                    onClick={toggleSelectionMode}
+                    className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34]"
+                  >
+                    {selectionMode ? 'Cancelar seleccion' : 'Finalizar camiones'}
+                  </button>
+                )}
                 <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Total: {stats.total}</span>
                 <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Porteria: {stats.enPorteria}</span>
                 <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-2.5 py-0.5">Espera: {stats.enEspera}</span>
@@ -1188,7 +1212,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 {showHistory ? 'Ocultar historico' : 'Ver historico'}
               </button>
             </div>
-            {canFinalize && (
+            {canFinalize && selectionMode && (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#cdbf86]">
                 <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1">
                   Seleccionados: {selectedIds.length}
@@ -1278,8 +1302,8 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                     projector={projectorMode}
                     canFinalize={canFinalize}
                     onFinalize={handleFinalize}
-                    selected={selectedSet.has(truck.id)}
-                    onToggleSelect={toggleSelect}
+                    selected={selectionMode && selectedSet.has(truck.id)}
+                    onToggleSelect={selectionMode ? toggleSelect : undefined}
                   />
                 ))}
               </LayoutGroup>

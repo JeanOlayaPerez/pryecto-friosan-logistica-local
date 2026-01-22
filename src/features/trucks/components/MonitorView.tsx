@@ -130,6 +130,7 @@ export const MonitorView = () => {
   const { role, user } = useAuth();
   const { trucks, lastUpdatedAt, source, error } = useMonitorTrucks();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
   const recepcionTrucks = useMemo(
     () => trucks.filter((truck) => truck.dockType === 'recepcion'),
     [trucks],
@@ -152,16 +153,16 @@ export const MonitorView = () => {
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const canFinalize =
-    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin'].includes(role ?? '');
+    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
 
   useEffect(() => {
-    if (!canFinalize) {
+    if (!canFinalize || !selectionMode) {
       setSelectedIds([]);
       return;
     }
     const activeIds = new Set(activeTrucks.map((truck) => truck.id));
     setSelectedIds((prev) => prev.filter((id) => activeIds.has(id)));
-  }, [activeTrucks, canFinalize]);
+  }, [activeTrucks, canFinalize, selectionMode]);
 
   const counts = useMemo(() => {
     const buildCounts = (list: Truck[]) =>
@@ -191,6 +192,15 @@ export const MonitorView = () => {
 
   const clearSelection = () => {
     setSelectedIds([]);
+  };
+
+  const toggleSelectionMode = () => {
+    setSelectionMode((prev) => {
+      if (prev) {
+        setSelectedIds([]);
+      }
+      return !prev;
+    });
   };
 
   const handleFinalize = async (truck: Truck) => {
@@ -274,9 +284,9 @@ export const MonitorView = () => {
                     role={role}
                     readOnly={!canFinalize}
                     actions={buildActions(truck)}
-                    selectable={canFinalize}
-                    selected={selectedSet.has(truck.id)}
-                    onToggleSelect={canFinalize ? () => toggleSelect(truck.id) : undefined}
+                    selectable={canFinalize && selectionMode}
+                    selected={selectionMode && selectedSet.has(truck.id)}
+                    onToggleSelect={selectionMode ? () => toggleSelect(truck.id) : undefined}
                   />
                 ))}
             </AnimatePresence>
@@ -290,14 +300,25 @@ export const MonitorView = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 shadow-panel">
         <span>Ultima actualizacion: {formatTime(lastUpdatedAt)}</span>
-        <span className="text-slate-400">Fuente: {source ?? '--'}</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-slate-400">Fuente: {source ?? '--'}</span>
+          {canFinalize && (
+            <button
+              type="button"
+              onClick={toggleSelectionMode}
+              className="rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200 hover:bg-amber-400/20"
+            >
+              {selectionMode ? 'Cancelar seleccion' : 'Finalizar camiones'}
+            </button>
+          )}
+        </div>
       </div>
       {error && (
         <div className="rounded-2xl border border-amber-400/50 bg-amber-500/10 px-4 py-2 text-xs text-amber-200 shadow-panel">
           {error}
         </div>
       )}
-      {canFinalize && (
+      {canFinalize && selectionMode && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 shadow-panel">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Lote</span>
