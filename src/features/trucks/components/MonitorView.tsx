@@ -129,6 +129,7 @@ const SummaryCard = ({ title, value }: { title: string; value: number }) => (
 export const MonitorView = () => {
   const { role, user } = useAuth();
   const { trucks, lastUpdatedAt, source, error } = useMonitorTrucks();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const recepcionTrucks = useMemo(
     () => trucks.filter((truck) => truck.dockType === 'recepcion'),
     [trucks],
@@ -145,8 +146,22 @@ export const MonitorView = () => {
     () => despachoTrucks.filter((truck) => truck.status !== 'cerrado' && truck.status !== 'terminado'),
     [despachoTrucks],
   );
+  const activeTrucks = useMemo(
+    () => [...activeRecepcionTrucks, ...activeDespachoTrucks],
+    [activeRecepcionTrucks, activeDespachoTrucks],
+  );
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const canFinalize =
     Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin'].includes(role ?? '');
+
+  useEffect(() => {
+    if (!canFinalize) {
+      setSelectedIds([]);
+      return;
+    }
+    const activeIds = new Set(activeTrucks.map((truck) => truck.id));
+    setSelectedIds((prev) => prev.filter((id) => activeIds.has(id)));
+  }, [activeTrucks, canFinalize]);
 
   const counts = useMemo(() => {
     const buildCounts = (list: Truck[]) =>
@@ -163,6 +178,21 @@ export const MonitorView = () => {
     };
   }, [recepcionTrucks, despachoTrucks]);
 
+  const toggleSelect = (truckId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(truckId) ? prev.filter((id) => id !== truckId) : [...prev, truckId],
+    );
+  };
+
+  const selectAll = () => {
+    if (!canFinalize) return;
+    setSelectedIds(activeTrucks.map((truck) => truck.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds([]);
+  };
+
   const handleFinalize = async (truck: Truck) => {
     if (!user?.id || !canFinalize) return;
     const ok = window.confirm(`Finalizar camion ${truck.plate || truck.clientName}?`);
@@ -173,6 +203,28 @@ export const MonitorView = () => {
       console.error(err);
       window.alert('No se pudo finalizar el camion. Revisa permisos o conexion.');
     }
+  };
+
+  const handleFinalizeSelected = async () => {
+    if (!user?.id || !canFinalize) return;
+    const targets = activeTrucks.filter(
+      (truck) =>
+        selectedSet.has(truck.id) && truck.status !== 'cerrado' && truck.status !== 'terminado',
+    );
+    if (targets.length === 0) return;
+    const ok = window.confirm(`Finalizar ${targets.length} camiones seleccionados?`);
+    if (!ok) return;
+    const results = await Promise.allSettled(
+      targets.map((truck) => updateTruckStatus(truck.id, 'terminado', { userId: user.id, role })),
+    );
+    const failed = results.filter((result) => result.status === 'rejected').length;
+    const succeededIds = targets
+      .filter((_, idx) => results[idx].status === 'fulfilled')
+      .map((truck) => truck.id);
+    if (failed) {
+      window.alert(`No se pudieron finalizar ${failed} camiones. Revisa permisos o conexion.`);
+    }
+    setSelectedIds((prev) => prev.filter((id) => !succeededIds.includes(id)));
   };
 
   const buildActions = (truck: Truck) => {
@@ -222,6 +274,9 @@ export const MonitorView = () => {
                     role={role}
                     readOnly={!canFinalize}
                     actions={buildActions(truck)}
+                    selectable={canFinalize}
+                    selected={selectedSet.has(truck.id)}
+                    onToggleSelect={canFinalize ? () => toggleSelect(truck.id) : undefined}
                   />
                 ))}
             </AnimatePresence>
@@ -240,6 +295,41 @@ export const MonitorView = () => {
       {error && (
         <div className="rounded-2xl border border-amber-400/50 bg-amber-500/10 px-4 py-2 text-xs text-amber-200 shadow-panel">
           {error}
+        </div>
+      )}
+      {canFinalize && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 shadow-panel">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Lote</span>
+            <span className="text-white">Seleccionados: {selectedIds.length}</span>
+            <span className="text-slate-400">Visibles: {activeTrucks.length}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={selectAll}
+              disabled={activeTrucks.length === 0}
+              className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Seleccionar todos
+            </button>
+            <button
+              type="button"
+              onClick={clearSelection}
+              disabled={selectedIds.length === 0}
+              className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Limpiar
+            </button>
+            <button
+              type="button"
+              onClick={handleFinalizeSelected}
+              disabled={selectedIds.length === 0}
+              className="rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200 hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Finalizar seleccionados
+            </button>
+          </div>
         </div>
       )}
       <div className="grid gap-4 md:grid-cols-3">

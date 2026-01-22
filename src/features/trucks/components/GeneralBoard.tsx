@@ -164,6 +164,8 @@ const TableRow = ({
   projector,
   canFinalize,
   onFinalize,
+  selected,
+  onToggleSelect,
 }: {
   truck: Truck;
   idx: number;
@@ -171,6 +173,8 @@ const TableRow = ({
   projector?: boolean;
   canFinalize?: boolean;
   onFinalize?: (truck: Truck) => void;
+  selected?: boolean;
+  onToggleSelect?: (truck: Truck) => void;
 }) => {
   const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
   const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
@@ -184,6 +188,8 @@ const TableRow = ({
   const rowTextClass = `${rowText} font-semibold uppercase tracking-[0.1em]`;
   const badgeText = rowText;
   const badgePadding = projector ? 'px-5 py-2.5' : 'px-5 py-2';
+  const showSelect = !projector && canFinalize && Boolean(onToggleSelect);
+  const statusBadgeWidth = showSelect ? 'w-[12.5rem]' : 'w-[13.5rem]';
 
   const stateClass =
     truck.status === 'en_curso'
@@ -208,7 +214,7 @@ const TableRow = ({
       key={truck.id}
       layout
       transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-      className={`${tableGrid} border-b border-[#2f2f34] ${idx % 2 === 0 ? 'bg-[#2c3f98]' : 'bg-[#202024]'}`}
+      className={`${tableGrid} border-b border-[#2f2f34] ${idx % 2 === 0 ? 'bg-[#2c3f98]' : 'bg-[#202024]'} ${selected ? 'ring-2 ring-[#e6cf6a]/60' : ''}`}
     >
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a]`}>
         {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
@@ -229,11 +235,23 @@ const TableRow = ({
         {ingresoHour}
       </div>
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding}`}>
-        <span
-          className={`inline-flex w-[13.5rem] items-center justify-center rounded-md ${badgePadding} ${badgeText} font-semibold uppercase tracking-[0.1em] text-[#e9dda1] whitespace-nowrap ${stateClass}`}
-        >
-          {statusLabel[truck.status]}
-        </span>
+        <div className="flex items-center gap-2">
+          {showSelect && (
+            <input
+              type="checkbox"
+              checked={Boolean(selected)}
+              onChange={() => onToggleSelect?.(truck)}
+              className="h-4 w-4"
+              style={{ accentColor: '#e6cf6a' }}
+              aria-label={`Seleccionar camion ${truck.plate || truck.clientName}`}
+            />
+          )}
+          <span
+            className={`inline-flex ${statusBadgeWidth} items-center justify-center rounded-md ${badgePadding} ${badgeText} font-semibold uppercase tracking-[0.1em] text-[#e9dda1] whitespace-nowrap ${stateClass}`}
+          >
+            {statusLabel[truck.status]}
+          </span>
+        </div>
         {showFinalize && (
           <button
             type="button"
@@ -269,6 +287,8 @@ const TvTable = ({
   onExitProjector,
   canFinalize,
   onFinalize,
+  selectedSet,
+  onToggleSelect,
 }: {
   rows: Truck[];
   now: Date;
@@ -277,85 +297,105 @@ const TvTable = ({
   onExitProjector?: () => void;
   canFinalize?: boolean;
   onFinalize?: (truck: Truck) => void;
-}) => (
-  <div className={`tv-table-wrap ${projector ? 'tv-table-wrap--projector' : ''}`}>
-    {projector && onExitProjector && (
-      <button type="button" onClick={onExitProjector} className="tv-projector-exit">
-        Salir proyeccion
-      </button>
-    )}
-    <table className={`tv-table ${projector ? 'tv-table--projector' : ''}`}>
-      <colgroup>
-        {tvColumns.map((col) => (
-          <col key={col.label} style={{ width: col.width }} />
-        ))}
-      </colgroup>
-      <thead>
-        <tr>
-          {tvColumns.map((col) => (
-            <th key={col.label}>{col.label}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 ? (
-          <tr>
-            <td colSpan={tvColumns.length} className="tv-table-empty">
-              {emptyMessage}
-            </td>
-          </tr>
-        ) : (
-          rows.map((truck, idx) => {
-            const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
-            const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
-            const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
-            const ingresoHour = formatHour(truck.checkInGateAt ?? truck.checkInTime ?? null);
-            const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
-            const process = typeDisplay(truck);
-            const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
-            const rowClass = idx % 2 === 0 ? 'tv-row-even' : 'tv-row-odd';
+  selectedSet?: Set<string>;
+  onToggleSelect?: (truck: Truck) => void;
+}) => {
+  const showSelect = !projector && canFinalize && Boolean(onToggleSelect) && Boolean(selectedSet);
 
-            return (
-              <tr key={truck.id} className={rowClass}>
-                <td className="tv-cell">{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</td>
-                <td className="tv-cell tv-cell-wrap">{truck.clientName || 'Sin cliente'}</td>
-                <td className="tv-cell">{bitacoraDate}</td>
-                <td className="tv-cell">{bitacoraHour}</td>
-                <td className="tv-cell">{ingresoDate}</td>
-                <td className="tv-cell">{ingresoHour}</td>
-                <td className="tv-cell">
-                  <span className="tv-badge" style={{ backgroundColor: statusTone(truck.status) }}>
-                    {statusLabel[truck.status]}
-                  </span>
-                  {!projector &&
-                    canFinalize &&
-                    truck.status !== 'cerrado' &&
-                    truck.status !== 'terminado' && (
-                      <button
-                        type="button"
-                        onClick={() => onFinalize?.(truck)}
-                        className="tv-button"
-                        style={{ marginTop: '6px' }}
-                      >
-                        Finalizar
-                      </button>
+  return (
+    <div className={`tv-table-wrap ${projector ? 'tv-table-wrap--projector' : ''}`}>
+      {projector && onExitProjector && (
+        <button type="button" onClick={onExitProjector} className="tv-projector-exit">
+          Salir proyeccion
+        </button>
+      )}
+      <table className={`tv-table ${projector ? 'tv-table--projector' : ''}`}>
+        <colgroup>
+          {tvColumns.map((col) => (
+            <col key={col.label} style={{ width: col.width }} />
+          ))}
+        </colgroup>
+        <thead>
+          <tr>
+            {tvColumns.map((col) => (
+              <th key={col.label}>{col.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={tvColumns.length} className="tv-table-empty">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            rows.map((truck, idx) => {
+              const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
+              const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
+              const ingresoDate = formatDate(truck.checkInGateAt ?? truck.checkInTime ?? null);
+              const ingresoHour = formatHour(truck.checkInGateAt ?? truck.checkInTime ?? null);
+              const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
+              const process = typeDisplay(truck);
+              const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
+              const rowClass = idx % 2 === 0 ? 'tv-row-even' : 'tv-row-odd';
+              const isSelected = Boolean(selectedSet?.has(truck.id));
+
+              return (
+                <tr key={truck.id} className={rowClass}>
+                  <td className="tv-cell">{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</td>
+                  <td className="tv-cell tv-cell-wrap">{truck.clientName || 'Sin cliente'}</td>
+                  <td className="tv-cell">{bitacoraDate}</td>
+                  <td className="tv-cell">{bitacoraHour}</td>
+                  <td className="tv-cell">{ingresoDate}</td>
+                  <td className="tv-cell">{ingresoHour}</td>
+                  <td className="tv-cell">
+                    <span className="tv-badge" style={{ backgroundColor: statusTone(truck.status) }}>
+                      {statusLabel[truck.status]}
+                    </span>
+                    {showSelect && (
+                      <label className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#ded293]">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => onToggleSelect?.(truck)}
+                          className="h-4 w-4"
+                          style={{ accentColor: '#e6cf6a' }}
+                          aria-label={`Seleccionar camion ${truck.plate || truck.clientName}`}
+                        />
+                        Lote
+                      </label>
                     )}
-                </td>
-                <td className="tv-cell">
-                  <span className="tv-badge" style={{ backgroundColor: processTone(truck.loadType) }}>
-                    {process}
-                  </span>
-                </td>
-                <td className="tv-cell">{gate}</td>
-                <td className="tv-cell">{elapsed}</td>
-              </tr>
-            );
-          })
-        )}
-      </tbody>
-    </table>
-  </div>
-);
+                    {!projector &&
+                      canFinalize &&
+                      truck.status !== 'cerrado' &&
+                      truck.status !== 'terminado' && (
+                        <button
+                          type="button"
+                          onClick={() => onFinalize?.(truck)}
+                          className="tv-button"
+                          style={{ marginTop: '6px' }}
+                        >
+                          Finalizar
+                        </button>
+                      )}
+                  </td>
+                  <td className="tv-cell">
+                    <span className="tv-badge" style={{ backgroundColor: processTone(truck.loadType) }}>
+                      {process}
+                    </span>
+                  </td>
+                  <td className="tv-cell">{gate}</td>
+                  <td className="tv-cell">{elapsed}</td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 type GeneralBoardProps = {
   forceCompat?: boolean;
@@ -366,6 +406,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filterDock, setFilterDock] = useState<'todos' | DockType>('todos');
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [listenerError, setListenerError] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -611,6 +652,54 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     },
     [canFinalize, role, user],
   );
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedRows = useMemo(
+    () => boardRows.filter((truck) => selectedSet.has(truck.id)),
+    [boardRows, selectedSet],
+  );
+
+  useEffect(() => {
+    if (!canFinalize) {
+      setSelectedIds([]);
+      return;
+    }
+    const boardIds = new Set(boardRows.map((truck) => truck.id));
+    setSelectedIds((prev) => prev.filter((id) => boardIds.has(id)));
+  }, [boardRows, canFinalize]);
+
+  const toggleSelect = useCallback((truck: Truck) => {
+    setSelectedIds((prev) =>
+      prev.includes(truck.id) ? prev.filter((id) => id !== truck.id) : [...prev, truck.id],
+    );
+  }, []);
+
+  const selectVisible = useCallback(() => {
+    if (!canFinalize) return;
+    setSelectedIds(boardRows.map((truck) => truck.id));
+  }, [boardRows, canFinalize]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds([]);
+  }, []);
+
+  const handleFinalizeSelected = useCallback(async () => {
+    if (!user?.id || !canFinalize) return;
+    if (selectedRows.length === 0) return;
+    const ok = window.confirm(`Finalizar ${selectedRows.length} camiones seleccionados?`);
+    if (!ok) return;
+    const results = await Promise.allSettled(
+      selectedRows.map((truck) => updateTruckStatus(truck.id, 'terminado', { userId: user.id, role })),
+    );
+    const failed = results.filter((result) => result.status === 'rejected').length;
+    const succeededIds = selectedRows
+      .filter((_, idx) => results[idx].status === 'fulfilled')
+      .map((truck) => truck.id);
+    if (failed) {
+      window.alert(`No se pudieron finalizar ${failed} camiones. Revisa permisos o conexion.`);
+    }
+    setSelectedIds((prev) => prev.filter((id) => !succeededIds.includes(id)));
+  }, [canFinalize, role, selectedRows, user]);
 
   const historyStats = useMemo(() => {
     const enPorteria = historyRows.filter((t) => t.status === 'en_porteria').length;
@@ -881,6 +970,36 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 {showHistory ? 'Ocultar historico' : 'Ver historico'}
               </button>
             </div>
+            {canFinalize && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="tv-pill">Seleccionados: {selectedIds.length}</span>
+                <span className="tv-pill">Visibles: {boardRows.length}</span>
+                <button
+                  type="button"
+                  onClick={selectVisible}
+                  disabled={boardRows.length === 0}
+                  className="tv-button"
+                >
+                  Seleccionar visibles
+                </button>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  disabled={selectedIds.length === 0}
+                  className="tv-button"
+                >
+                  Limpiar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFinalizeSelected}
+                  disabled={selectedIds.length === 0}
+                  className="tv-button"
+                >
+                  Finalizar seleccionados
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -892,6 +1011,8 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           emptyMessage="No hay camiones activos para mostrar en el tablero."
           canFinalize={canFinalize}
           onFinalize={handleFinalize}
+          selectedSet={selectedSet}
+          onToggleSelect={toggleSelect}
         />
 
         {!projectorMode && canShowDiagnostics && (
@@ -1067,6 +1188,40 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 {showHistory ? 'Ocultar historico' : 'Ver historico'}
               </button>
             </div>
+            {canFinalize && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#cdbf86]">
+                <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1">
+                  Seleccionados: {selectedIds.length}
+                </span>
+                <span className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1">
+                  Visibles: {boardRows.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={selectVisible}
+                  disabled={boardRows.length === 0}
+                  className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Seleccionar visibles
+                </button>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  disabled={selectedIds.length === 0}
+                  className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Limpiar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFinalizeSelected}
+                  disabled={selectedIds.length === 0}
+                  className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Finalizar seleccionados
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1123,6 +1278,8 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                     projector={projectorMode}
                     canFinalize={canFinalize}
                     onFinalize={handleFinalize}
+                    selected={selectedSet.has(truck.id)}
+                    onToggleSelect={toggleSelect}
                   />
                 ))}
               </LayoutGroup>

@@ -15,6 +15,9 @@ type Props = {
   role: UserRole | null;
   actions?: ActionButton[];
   readOnly?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 };
 
 const formatHour = (value?: unknown) => {
@@ -108,9 +111,18 @@ const actionToneClass = (tone?: ActionButton['tone']) => {
   return 'bg-amber-400/80 text-slate-900 hover:brightness-110';
 };
 
-export const TruckCard = ({ truck, role, actions = [], readOnly = false }: Props) => {
+export const TruckCard = ({
+  truck,
+  role,
+  actions = [],
+  readOnly = false,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+}: Props) => {
   const delayed = truck.status === 'en_espera' && isDelayed(truck.checkInTime, 30);
   const badge = statusMeta[truck.status] ?? statusMeta.en_espera;
+  const showSelect = selectable && Boolean(onToggleSelect);
 
   return (
     <motion.div
@@ -121,7 +133,7 @@ export const TruckCard = ({ truck, role, actions = [], readOnly = false }: Props
       transition={{ duration: 0.25 }}
       className={`glass rounded-2xl border p-4 shadow-panel ${
         delayed ? 'border-rose-500/40 bg-rose-500/5' : 'border-white/5'
-      }`}
+      } ${selected ? 'ring-2 ring-amber-400/40' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
@@ -149,6 +161,19 @@ export const TruckCard = ({ truck, role, actions = [], readOnly = false }: Props
           </div>
         </div>
         <div className="text-right text-xs text-slate-400">
+          {showSelect && (
+            <label className="mb-2 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-slate-400">
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onToggleSelect?.()}
+                className="h-4 w-4"
+                style={{ accentColor: '#e6cf6a' }}
+                aria-label={`Seleccionar camion ${truck.plate || truck.clientName}`}
+              />
+              Lote
+            </label>
+          )}
           <p>Agendado</p>
           <p className="text-sm text-white">{formatHour(truck.scheduledArrival)}</p>
         </div>
