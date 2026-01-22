@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { fetchAllTrucksOnce, subscribeAllTrucks } from '../services/trucksApi';
+import { fetchAllTrucksOnce, subscribeAllTrucks, updateTruckStatus } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { TruckCard } from './TruckCard';
 import { useAuth } from '../../auth/AuthProvider';
@@ -11,8 +11,6 @@ const statusOrder: TruckStatus[] = [
   'en_curso',
   'recepcionado',
   'almacenado',
-  'cerrado',
-  'terminado',
 ];
 
 const statusLabel: Record<TruckStatus, string> = {
@@ -129,7 +127,7 @@ const SummaryCard = ({ title, value }: { title: string; value: number }) => (
 );
 
 export const MonitorView = () => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { trucks, lastUpdatedAt, source, error } = useMonitorTrucks();
   const recepcionTrucks = useMemo(
     () => trucks.filter((truck) => truck.dockType === 'recepcion'),
@@ -139,6 +137,16 @@ export const MonitorView = () => {
     () => trucks.filter((truck) => truck.dockType === 'despacho'),
     [trucks],
   );
+  const activeRecepcionTrucks = useMemo(
+    () => recepcionTrucks.filter((truck) => truck.status !== 'cerrado' && truck.status !== 'terminado'),
+    [recepcionTrucks],
+  );
+  const activeDespachoTrucks = useMemo(
+    () => despachoTrucks.filter((truck) => truck.status !== 'cerrado' && truck.status !== 'terminado'),
+    [despachoTrucks],
+  );
+  const canFinalize =
+    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin'].includes(role ?? '');
 
   const counts = useMemo(() => {
     const buildCounts = (list: Truck[]) =>
@@ -154,6 +162,30 @@ export const MonitorView = () => {
       despacho: buildCounts(despachoTrucks),
     };
   }, [recepcionTrucks, despachoTrucks]);
+
+  const handleFinalize = async (truck: Truck) => {
+    if (!user?.id || !canFinalize) return;
+    const ok = window.confirm(`Finalizar camion ${truck.plate || truck.clientName}?`);
+    if (!ok) return;
+    try {
+      await updateTruckStatus(truck.id, 'terminado', { userId: user.id, role });
+    } catch (err) {
+      console.error(err);
+      window.alert('No se pudo finalizar el camion. Revisa permisos o conexion.');
+    }
+  };
+
+  const buildActions = (truck: Truck) => {
+    if (!canFinalize) return [];
+    if (truck.status === 'cerrado' || truck.status === 'terminado') return [];
+    return [
+      {
+        label: 'Finalizar',
+        tone: 'warning' as const,
+        onClick: () => handleFinalize(truck),
+      },
+    ];
+  };
 
   const board = (dock: DockType, list: Truck[]) => (
     <div className="space-y-3 rounded-3xl border border-white/10 bg-surface-panel/60 p-4 shadow-panel">
@@ -184,7 +216,13 @@ export const MonitorView = () => {
               {list
                 .filter((t) => t.status === status)
                 .map((truck) => (
-                  <TruckCard key={truck.id} truck={truck} role={role} readOnly />
+                  <TruckCard
+                    key={truck.id}
+                    truck={truck}
+                    role={role}
+                    readOnly={!canFinalize}
+                    actions={buildActions(truck)}
+                  />
                 ))}
             </AnimatePresence>
           </div>
@@ -232,8 +270,8 @@ export const MonitorView = () => {
         />
       </div>
 
-      {board('recepcion', recepcionTrucks)}
-      {board('despacho', despachoTrucks)}
+      {board('recepcion', activeRecepcionTrucks)}
+      {board('despacho', activeDespachoTrucks)}
     </div>
   );
 };

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
-import { fetchAllTrucksOnce, subscribeAllTrucks } from '../services/trucksApi';
+import { fetchAllTrucksOnce, subscribeAllTrucks, updateTruckStatus } from '../services/trucksApi';
 import { auth } from '../../../shared/config/firebase';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { minutesBetween } from '../../../shared/utils/time';
+import { useAuth } from '../../auth/AuthProvider';
 
 const statusLabel: Record<TruckStatus, string> = {
   agendado: 'Agendado',
@@ -161,11 +162,15 @@ const TableRow = ({
   idx,
   now,
   projector,
+  canFinalize,
+  onFinalize,
 }: {
   truck: Truck;
   idx: number;
   now: Date;
   projector?: boolean;
+  canFinalize?: boolean;
+  onFinalize?: (truck: Truck) => void;
 }) => {
   const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
   const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
@@ -195,6 +200,8 @@ const TableRow = ({
       : (truck.loadType ?? 'descarga') === 'descarga'
         ? 'bg-[#c05a36]'
         : 'bg-[#5c4ea8]';
+  const showFinalize =
+    !projector && canFinalize && truck.status !== 'cerrado' && truck.status !== 'terminado';
 
   return (
     <motion.div
@@ -227,6 +234,15 @@ const TableRow = ({
         >
           {statusLabel[truck.status]}
         </span>
+        {showFinalize && (
+          <button
+            type="button"
+            onClick={() => onFinalize?.(truck)}
+            className="mt-2 w-full rounded-md border border-[#e6cf6a]/40 bg-[#242428] px-2 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#e6cf6a] hover:bg-[#2f2f34]"
+          >
+            Finalizar
+          </button>
+        )}
       </div>
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1]`}>
         <span
@@ -251,12 +267,16 @@ const TvTable = ({
   emptyMessage,
   projector = false,
   onExitProjector,
+  canFinalize,
+  onFinalize,
 }: {
   rows: Truck[];
   now: Date;
   emptyMessage: string;
   projector?: boolean;
   onExitProjector?: () => void;
+  canFinalize?: boolean;
+  onFinalize?: (truck: Truck) => void;
 }) => (
   <div className={`tv-table-wrap ${projector ? 'tv-table-wrap--projector' : ''}`}>
     {projector && onExitProjector && (
@@ -307,6 +327,19 @@ const TvTable = ({
                   <span className="tv-badge" style={{ backgroundColor: statusTone(truck.status) }}>
                     {statusLabel[truck.status]}
                   </span>
+                  {!projector &&
+                    canFinalize &&
+                    truck.status !== 'cerrado' &&
+                    truck.status !== 'terminado' && (
+                      <button
+                        type="button"
+                        onClick={() => onFinalize?.(truck)}
+                        className="tv-button"
+                        style={{ marginTop: '6px' }}
+                      >
+                        Finalizar
+                      </button>
+                    )}
                 </td>
                 <td className="tv-cell">
                   <span className="tv-badge" style={{ backgroundColor: processTone(truck.loadType) }}>
@@ -329,6 +362,7 @@ type GeneralBoardProps = {
 };
 
 export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) => {
+  const { user, role } = useAuth();
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [filterDock, setFilterDock] = useState<'todos' | DockType>('todos');
   const [search, setSearch] = useState('');
@@ -480,6 +514,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   }, [filterDock, search, trucks]);
 
   const sortedRows = useMemo(() => {
+    const visible = filtered.filter((t) => t.status !== 'cerrado' && t.status !== 'terminado');
     const order: TruckStatus[] = [
       'en_curso',
       'en_espera',
@@ -491,7 +526,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       'cerrado',
       'terminado',
     ];
-    return filtered
+    return visible
       .slice()
       .sort((a, b) => {
         const aIdx = order.indexOf(a.status);
@@ -513,8 +548,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
   const boardRows = useMemo(
     () => {
-      const active = sortedRows.filter((t) => t.status !== 'cerrado' && t.status !== 'terminado');
-      return (active.length > 0 ? active : sortedRows).slice(0, 10);
+      return sortedRows.slice(0, 10);
     },
     [sortedRows],
   );
@@ -524,16 +558,17 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     return boardRows.slice(offset).concat(boardRows.slice(0, offset));
   }, [boardRows, shiftIndex]);
   const stats = useMemo(() => {
-    const enPorteria = filtered.filter((t) => t.status === 'en_porteria').length;
-    const enEspera = filtered.filter((t) => t.status === 'en_espera').length;
-    const enCurso = filtered.filter((t) => t.status === 'en_curso').length;
-    const onTime = filtered.filter((t) =>
+    const visible = filtered.filter((t) => t.status !== 'cerrado' && t.status !== 'terminado');
+    const enPorteria = visible.filter((t) => t.status === 'en_porteria').length;
+    const enEspera = visible.filter((t) => t.status === 'en_espera').length;
+    const enCurso = visible.filter((t) => t.status === 'en_curso').length;
+    const onTime = visible.filter((t) =>
       t.scheduledArrival && t.checkInGateAt
         ? minutesBetween(t.scheduledArrival, t.checkInGateAt) <= 0
         : false,
     ).length;
     return {
-      total: filtered.length,
+      total: visible.length,
       enPorteria,
       enEspera,
       enCurso,
@@ -558,6 +593,24 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
         return (bDate?.getTime() ?? 0) - (aDate?.getTime() ?? 0);
       });
   }, [filtered, historyDay]);
+
+  const canFinalize =
+    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin'].includes(role ?? '');
+
+  const handleFinalize = useCallback(
+    async (truck: Truck) => {
+      if (!user?.id || !canFinalize) return;
+      const ok = window.confirm(`Finalizar camion ${truck.plate || truck.clientName}?`);
+      if (!ok) return;
+      try {
+        await updateTruckStatus(truck.id, 'terminado', { userId: user.id, role });
+      } catch (err) {
+        console.error(err);
+        window.alert('No se pudo finalizar el camion. Revisa permisos o conexion.');
+      }
+    },
+    [canFinalize, role, user],
+  );
 
   const historyStats = useMemo(() => {
     const enPorteria = historyRows.filter((t) => t.status === 'en_porteria').length;
@@ -837,6 +890,8 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           projector={projectorMode}
           onExitProjector={projectorMode ? () => setProjectorMode(false) : undefined}
           emptyMessage="No hay camiones activos para mostrar en el tablero."
+          canFinalize={canFinalize}
+          onFinalize={handleFinalize}
         />
 
         {!projectorMode && canShowDiagnostics && (
@@ -911,6 +966,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
               rows={historyRows}
               now={now}
               emptyMessage="No hay registros para el dia seleccionado."
+              canFinalize={false}
             />
           </div>
         )}
@@ -1059,7 +1115,15 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
               <LayoutGroup>
                 {displayRows.map((truck, idx) => (
-                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} projector={projectorMode} />
+                  <TableRow
+                    key={truck.id}
+                    truck={truck}
+                    idx={idx}
+                    now={now}
+                    projector={projectorMode}
+                    canFinalize={canFinalize}
+                    onFinalize={handleFinalize}
+                  />
                 ))}
               </LayoutGroup>
 
