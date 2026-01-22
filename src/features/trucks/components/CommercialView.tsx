@@ -53,9 +53,6 @@ export const CommercialView = () => {
   });
   const [createForm, setCreateForm] = useState({
     clientName: "",
-    plate: "",
-    driverName: "",
-    driverRut: "",
     dockType: "recepcion" as DockType,
     scheduledArrival: "",
     hasBitacora: true,
@@ -96,8 +93,6 @@ export const CommercialView = () => {
     return trucks.filter(
       (t) =>
         t.clientName.toLowerCase().includes(q) ||
-        t.plate.toLowerCase().includes(q) ||
-        t.driverName.toLowerCase().includes(q) ||
         `${t.dockNumber}`.toLowerCase().includes(q) ||
         (t.notes ?? "").toLowerCase().includes(q)
     );
@@ -124,8 +119,8 @@ export const CommercialView = () => {
     setCreateMsg(null);
     setCreateError(null);
     try {
-      if (!createForm.clientName.trim() || !createForm.plate.trim() || !createForm.driverName.trim()) {
-        throw new Error("Completa cliente, patente y conductor.");
+      if (!createForm.clientName.trim()) {
+        throw new Error("Completa el cliente.");
       }
       if (!createForm.scheduledArrival) {
         throw new Error("Ingresa una fecha y hora agendada.");
@@ -137,9 +132,9 @@ export const CommercialView = () => {
       await createTruck({
         companyName: createForm.clientName.trim(),
         clientName: createForm.clientName.trim(),
-        plate: createForm.plate.trim().toUpperCase(),
-        driverName: createForm.driverName.trim(),
-        driverRut: createForm.driverRut.trim() || undefined,
+        plate: "",
+        driverName: "",
+        driverRut: undefined,
         dockType: createForm.dockType,
         dockNumber: "0",
         scheduledArrival: scheduled,
@@ -149,7 +144,7 @@ export const CommercialView = () => {
         initialStatus: "agendado",
       });
       setCreateMsg("Camion agendado en la plantilla.");
-      setCreateForm((prev) => ({ ...prev, plate: "", driverName: "", driverRut: "", notes: "" }));
+      setCreateForm((prev) => ({ ...prev, notes: "" }));
       const d = new Date(scheduled);
       d.setHours(0, 0, 0, 0);
       setPlanDate(d);
@@ -193,7 +188,7 @@ export const CommercialView = () => {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por cliente, patente, conductor, notas o anden"
+              placeholder="Buscar por cliente, notas o anden"
               className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-sky-100 outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20"
             />
           </div>
@@ -247,32 +242,6 @@ export const CommercialView = () => {
                 value={createForm.clientName}
                 onChange={(e) => setCreateForm({ ...createForm, clientName: e.target.value })}
                 required
-              />
-            </label>
-            <label className="text-xs text-slate-600">
-              Patente
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
-                value={createForm.plate}
-                onChange={(e) => setCreateForm({ ...createForm, plate: e.target.value })}
-                required
-              />
-            </label>
-            <label className="text-xs text-slate-600">
-              Conductor
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
-                value={createForm.driverName}
-                onChange={(e) => setCreateForm({ ...createForm, driverName: e.target.value })}
-                required
-              />
-            </label>
-            <label className="text-xs text-slate-600">
-              Rut conductor (opcional)
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
-                value={createForm.driverRut}
-                onChange={(e) => setCreateForm({ ...createForm, driverRut: e.target.value })}
               />
             </label>
             <label className="text-xs text-slate-600">
@@ -354,12 +323,9 @@ export const CommercialView = () => {
         </form>
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-          <div className="grid grid-cols-[140px,140px,1fr,1fr,1fr,0.9fr,1.2fr] bg-slate-100 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-slate-600">
+          <div className="grid grid-cols-[160px,1.3fr,0.9fr,1.3fr] bg-slate-100 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-slate-600">
             <span>Hora agendada</span>
-            <span>Patente</span>
             <span>Cliente</span>
-            <span>Conductor</span>
-            <span>Rut</span>
             <span>Tipo carga</span>
             <span>Estado / Notas</span>
           </div>
@@ -372,17 +338,14 @@ export const CommercialView = () => {
               {plantilla.map((t) => (
                 <div
                   key={t.id}
-                  className="grid grid-cols-[140px,140px,1fr,1fr,1fr,0.9fr,1.2fr] items-center px-4 py-3 text-sm text-slate-800 odd:bg-white even:bg-slate-50"
+                  className="grid grid-cols-[160px,1.3fr,0.9fr,1.3fr] items-center px-4 py-3 text-sm text-slate-800 odd:bg-white even:bg-slate-50"
                 >
                   <span className="font-mono text-amber-600">
                     {t.scheduledArrival
                       ? t.scheduledArrival.toLocaleString("es-CL", { hour: "2-digit", minute: "2-digit" })
                       : "--"}
                   </span>
-                  <span className="font-semibold tracking-[0.2em] text-slate-900">{t.plate}</span>
                   <span className="font-semibold text-slate-900">{t.clientName}</span>
-                  <span className="text-xs text-slate-700">{t.driverName}</span>
-                  <span className="text-xs text-slate-700">{t.driverRut || "-"}</span>
                   <span className="text-xs text-slate-700">{typeDisplay(t)}</span>
                   <span className="flex flex-col gap-1 text-xs text-slate-700">
                     <span className={`w-fit rounded-full px-2 py-1 text-[11px] ${chipStyle[t.status]}`}>
