@@ -41,7 +41,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const shouldAutoLoginVisor = () => {
   if (typeof window === 'undefined') return false;
   const path = window.location.pathname;
-  if (path === '/visor') return true;
+  if (path === '/visor' || path === '/monitor') return true;
   const params = new URLSearchParams(window.location.search);
   if (params.get('tv') === '1' || params.get('compat') === '1') return true;
   return document.documentElement.classList.contains('compat-tv');

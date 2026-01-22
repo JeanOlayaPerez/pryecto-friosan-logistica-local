@@ -351,6 +351,8 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   >([]);
   const [lastFetchSource, setLastFetchSource] = useState<string | null>(null);
   const [lastFetchError, setLastFetchError] = useState<string | null>(null);
+  const lastUpdateRef = useRef<number>(0);
+  const fetchInFlight = useRef(false);
   const tableViewportRef = useRef<HTMLDivElement | null>(null);
   const tableContentRef = useRef<HTMLDivElement | null>(null);
   const [tableScale, setTableScale] = useState(1);
@@ -384,23 +386,34 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   useEffect(() => {
     let unsub: (() => void) | null = null;
     let intervalId: ReturnType<typeof setInterval> | null = null;
+    let watchdogId: ReturnType<typeof setInterval> | null = null;
     let active = true;
 
+    const markUpdate = (data: Truck[], nextSource: string, nextError?: string | null) => {
+      if (!active) return;
+      setTrucks(data);
+      setLastFetchSource(nextSource);
+      setLastFetchError(nextError ?? null);
+      setDataLoaded(true);
+      lastUpdateRef.current = Date.now();
+    };
+
     const loadOnce = async () => {
+      if (fetchInFlight.current) return;
+      fetchInFlight.current = true;
       try {
         const result = await fetchAllTrucksOnce({ preferLite: compatEnabled, preferApi: compatEnabled });
         if (!active) return;
         setListenerError(null);
-        setLastFetchSource(result.source);
-        setLastFetchError(result.error ?? null);
-        setTrucks(result.data);
-        setDataLoaded(true);
+        markUpdate(result.data, `fetch-${result.source}`, result.error ?? null);
       } catch (err) {
         if (!active) return;
         console.error(err);
         setListenerError('No se pudieron cargar los camiones (permisos o red).');
         setLastFetchError(err instanceof Error ? err.message : 'Error cargando camiones');
         setDataLoaded(true);
+      } finally {
+        fetchInFlight.current = false;
       }
     };
 
@@ -411,24 +424,44 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       unsub = subscribeAllTrucks(
         (data) => {
           setListenerError(null);
-          setLastFetchSource('listener');
-          setLastFetchError(null);
-          setTrucks(data);
-          setDataLoaded(true);
+          markUpdate(data, 'listener');
         },
         (err) => {
           console.error(err);
           setListenerError('No se pudieron cargar los camiones (permisos o red).');
           setLastFetchError(err instanceof Error ? err.message : 'Error cargando camiones');
           setDataLoaded(true);
+          void loadOnce();
         },
       );
+      void loadOnce();
+      watchdogId = setInterval(() => {
+        const staleMs = Date.now() - lastUpdateRef.current;
+        if (!lastUpdateRef.current || staleMs > 45000) {
+          void loadOnce();
+        }
+      }, 15000);
     }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadOnce();
+      }
+    };
+    const handleOnline = () => {
+      void loadOnce();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', handleOnline);
 
     return () => {
       active = false;
       if (unsub) unsub();
       if (intervalId) clearInterval(intervalId);
+      if (watchdogId) clearInterval(watchdogId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', handleOnline);
     };
   }, [compatEnabled]);
 

@@ -44,7 +44,8 @@ export const ProtectedRoute = () => {
 
   const canSeeCommercial = ['comercial', 'admin', 'superadmin', 'operaciones'].includes(effectiveRole ?? '');
   const isGeneralPath = location.pathname === '/visor';
-  const shouldTryVisorAuth = isGeneralPath && !user;
+  const isMonitorPath = location.pathname === '/monitor';
+  const shouldTryVisorAuth = (isGeneralPath || isMonitorPath) && !user;
 
   const tryVisorAuth = useCallback(async () => {
     if (visorAuthWorking) return;
@@ -70,17 +71,18 @@ export const ProtectedRoute = () => {
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center text-slate-300">
-        {isGeneralPath ? 'Iniciando visor...' : 'Cargando sesion...'}
+        {isGeneralPath ? 'Iniciando visor...' : isMonitorPath ? 'Iniciando monitor...' : 'Cargando sesion...'}
       </div>
     );
   }
 
   if (!user) {
-    if (isGeneralPath) {
+    if (isGeneralPath || isMonitorPath) {
+      const boardName = isMonitorPath ? 'monitor' : 'visor';
       return (
         <div className="flex min-h-[60vh] items-center justify-center px-4 text-slate-200">
           <div className="max-w-lg space-y-3 rounded-2xl border border-slate-700/60 bg-slate-900/60 px-5 py-4 text-sm">
-            <p className="text-base font-semibold text-slate-100">No se pudo iniciar el visor.</p>
+            <p className="text-base font-semibold text-slate-100">No se pudo iniciar el {boardName}.</p>
             <p className="text-slate-300">
               Revisa que Anonymous este habilitado en Firebase Auth y que el dominio del sitio este autorizado.
             </p>
@@ -128,7 +130,7 @@ export const ProtectedRoute = () => {
     return <Navigate to={defaultHome} replace />;
   }
 
-  if (effectiveRole === 'visor' && location.pathname !== '/visor') {
+  if (effectiveRole === 'visor' && !['/visor', '/monitor'].includes(location.pathname)) {
     return <Navigate to="/visor" replace />;
   }
 
