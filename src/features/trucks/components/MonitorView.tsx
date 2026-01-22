@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { subscribeTrucksByDockType } from '../services/trucksApi';
+import { fetchAllTrucksOnce, subscribeAllTrucks } from '../services/trucksApi';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { TruckCard } from './TruckCard';
 import { useAuth } from '../../auth/AuthProvider';
@@ -12,6 +12,7 @@ const statusOrder: TruckStatus[] = [
   'recepcionado',
   'almacenado',
   'cerrado',
+  'terminado',
 ];
 
 const statusLabel: Record<TruckStatus, string> = {
@@ -26,15 +27,98 @@ const statusLabel: Record<TruckStatus, string> = {
   terminado: 'Terminado',
 };
 
-const useDockTrucks = (dock: DockType) => {
+const formatTime = (value: Date | null) => {
+  if (!value) return '--:--';
+  return value.toLocaleTimeString('es-CL', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const useMonitorTrucks = () => {
   const [trucks, setTrucks] = useState<Truck[]>([]);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [source, setSource] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const lastUpdateRef = useRef<number>(0);
+  const fetchInFlight = useRef(false);
 
   useEffect(() => {
-    const unsub = subscribeTrucksByDockType(dock, setTrucks);
-    return () => unsub();
-  }, [dock]);
+    let unsub: (() => void) | null = null;
+    let watchdogId: ReturnType<typeof setInterval> | null = null;
+    let active = true;
 
-  return trucks;
+    const markUpdate = (data: Truck[], nextSource: string, nextError?: string | null) => {
+      if (!active) return;
+      setTrucks(data);
+      setLastUpdatedAt(new Date());
+      setSource(nextSource);
+      setError(nextError ?? null);
+      lastUpdateRef.current = Date.now();
+    };
+
+    const setErrorOnly = (message: string) => {
+      if (!active) return;
+      setError(message);
+    };
+
+    const loadOnce = async () => {
+      if (fetchInFlight.current) return;
+      fetchInFlight.current = true;
+      try {
+        const result = await fetchAllTrucksOnce({ preferApi: true, preferLite: true });
+        markUpdate(result.data, `fetch-${result.source}`, result.error ?? null);
+      } catch (err) {
+        console.error('Error cargando camiones para monitor', err);
+        setErrorOnly(err instanceof Error ? err.message : 'Error cargando camiones');
+      } finally {
+        fetchInFlight.current = false;
+      }
+    };
+
+    unsub = subscribeAllTrucks(
+      (data) => {
+        markUpdate(data, 'listener');
+      },
+      (err) => {
+        console.error('Error en listener de monitor', err);
+        setErrorOnly('Se perdio la conexion en vivo. Reintentando.');
+        void loadOnce();
+      },
+    );
+
+    void loadOnce();
+
+    watchdogId = setInterval(() => {
+      const staleMs = Date.now() - lastUpdateRef.current;
+      if (!lastUpdateRef.current || staleMs > 45000) {
+        void loadOnce();
+      }
+    }, 15000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadOnce();
+      }
+    };
+    const handleOnline = () => {
+      void loadOnce();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      active = false;
+      if (unsub) unsub();
+      if (watchdogId) clearInterval(watchdogId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
+
+  return { trucks, lastUpdatedAt, source, error };
 };
 
 const SummaryCard = ({ title, value }: { title: string; value: number }) => (
@@ -46,8 +130,15 @@ const SummaryCard = ({ title, value }: { title: string; value: number }) => (
 
 export const MonitorView = () => {
   const { role } = useAuth();
-  const recepcionTrucks = useDockTrucks('recepcion');
-  const despachoTrucks = useDockTrucks('despacho');
+  const { trucks, lastUpdatedAt, source, error } = useMonitorTrucks();
+  const recepcionTrucks = useMemo(
+    () => trucks.filter((truck) => truck.dockType === 'recepcion'),
+    [trucks],
+  );
+  const despachoTrucks = useMemo(
+    () => trucks.filter((truck) => truck.dockType === 'despacho'),
+    [trucks],
+  );
 
   const counts = useMemo(() => {
     const buildCounts = (list: Truck[]) =>
@@ -104,16 +195,41 @@ export const MonitorView = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 shadow-panel">
+        <span>Ultima actualizacion: {formatTime(lastUpdatedAt)}</span>
+        <span className="text-slate-400">Fuente: {source ?? '--'}</span>
+      </div>
+      {error && (
+        <div className="rounded-2xl border border-amber-400/50 bg-amber-500/10 px-4 py-2 text-xs text-amber-200 shadow-panel">
+          {error}
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-3">
         <SummaryCard title="Recepcion en porteria" value={counts.recepcion.en_porteria ?? 0} />
         <SummaryCard title="Recepcion en curso" value={counts.recepcion.en_curso ?? 0} />
-        <SummaryCard title="Recepcion finalizado" value={(counts.recepcion.recepcionado ?? 0) + (counts.recepcion.almacenado ?? 0)} />
+        <SummaryCard
+          title="Recepcion finalizado"
+          value={
+            (counts.recepcion.recepcionado ?? 0) +
+            (counts.recepcion.almacenado ?? 0) +
+            (counts.recepcion.cerrado ?? 0) +
+            (counts.recepcion.terminado ?? 0)
+          }
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <SummaryCard title="Despacho en porteria" value={counts.despacho.en_porteria ?? 0} />
         <SummaryCard title="Despacho en curso" value={counts.despacho.en_curso ?? 0} />
-        <SummaryCard title="Despacho finalizado" value={(counts.despacho.recepcionado ?? 0) + (counts.despacho.almacenado ?? 0)} />
+        <SummaryCard
+          title="Despacho finalizado"
+          value={
+            (counts.despacho.recepcionado ?? 0) +
+            (counts.despacho.almacenado ?? 0) +
+            (counts.despacho.cerrado ?? 0) +
+            (counts.despacho.terminado ?? 0)
+          }
+        />
       </div>
 
       {board('recepcion', recepcionTrucks)}
