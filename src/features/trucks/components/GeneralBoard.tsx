@@ -126,19 +126,20 @@ const formatHistoryDay = (value: string) => {
 };
 
 const tableGrid =
-  'grid table-grid min-w-[1780px] grid-cols-[130px,210px,170px,170px,170px,170px,250px,290px,110px,110px]';
+  'grid table-grid min-w-[1850px] grid-cols-[70px,130px,210px,170px,170px,170px,170px,250px,290px,110px,110px]';
 
 const tvColumns = [
-  { label: 'Patente', width: '8%' },
-  { label: 'Nombre empresa', width: '16%' },
+  { label: 'N.', width: '4%' },
+  { label: 'Patente', width: '7%' },
+  { label: 'Nombre empresa', width: '15%' },
   { label: 'Fec. bitacora', width: '10%' },
   { label: 'Hora bitacora', width: '8%' },
   { label: 'Fec. ingreso', width: '10%' },
   { label: 'Hora ingreso', width: '8%' },
   { label: 'Estado', width: '12%' },
   { label: 'Proceso', width: '14%' },
-  { label: 'Anden', width: '7%' },
-  { label: 'Tiempo', width: '7%' },
+  { label: 'Anden', width: '6%' },
+  { label: 'Tiempo', width: '6%' },
 ];
 
 const statusTone = (status: TruckStatus) => {
@@ -170,12 +171,23 @@ const ClockIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const arrivalStamp = (truck: Truck) =>
+  truck.checkInGateAt ?? truck.checkInTime ?? truck.scheduledArrival ?? truck.createdAt ?? null;
+
 const isCarryoverTruck = (truck: Truck, dayStart: Date) => {
   if (!dayStart) return false;
   if (truck.status === 'cerrado' || truck.status === 'terminado') return false;
   const arrival = truck.checkInTime ?? truck.checkInGateAt;
   if (!arrival) return false;
   return arrival < dayStart;
+};
+
+const buildRowNumberMap = (rows: Truck[]) => {
+  const map = new Map<string, number>();
+  rows.forEach((truck, idx) => {
+    map.set(truck.id, idx + 1);
+  });
+  return map;
 };
 
 const TableHeader = ({ projector, compact = false }: { projector?: boolean; compact?: boolean }) => {
@@ -185,6 +197,7 @@ const TableHeader = ({ projector, compact = false }: { projector?: boolean; comp
 
   return (
     <div className={`${tableGrid} border-b border-[#2f2f34] bg-[#1f1f23] ${headerText} ${headerTracking} font-semibold uppercase text-[#e6cf6a] whitespace-nowrap`}>
+      <div className={`border-r border-[#2f2f34] px-3 ${headerPadding} text-center`}>N.</div>
       <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Patente</div>
       <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Nombre empresa</div>
       <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Fec. bitacora</div>
@@ -208,6 +221,7 @@ const TableRow = ({
   onToggleSelect,
   carryover = false,
   compact = false,
+  rowNumber,
 }: {
   truck: Truck;
   idx: number;
@@ -217,6 +231,7 @@ const TableRow = ({
   onToggleSelect?: (truck: Truck) => void;
   carryover?: boolean;
   compact?: boolean;
+  rowNumber?: number;
 }) => {
   const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
   const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
@@ -233,6 +248,7 @@ const TableRow = ({
   const badgePadding = projector ? 'px-5 py-2.5' : 'px-5 py-2';
   const showSelect = !projector && Boolean(onToggleSelect);
   const statusBadgeWidth = showSelect ? 'w-[12.5rem]' : 'w-[13.5rem]';
+  const numberTextClass = projector ? 'text-3xl' : compact ? 'text-xl' : 'text-2xl';
   const carryoverRowClass = carryover ? 'border-l-4 border-l-rose-500/90' : '';
   const priorityBadgeClass = projector
     ? 'mt-1 inline-flex items-center gap-2 rounded-full border border-rose-300/70 bg-rose-500/25 px-4 py-1.5 text-sm font-black uppercase tracking-[0.24em] text-rose-100 shadow-[0_0_0_1px_rgba(244,63,94,0.28)]'
@@ -261,6 +277,9 @@ const TableRow = ({
       transition={{ type: 'spring', stiffness: 220, damping: 26 }}
       className={`${tableGrid} border-b border-[#2f2f34] ${carryoverRowClass} ${idx % 2 === 0 ? 'bg-[#2c3f98]' : 'bg-[#202024]'} ${selected ? 'ring-2 ring-[#e6cf6a]/60' : ''}`}
     >
+      <div className={`border-r border-[#2f2f34] px-3 ${rowPadding} flex items-center justify-center`}>
+        <span className={`${numberTextClass} font-black text-[#e6cf6a]`}>{rowNumber ?? idx + 1}</span>
+      </div>
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a]`}>
         <div>{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</div>
         {carryover && (
@@ -328,6 +347,7 @@ const TvTable = ({
   selectedSet,
   onToggleSelect,
   carryoverCutoff,
+  rowNumberMap,
 }: {
   rows: Truck[];
   now: Date;
@@ -337,6 +357,7 @@ const TvTable = ({
   selectedSet?: Set<string>;
   onToggleSelect?: (truck: Truck) => void;
   carryoverCutoff?: Date | null;
+  rowNumberMap?: Map<string, number>;
 }) => {
   const showSelect = !projector && Boolean(onToggleSelect) && Boolean(selectedSet);
 
@@ -380,9 +401,11 @@ const TvTable = ({
               const isSelected = Boolean(selectedSet?.has(truck.id));
               const isCarryover = Boolean(carryoverCutoff && isCarryoverTruck(truck, carryoverCutoff));
               const carryoverRowClass = isCarryover ? 'tv-row-carryover' : '';
+              const rowNumber = rowNumberMap?.get(truck.id) ?? idx + 1;
 
               return (
                 <tr key={truck.id} className={`${rowClass} ${carryoverRowClass}`}>
+                  <td className="tv-cell tv-number-cell">{rowNumber}</td>
                   <td className={`tv-cell ${isCarryover ? 'tv-cell-carryover' : ''}`}>
                     {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
                     {isCarryover && (
@@ -620,20 +643,13 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
         const aCarryover = isCarryoverTruck(a, todayStart);
         const bCarryover = isCarryoverTruck(b, todayStart);
         if (aCarryover !== bCarryover) return aCarryover ? -1 : 1;
+        const aTime = arrivalStamp(a)?.getTime() ?? 0;
+        const bTime = arrivalStamp(b)?.getTime() ?? 0;
+        if (aTime !== bTime) return aTime - bTime;
         const aIdx = order.indexOf(a.status);
         const bIdx = order.indexOf(b.status);
         if (aIdx !== bIdx) return aIdx - bIdx;
-        const aTime =
-          a.checkInTime?.getTime() ??
-          a.checkInGateAt?.getTime() ??
-          a.scheduledArrival?.getTime() ??
-          0;
-        const bTime =
-          b.checkInTime?.getTime() ??
-          b.checkInGateAt?.getTime() ??
-          b.scheduledArrival?.getTime() ??
-          0;
-        return aTime - bTime;
+        return a.id.localeCompare(b.id);
       });
   }, [filtered, todayStart]);
 
@@ -657,6 +673,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     const rotated = regularRows.slice(offset).concat(regularRows.slice(0, offset));
     return carryoverRows.concat(rotated);
   }, [carryoverRows, regularRows, shiftIndex]);
+  const displayRankMap = useMemo(() => buildRowNumberMap(displayRows), [displayRows]);
   const stats = useMemo(() => {
     const visible = filtered.filter((t) => t.status !== 'cerrado' && t.status !== 'terminado');
     const enPorteria = visible.filter((t) => t.status === 'en_porteria').length;
@@ -690,9 +707,10 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       .sort((a, b) => {
         const aDate = a.checkInGateAt ?? a.checkInTime ?? a.createdAt ?? a.scheduledArrival;
         const bDate = b.checkInGateAt ?? b.checkInTime ?? b.createdAt ?? b.scheduledArrival;
-        return (bDate?.getTime() ?? 0) - (aDate?.getTime() ?? 0);
+        return (aDate?.getTime() ?? 0) - (bDate?.getTime() ?? 0);
       });
   }, [filtered, historyDay]);
+  const historyRankMap = useMemo(() => buildRowNumberMap(historyRows), [historyRows]);
 
   const canFinalize =
     Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
@@ -1124,6 +1142,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
               rows={historyRows}
               now={now}
               emptyMessage="No hay registros para el dia seleccionado."
+              rowNumberMap={historyRankMap}
             />
           </div>
         )}
@@ -1137,6 +1156,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           selectedSet={selectionMode ? selectedSet : undefined}
           onToggleSelect={selectionMode ? toggleSelect : undefined}
           carryoverCutoff={todayStart}
+          rowNumberMap={displayRankMap}
         />
 
         {!projectorMode && canShowDiagnostics && (
@@ -1408,7 +1428,14 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 </div>
                 <LayoutGroup>
                   {historyRows.map((truck, idx) => (
-                    <TableRow key={truck.id} truck={truck} idx={idx} now={now} compact />
+                    <TableRow
+                      key={truck.id}
+                      truck={truck}
+                      idx={idx}
+                      now={now}
+                      compact
+                      rowNumber={historyRankMap.get(truck.id)}
+                    />
                   ))}
                 </LayoutGroup>
                 {historyRows.length === 0 && (
@@ -1475,6 +1502,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                     selected={selectionMode && selectedSet.has(truck.id)}
                     onToggleSelect={selectionMode ? toggleSelect : undefined}
                     carryover={isCarryoverTruck(truck, todayStart)}
+                    rowNumber={displayRankMap.get(truck.id)}
                   />
                 ))}
               </LayoutGroup>

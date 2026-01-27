@@ -635,6 +635,18 @@ body {
   line-height: 1.2;
 }
 
+.tv-number-cell {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #e6cf6a;
+}
+
+.tv-table--projector .tv-number-cell {
+  font-size: 24px;
+}
+
 .tv-cell-carryover {
   position: relative;
   padding-left: 12px !important;
@@ -855,15 +867,15 @@ body {
   }
 
   .table-grid > :nth-child(1) {
-    flex: 0 0 130px;
+    flex: 0 0 70px;
   }
 
   .table-grid > :nth-child(2) {
-    flex: 0 0 210px;
+    flex: 0 0 130px;
   }
 
   .table-grid > :nth-child(3) {
-    flex: 0 0 170px;
+    flex: 0 0 210px;
   }
 
   .table-grid > :nth-child(4) {
@@ -879,18 +891,22 @@ body {
   }
 
   .table-grid > :nth-child(7) {
-    flex: 0 0 250px;
+    flex: 0 0 170px;
   }
 
   .table-grid > :nth-child(8) {
-    flex: 0 0 290px;
+    flex: 0 0 250px;
   }
 
   .table-grid > :nth-child(9) {
-    flex: 0 0 110px;
+    flex: 0 0 290px;
   }
 
   .table-grid > :nth-child(10) {
+    flex: 0 0 110px;
+  }
+
+  .table-grid > :nth-child(11) {
     flex: 0 0 110px;
   }
 }
