@@ -667,7 +667,42 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     const rotated = regularRows.slice(offset).concat(regularRows.slice(0, offset));
     return carryoverRows.concat(rotated);
   }, [carryoverRows, regularRows, shiftIndex]);
-  const displayRankMap = useMemo(() => buildRowNumberMap(displayRows), [displayRows]);
+  const arrivalNumberMap = useMemo(() => {
+    const dayEnd = addDays(todayStart, 1);
+    const order: TruckStatus[] = [
+      'en_curso',
+      'en_espera',
+      'en_porteria',
+      'en_camino',
+      'agendado',
+      'recepcionado',
+      'almacenado',
+      'cerrado',
+      'terminado',
+    ];
+    const ranked = trucks
+      .filter((truck) => {
+        const stamp = arrivalStamp(truck);
+        if (!stamp) return false;
+        const inToday = stamp >= todayStart && stamp < dayEnd;
+        const activeCarryover = stamp < todayStart && truck.status !== 'cerrado' && truck.status !== 'terminado';
+        return inToday || activeCarryover;
+      })
+      .slice()
+      .sort((a, b) => {
+        const aCarryover = isCarryoverTruck(a, todayStart);
+        const bCarryover = isCarryoverTruck(b, todayStart);
+        if (aCarryover !== bCarryover) return aCarryover ? -1 : 1;
+        const aTime = arrivalStamp(a)?.getTime() ?? 0;
+        const bTime = arrivalStamp(b)?.getTime() ?? 0;
+        if (aTime !== bTime) return aTime - bTime;
+        const aIdx = order.indexOf(a.status);
+        const bIdx = order.indexOf(b.status);
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        return a.id.localeCompare(b.id);
+      });
+    return buildRowNumberMap(ranked);
+  }, [trucks, todayStart]);
   const stats = useMemo(() => {
     const visible = filtered.filter((t) => t.status !== 'cerrado' && t.status !== 'terminado');
     const enPorteria = visible.filter((t) => t.status === 'en_porteria').length;
@@ -1150,7 +1185,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           selectedSet={selectionMode ? selectedSet : undefined}
           onToggleSelect={selectionMode ? toggleSelect : undefined}
           carryoverCutoff={todayStart}
-          rowNumberMap={displayRankMap}
+          rowNumberMap={arrivalNumberMap}
         />
 
         {!projectorMode && canShowDiagnostics && (
@@ -1496,7 +1531,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                     selected={selectionMode && selectedSet.has(truck.id)}
                     onToggleSelect={selectionMode ? toggleSelect : undefined}
                     carryover={isCarryoverTruck(truck, todayStart)}
-                    rowNumber={displayRankMap.get(truck.id)}
+                    rowNumber={arrivalNumberMap.get(truck.id)}
                   />
                 ))}
               </LayoutGroup>
