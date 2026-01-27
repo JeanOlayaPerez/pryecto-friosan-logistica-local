@@ -515,13 +515,12 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const tick = () => {
+    const intervalId = setInterval(() => {
       setShiftIndex((prev) => prev + 1);
       setRefreshing(true);
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => setRefreshing(false), 800);
-    };
-    const intervalId = setInterval(tick, 5000);
+    }, 5000);
     return () => {
       clearInterval(intervalId);
       if (timeoutId) clearTimeout(timeoutId);
@@ -653,12 +652,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       });
   }, [filtered, todayStart]);
 
-  const boardRows = useMemo(
-    () => {
-      return sortedRows.slice(0, 10);
-    },
-    [sortedRows],
-  );
+  const boardRows = useMemo(() => sortedRows, [sortedRows]);
   const carryoverRows = useMemo(
     () => boardRows.filter((truck) => isCarryoverTruck(truck, todayStart)),
     [boardRows, todayStart],
