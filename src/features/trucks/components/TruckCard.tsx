@@ -18,6 +18,8 @@ type Props = {
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  priority?: boolean;
+  priorityLabel?: string;
 };
 
 const formatHour = (value?: unknown) => {
@@ -111,6 +113,22 @@ const actionToneClass = (tone?: ActionButton['tone']) => {
   return 'bg-amber-400/80 text-slate-900 hover:brightness-110';
 };
 
+const ClockIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={className ?? 'h-4 w-4'}
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
 export const TruckCard = ({
   truck,
   role,
@@ -119,10 +137,17 @@ export const TruckCard = ({
   selectable = false,
   selected = false,
   onToggleSelect,
+  priority = false,
+  priorityLabel = 'Prioridad',
 }: Props) => {
   const delayed = truck.status === 'en_espera' && isDelayed(truck.checkInTime, 30);
   const badge = statusMeta[truck.status] ?? statusMeta.en_espera;
   const showSelect = selectable && Boolean(onToggleSelect);
+  const priorityClass = priority
+    ? 'border-rose-400/60 border-l-4 border-l-rose-500/90 bg-rose-500/10 pl-3 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]'
+    : delayed
+      ? 'border-rose-500/40 bg-rose-500/5'
+      : 'border-white/5';
 
   return (
     <motion.div
@@ -131,9 +156,9 @@ export const TruckCard = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.25 }}
-      className={`glass rounded-2xl border p-4 shadow-panel ${
-        delayed ? 'border-rose-500/40 bg-rose-500/5' : 'border-white/5'
-      } ${selected ? 'ring-2 ring-amber-400/40' : ''}`}
+      className={`glass rounded-2xl border p-4 shadow-panel ${priorityClass} ${
+        selected ? 'ring-2 ring-amber-400/40' : ''
+      }`}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
@@ -174,14 +199,20 @@ export const TruckCard = ({
               Lote
             </label>
           )}
+          {priority && (
+            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-rose-300/70 bg-rose-500/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-rose-100 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]">
+              <ClockIcon className="h-3.5 w-3.5" />
+              <span>{priorityLabel}</span>
+            </span>
+          )}
           <p>Agendado</p>
           <p className="text-sm text-white">{formatHour(truck.scheduledArrival)}</p>
         </div>
       </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300">
-          <Info label="Ingreso porteria" value={formatHour(truck.checkInGateAt)} />
-          <Info label="Ingreso anden" value={formatHour(truck.checkInTime)} />
+      <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300">
+        <Info label="Ingreso porteria" value={formatHour(truck.checkInGateAt)} />
+        <Info label="Ingreso anden" value={formatHour(truck.checkInTime)} />
         <Info
           label={truck.status === 'en_curso' ? 'En proceso' : 'Espera'}
           value={
@@ -202,7 +233,7 @@ export const TruckCard = ({
         </div>
       )}
 
-  {delayed && (
+      {delayed && (
         <p className="mt-2 text-xs font-medium text-rose-300">
           Retraso: {formatDurationSince(truck.checkInTime)}
         </p>

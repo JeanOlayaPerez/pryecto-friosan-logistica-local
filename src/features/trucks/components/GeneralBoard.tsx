@@ -97,6 +97,23 @@ const parseInputDate = (value: string) => {
   return new Date(year, month - 1, day);
 };
 
+const startOfDay = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+
+const addDays = (value: Date, amount: number) =>
+  new Date(value.getFullYear(), value.getMonth(), value.getDate() + amount);
+
+const getWeekStart = (value: Date) => {
+  const day = value.getDay();
+  const diff = (day + 6) % 7;
+  return addDays(value, -diff);
+};
+
+const formatWeekday = (value: Date) =>
+  value
+    .toLocaleDateString('es-CL', { weekday: 'short' })
+    .replace('.', '')
+    .toUpperCase();
+
 const formatHistoryDay = (value: string) => {
   const parsed = parseInputDate(value);
   if (!parsed) return 'Todos los dias';
@@ -137,12 +154,37 @@ const processTone = (loadType?: Truck['loadType']) => {
   return '#2f66cf';
 };
 
-const TableHeader = ({ projector }: { projector?: boolean }) => {
-  const headerText = projector ? 'text-xl' : 'text-lg';
-  const headerPadding = projector ? 'py-4' : 'py-3';
+const ClockIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={className ?? 'h-4 w-4'}
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
+const isCarryoverTruck = (truck: Truck, dayStart: Date) => {
+  if (!dayStart) return false;
+  if (truck.status === 'cerrado' || truck.status === 'terminado') return false;
+  const arrival = truck.checkInTime ?? truck.checkInGateAt;
+  if (!arrival) return false;
+  return arrival < dayStart;
+};
+
+const TableHeader = ({ projector, compact = false }: { projector?: boolean; compact?: boolean }) => {
+  const headerText = projector ? 'text-xl' : compact ? 'text-base' : 'text-lg';
+  const headerPadding = projector ? 'py-4' : compact ? 'py-2.5' : 'py-3';
+  const headerTracking = compact ? 'tracking-[0.08em]' : 'tracking-[0.1em]';
 
   return (
-    <div className={`${tableGrid} border-b border-[#2f2f34] bg-[#1f1f23] ${headerText} font-semibold uppercase tracking-[0.1em] text-[#e6cf6a] whitespace-nowrap`}>
+    <div className={`${tableGrid} border-b border-[#2f2f34] bg-[#1f1f23] ${headerText} ${headerTracking} font-semibold uppercase text-[#e6cf6a] whitespace-nowrap`}>
       <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Patente</div>
       <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Nombre empresa</div>
       <div className={`border-r border-[#2f2f34] px-4 ${headerPadding}`}>Fec. bitacora</div>
@@ -164,6 +206,8 @@ const TableRow = ({
   projector,
   selected,
   onToggleSelect,
+  carryover = false,
+  compact = false,
 }: {
   truck: Truck;
   idx: number;
@@ -171,6 +215,8 @@ const TableRow = ({
   projector?: boolean;
   selected?: boolean;
   onToggleSelect?: (truck: Truck) => void;
+  carryover?: boolean;
+  compact?: boolean;
 }) => {
   const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
   const bitacoraHour = formatHour(truck.scheduledArrival ?? null);
@@ -179,13 +225,19 @@ const TableRow = ({
   const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
   const process = typeDisplay(truck);
   const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
-  const rowText = projector ? 'text-2xl' : 'text-xl';
-  const rowPadding = projector ? 'py-4' : 'py-3';
-  const rowTextClass = `${rowText} font-semibold uppercase tracking-[0.1em]`;
+  const rowText = projector ? 'text-2xl' : compact ? 'text-lg' : 'text-xl';
+  const rowPadding = projector ? 'py-4' : compact ? 'py-2.5' : 'py-3';
+  const rowTracking = compact ? 'tracking-[0.08em]' : 'tracking-[0.1em]';
+  const rowTextClass = `${rowText} ${rowTracking} font-semibold uppercase`;
   const badgeText = rowText;
   const badgePadding = projector ? 'px-5 py-2.5' : 'px-5 py-2';
   const showSelect = !projector && Boolean(onToggleSelect);
   const statusBadgeWidth = showSelect ? 'w-[12.5rem]' : 'w-[13.5rem]';
+  const carryoverRowClass = carryover ? 'border-l-4 border-l-rose-500/90' : '';
+  const priorityBadgeClass = projector
+    ? 'mt-1 inline-flex items-center gap-2 rounded-full border border-rose-300/70 bg-rose-500/25 px-4 py-1.5 text-sm font-black uppercase tracking-[0.24em] text-rose-100 shadow-[0_0_0_1px_rgba(244,63,94,0.28)]'
+    : 'mt-1 inline-flex items-center gap-1.5 rounded-full border border-rose-300/70 bg-rose-500/25 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-rose-100 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]';
+  const priorityIconClass = projector ? 'h-4 w-4' : 'h-3.5 w-3.5';
 
   const stateClass =
     truck.status === 'en_curso'
@@ -207,10 +259,16 @@ const TableRow = ({
       key={truck.id}
       layout
       transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-      className={`${tableGrid} border-b border-[#2f2f34] ${idx % 2 === 0 ? 'bg-[#2c3f98]' : 'bg-[#202024]'} ${selected ? 'ring-2 ring-[#e6cf6a]/60' : ''}`}
+      className={`${tableGrid} border-b border-[#2f2f34] ${carryoverRowClass} ${idx % 2 === 0 ? 'bg-[#2c3f98]' : 'bg-[#202024]'} ${selected ? 'ring-2 ring-[#e6cf6a]/60' : ''}`}
     >
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a]`}>
-        {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
+        <div>{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</div>
+        {carryover && (
+          <div className={priorityBadgeClass}>
+            <ClockIcon className={priorityIconClass} />
+            <span>Prioridad / Ayer</span>
+          </div>
+        )}
       </div>
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e9dda1]`}>
         <p className="leading-tight break-words">{truck.clientName || 'Sin cliente'}</p>
@@ -256,9 +314,7 @@ const TableRow = ({
       <div className={`border-r border-[#2f2f34] px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a] whitespace-nowrap`}>
         {gate}
       </div>
-      <div className={`px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a] whitespace-nowrap`}>
-        {elapsed}
-      </div>
+      <div className={`px-4 ${rowPadding} ${rowTextClass} text-[#e6cf6a] whitespace-nowrap`}>{elapsed}</div>
     </motion.div>
   );
 };
@@ -271,6 +327,7 @@ const TvTable = ({
   onExitProjector,
   selectedSet,
   onToggleSelect,
+  carryoverCutoff,
 }: {
   rows: Truck[];
   now: Date;
@@ -279,6 +336,7 @@ const TvTable = ({
   onExitProjector?: () => void;
   selectedSet?: Set<string>;
   onToggleSelect?: (truck: Truck) => void;
+  carryoverCutoff?: Date | null;
 }) => {
   const showSelect = !projector && Boolean(onToggleSelect) && Boolean(selectedSet);
 
@@ -320,10 +378,20 @@ const TvTable = ({
               const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
               const rowClass = idx % 2 === 0 ? 'tv-row-even' : 'tv-row-odd';
               const isSelected = Boolean(selectedSet?.has(truck.id));
+              const isCarryover = Boolean(carryoverCutoff && isCarryoverTruck(truck, carryoverCutoff));
+              const carryoverRowClass = isCarryover ? 'tv-row-carryover' : '';
 
               return (
-                <tr key={truck.id} className={rowClass}>
-                  <td className="tv-cell">{truck.plate ? truck.plate.toUpperCase() : 'N/A'}</td>
+                <tr key={truck.id} className={`${rowClass} ${carryoverRowClass}`}>
+                  <td className={`tv-cell ${isCarryover ? 'tv-cell-carryover' : ''}`}>
+                    {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
+                    {isCarryover && (
+                      <div className="tv-badge-carryover">
+                        <ClockIcon className="tv-badge-carryover-icon" />
+                        <span>Prioridad / Ayer</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="tv-cell tv-cell-wrap">{truck.clientName || 'Sin cliente'}</td>
                   <td className="tv-cell">{bitacoraDate}</td>
                   <td className="tv-cell">{bitacoraHour}</td>
@@ -401,6 +469,17 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   const [tableScale, setTableScale] = useState(1);
   const [tableScaledSize, setTableScaledSize] = useState({ width: 0, height: 0 });
   const compatEnabled = forceCompat || isCompat;
+  const todayKey = useMemo(() => toInputDate(now), [now]);
+  const todayStart = useMemo(() => parseInputDate(todayKey) ?? startOfDay(new Date()), [todayKey]);
+  const selectedHistoryDate = useMemo(
+    () => parseInputDate(historyDay) ?? startOfDay(new Date()),
+    [historyDay],
+  );
+  const historyWeekStart = useMemo(() => getWeekStart(selectedHistoryDate), [selectedHistoryDate]);
+  const historyWeekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, idx) => addDays(historyWeekStart, idx)),
+    [historyWeekStart],
+  );
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -538,6 +617,9 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     return visible
       .slice()
       .sort((a, b) => {
+        const aCarryover = isCarryoverTruck(a, todayStart);
+        const bCarryover = isCarryoverTruck(b, todayStart);
+        if (aCarryover !== bCarryover) return aCarryover ? -1 : 1;
         const aIdx = order.indexOf(a.status);
         const bIdx = order.indexOf(b.status);
         if (aIdx !== bIdx) return aIdx - bIdx;
@@ -553,7 +635,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           0;
         return aTime - bTime;
       });
-  }, [filtered]);
+  }, [filtered, todayStart]);
 
   const boardRows = useMemo(
     () => {
@@ -561,11 +643,20 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     },
     [sortedRows],
   );
+  const carryoverRows = useMemo(
+    () => boardRows.filter((truck) => isCarryoverTruck(truck, todayStart)),
+    [boardRows, todayStart],
+  );
+  const regularRows = useMemo(
+    () => boardRows.filter((truck) => !isCarryoverTruck(truck, todayStart)),
+    [boardRows, todayStart],
+  );
   const displayRows = useMemo(() => {
-    if (boardRows.length <= 1) return boardRows;
-    const offset = shiftIndex % boardRows.length;
-    return boardRows.slice(offset).concat(boardRows.slice(0, offset));
-  }, [boardRows, shiftIndex]);
+    if (regularRows.length <= 1) return carryoverRows.concat(regularRows);
+    const offset = shiftIndex % regularRows.length;
+    const rotated = regularRows.slice(offset).concat(regularRows.slice(0, offset));
+    return carryoverRows.concat(rotated);
+  }, [carryoverRows, regularRows, shiftIndex]);
   const stats = useMemo(() => {
     const visible = filtered.filter((t) => t.status !== 'cerrado' && t.status !== 'terminado');
     const enPorteria = visible.filter((t) => t.status === 'en_porteria').length;
@@ -588,17 +679,17 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   const historyRows = useMemo(() => {
     const dayStart = parseInputDate(historyDay);
     if (!dayStart) return [];
-    const dayEnd = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1);
+    const dayEnd = addDays(dayStart, 1);
 
     return filtered
       .filter((t) => {
-        const created = t.createdAt ?? t.scheduledArrival;
-        if (!created) return false;
-        return created >= dayStart && created < dayEnd;
+        const stamp = t.checkInGateAt ?? t.checkInTime ?? t.createdAt ?? t.scheduledArrival;
+        if (!stamp) return false;
+        return stamp >= dayStart && stamp < dayEnd;
       })
       .sort((a, b) => {
-        const aDate = a.createdAt ?? a.scheduledArrival;
-        const bDate = b.createdAt ?? b.scheduledArrival;
+        const aDate = a.checkInGateAt ?? a.checkInTime ?? a.createdAt ?? a.scheduledArrival;
+        const bDate = b.checkInGateAt ?? b.checkInTime ?? b.createdAt ?? b.scheduledArrival;
         return (bDate?.getTime() ?? 0) - (aDate?.getTime() ?? 0);
       });
   }, [filtered, historyDay]);
@@ -638,6 +729,13 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
   const clearSelection = useCallback(() => {
     setSelectedIds([]);
+  }, []);
+
+  const shiftHistoryWeek = useCallback((delta: number) => {
+    setHistoryDay((prev) => {
+      const base = parseInputDate(prev) ?? new Date();
+      return toInputDate(addDays(base, delta * 7));
+    });
   }, []);
 
   const handleFinalizeSelected = useCallback(async () => {
@@ -970,6 +1068,66 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           </div>
         )}
 
+        {!projectorMode && showHistory && (
+          <div className="tv-card tv-history">
+            <div className="tv-history-header">
+              <div className="tv-history-left">
+                <div className="tv-label">Historico semanal</div>
+                <div className="tv-desc">Registros del panel</div>
+                <div className="tv-muted">Selecciona un dia para ver su informacion.</div>
+              </div>
+              <div className="tv-history-controls">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button type="button" onClick={() => shiftHistoryWeek(-1)} className="tv-button">
+                    Semana anterior
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryDay(toInputDate(new Date()))}
+                    className="tv-button"
+                  >
+                    Hoy
+                  </button>
+                  <button type="button" onClick={() => shiftHistoryWeek(1)} className="tv-button">
+                    Semana siguiente
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="tv-week-grid grid grid-cols-7">
+              {historyWeekDays.map((day) => {
+                const key = toInputDate(day);
+                const isActive = key === historyDay;
+                const isToday = key === todayKey;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setHistoryDay(key)}
+                    className={`tv-week-btn ${isActive ? 'is-active' : ''}`}
+                  >
+                    <span className="tv-week-day">{formatWeekday(day)}</span>
+                    <span className="tv-week-date">{day.getDate().toString().padStart(2, '0')}</span>
+                    {isToday && <span className="tv-week-dot" />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="tv-history-stats">
+              <span className="tv-pill">Mostrando: {formatHistoryDay(historyDay)}</span>
+              <span className="tv-pill">Total: {historyStats.total}</span>
+              <span className="tv-pill">Porteria: {historyStats.enPorteria}</span>
+              <span className="tv-pill">Espera: {historyStats.enEspera}</span>
+              <span className="tv-pill">En curso: {historyStats.enCurso}</span>
+            </div>
+            <TvTable
+              rows={historyRows}
+              now={now}
+              emptyMessage="No hay registros para el dia seleccionado."
+            />
+          </div>
+        )}
+
         <TvTable
           rows={displayRows}
           now={now}
@@ -978,6 +1136,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           emptyMessage="No hay camiones activos para mostrar en el tablero."
           selectedSet={selectionMode ? selectedSet : undefined}
           onToggleSelect={selectionMode ? toggleSelect : undefined}
+          carryoverCutoff={todayStart}
         />
 
         {!projectorMode && canShowDiagnostics && (
@@ -1014,47 +1173,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           </div>
         )}
 
-        {!projectorMode && showHistory && (
-          <div className="tv-card tv-history">
-            <div className="tv-history-header">
-              <div className="tv-history-left">
-                <div className="tv-label">Historico diario</div>
-                <div className="tv-desc">Registros del panel</div>
-                <div className="tv-muted">Selecciona un dia para ver su informacion.</div>
-              </div>
-              <div className="tv-history-controls">
-                <label className="tv-muted">
-                  Dia
-                  <input
-                    type="date"
-                    value={historyDay}
-                    onChange={(e) => setHistoryDay(e.target.value)}
-                    className="tv-date-input"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setHistoryDay(toInputDate(new Date()))}
-                  className="tv-button"
-                >
-                  Hoy
-                </button>
-              </div>
-            </div>
-            <div className="tv-history-stats">
-              <span className="tv-pill">Mostrando: {formatHistoryDay(historyDay)}</span>
-              <span className="tv-pill">Total: {historyStats.total}</span>
-              <span className="tv-pill">Porteria: {historyStats.enPorteria}</span>
-              <span className="tv-pill">Espera: {historyStats.enEspera}</span>
-              <span className="tv-pill">En curso: {historyStats.enCurso}</span>
-            </div>
-            <TvTable
-              rows={historyRows}
-              now={now}
-              emptyMessage="No hay registros para el dia seleccionado."
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -1198,6 +1316,111 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           </div>
         )}
 
+        {!projectorMode && showHistory && (
+          <div className="rounded-2xl border border-[#2f2f34] bg-[#1a1a1d] px-5 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#e6cf6a]">Historico semanal</p>
+                <p className="text-sm text-[#cdbf86]">Selecciona un dia para ver los camiones.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#cdbf86]">
+                <button
+                  type="button"
+                  onClick={() => shiftHistoryWeek(-1)}
+                  className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34]"
+                >
+                  Semana anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHistoryDay(toInputDate(new Date()))}
+                  className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34]"
+                >
+                  Hoy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => shiftHistoryWeek(1)}
+                  className="rounded-full border border-[#e6cf6a]/40 bg-[#242428] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ded293] hover:bg-[#2f2f34]"
+                >
+                  Semana siguiente
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-7 gap-2">
+              {historyWeekDays.map((day) => {
+                const key = toInputDate(day);
+                const isActive = key === historyDay;
+                const isToday = key === todayKey;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setHistoryDay(key)}
+                    className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-2 text-center transition ${
+                      isActive
+                        ? 'border-[#e6cf6a] bg-[#e6cf6a] text-[#1c1c20]'
+                        : 'border-[#2f2f34] bg-[#1c1c20] text-[#e9dda1] hover:bg-[#242428]'
+                    }`}
+                  >
+                    <span
+                      className={`text-[10px] uppercase tracking-[0.2em] ${
+                        isActive ? 'text-[#1c1c20]/80' : 'text-[#cdbf86]'
+                      }`}
+                    >
+                      {formatWeekday(day)}
+                    </span>
+                    <span className="text-lg font-semibold">
+                      {day.getDate().toString().padStart(2, '0')}
+                    </span>
+                    {isToday && (
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isActive ? 'bg-[#1c1c20]' : 'bg-emerald-400'
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#cdbf86]">
+              <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
+                Mostrando: {formatHistoryDay(historyDay)}
+              </span>
+              <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
+                Total: {historyStats.total}
+              </span>
+              <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
+                Porteria: {historyStats.enPorteria}
+              </span>
+              <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
+                Espera: {historyStats.enEspera}
+              </span>
+              <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
+                En curso: {historyStats.enCurso}
+              </span>
+            </div>
+            <div className="mt-3 overflow-hidden rounded-2xl border border-[#2f2f34] bg-[#121217]">
+              <div className="max-h-[38vh] overflow-auto">
+                <div className="sticky top-0 z-10">
+                  <TableHeader compact />
+                </div>
+                <LayoutGroup>
+                  {historyRows.map((truck, idx) => (
+                    <TableRow key={truck.id} truck={truck} idx={idx} now={now} compact />
+                  ))}
+                </LayoutGroup>
+                {historyRows.length === 0 && (
+                  <div className="flex h-24 items-center justify-center text-sm text-[#cdbf86]">
+                    No hay registros para el dia seleccionado.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div
           ref={tableViewportRef}
           className={`visor-table relative overflow-hidden ${
@@ -1251,6 +1474,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                     projector={projectorMode}
                     selected={selectionMode && selectedSet.has(truck.id)}
                     onToggleSelect={selectionMode ? toggleSelect : undefined}
+                    carryover={isCarryoverTruck(truck, todayStart)}
                   />
                 ))}
               </LayoutGroup>
@@ -1301,67 +1525,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           </div>
         )}
 
-        {!projectorMode && showHistory && (
-          <div className="rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#e6cf6a]">Historico diario</p>
-                <p className="text-lg font-semibold text-[#e9dda1]">Registros del panel</p>
-                <p className="text-xs text-[#b4a770]">Selecciona un dia para ver su informacion.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-[#cdbf86]">
-                <label className="text-xs text-[#b4a770]">
-                  Dia
-                  <input
-                    type="date"
-                    value={historyDay}
-                    onChange={(e) => setHistoryDay(e.target.value)}
-                    className="mt-1 rounded-lg border border-[#2f2f34] bg-[#1c1c20] px-3 py-2 text-sm text-[#e9dda1]"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setHistoryDay(toInputDate(new Date()))}
-                  className="rounded-lg border border-[#2f2f34] bg-[#242428] px-3 py-2 text-sm text-[#ded293] hover:bg-[#2f2f34]"
-                >
-                  Hoy
-                </button>
-              </div>
-            </div>
-            <div className="border-t border-[#2f2f34] px-5 py-3">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-[#cdbf86]">
-                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
-                  Mostrando: {formatHistoryDay(historyDay)}
-                </span>
-                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
-                  Total: {historyStats.total}
-                </span>
-                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
-                  Porteria: {historyStats.enPorteria}
-                </span>
-                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
-                  Espera: {historyStats.enEspera}
-                </span>
-                <span className="rounded-full border border-[#2f2f34] bg-[#242428] px-3 py-1">
-                  En curso: {historyStats.enCurso}
-                </span>
-              </div>
-            </div>
-            <div className="visor-table relative max-h-[45vh] overflow-auto border-t border-[#2f2f34]">
-              <TableHeader />
-              <LayoutGroup>
-                {historyRows.map((truck, idx) => (
-                  <TableRow key={truck.id} truck={truck} idx={idx} now={now} />
-                ))}
-              </LayoutGroup>
-              {historyRows.length === 0 && (
-                <div className="flex h-28 items-center justify-center text-sm text-[#cdbf86]">
-                  No hay registros para el dia seleccionado.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

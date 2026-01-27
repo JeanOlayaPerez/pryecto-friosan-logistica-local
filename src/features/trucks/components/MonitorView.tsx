@@ -25,6 +25,37 @@ const statusLabel: Record<TruckStatus, string> = {
   terminado: 'Terminado',
 };
 
+const toInputDate = (value: Date) => {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseInputDate = (value: string) => {
+  if (!value) return null;
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+};
+
+const startOfDay = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+
+const addDays = (value: Date, amount: number) =>
+  new Date(value.getFullYear(), value.getMonth(), value.getDate() + amount);
+
+const getWeekStart = (value: Date) => {
+  const day = value.getDay();
+  const diff = (day + 6) % 7;
+  return addDays(value, -diff);
+};
+
+const formatWeekday = (value: Date) =>
+  value
+    .toLocaleDateString('es-CL', { weekday: 'short' })
+    .replace('.', '')
+    .toUpperCase();
+
 const formatTime = (value: Date | null) => {
   if (!value) return '--:--';
   return value.toLocaleTimeString('es-CL', {
@@ -33,6 +64,47 @@ const formatTime = (value: Date | null) => {
     hour12: false,
   });
 };
+
+const formatDate = (value: Date | null) => {
+  if (!value) return '--';
+  return value.toLocaleDateString('es-CL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
+
+const formatHistoryDay = (value: string) => {
+  const parsed = parseInputDate(value);
+  if (!parsed) return 'Todos los dias';
+  return parsed.toLocaleDateString('es-CL', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
+const isCarryoverTruck = (truck: Truck, dayStart: Date) => {
+  if (!dayStart) return false;
+  if (truck.status === 'cerrado' || truck.status === 'terminado') return false;
+  const arrival = truck.checkInTime ?? truck.checkInGateAt;
+  if (!arrival) return false;
+  return arrival < dayStart;
+};
+
+const truckTime = (truck: Truck) =>
+  truck.checkInTime ?? truck.checkInGateAt ?? truck.scheduledArrival ?? truck.createdAt ?? null;
+
+const sortTrucks = (list: Truck[], dayStart: Date) =>
+  list.slice().sort((a, b) => {
+    const aCarryover = isCarryoverTruck(a, dayStart);
+    const bCarryover = isCarryoverTruck(b, dayStart);
+    if (aCarryover !== bCarryover) return aCarryover ? -1 : 1;
+    const aTime = truckTime(a)?.getTime() ?? 0;
+    const bTime = truckTime(b)?.getTime() ?? 0;
+    return aTime - bTime;
+  });
 
 const useMonitorTrucks = () => {
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -131,6 +203,10 @@ export const MonitorView = () => {
   const { trucks, lastUpdatedAt, source, error } = useMonitorTrucks();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
+  const [now, setNow] = useState(() => new Date());
+  const todayKey = useMemo(() => toInputDate(now), [now]);
+  const todayStart = useMemo(() => parseInputDate(todayKey) ?? startOfDay(new Date()), [todayKey]);
   const recepcionTrucks = useMemo(
     () => trucks.filter((truck) => truck.dockType === 'recepcion'),
     [trucks],
@@ -147,13 +223,30 @@ export const MonitorView = () => {
     () => despachoTrucks.filter((truck) => truck.status !== 'cerrado' && truck.status !== 'terminado'),
     [despachoTrucks],
   );
+  const activeRecepcionSorted = useMemo(
+    () => sortTrucks(activeRecepcionTrucks, todayStart),
+    [activeRecepcionTrucks, todayStart],
+  );
+  const activeDespachoSorted = useMemo(
+    () => sortTrucks(activeDespachoTrucks, todayStart),
+    [activeDespachoTrucks, todayStart],
+  );
   const activeTrucks = useMemo(
-    () => [...activeRecepcionTrucks, ...activeDespachoTrucks],
-    [activeRecepcionTrucks, activeDespachoTrucks],
+    () => [...activeRecepcionSorted, ...activeDespachoSorted],
+    [activeRecepcionSorted, activeDespachoSorted],
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const canFinalize =
     Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
+  const selectedHistoryDate = useMemo(
+    () => parseInputDate(historyDay) ?? startOfDay(new Date()),
+    [historyDay],
+  );
+  const historyWeekStart = useMemo(() => getWeekStart(selectedHistoryDate), [selectedHistoryDate]);
+  const historyWeekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, idx) => addDays(historyWeekStart, idx)),
+    [historyWeekStart],
+  );
 
   useEffect(() => {
     if (!canFinalize || !selectionMode) {
@@ -163,6 +256,11 @@ export const MonitorView = () => {
     const activeIds = new Set(activeTrucks.map((truck) => truck.id));
     setSelectedIds((prev) => prev.filter((id) => activeIds.has(id)));
   }, [activeTrucks, canFinalize, selectionMode]);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
 
   const counts = useMemo(() => {
     const buildCounts = (list: Truck[]) =>
@@ -178,6 +276,35 @@ export const MonitorView = () => {
       despacho: buildCounts(despachoTrucks),
     };
   }, [recepcionTrucks, despachoTrucks]);
+
+  const historyRows = useMemo(() => {
+    const dayStart = parseInputDate(historyDay);
+    if (!dayStart) return [];
+    const dayEnd = addDays(dayStart, 1);
+    return trucks
+      .filter((t) => {
+        const stamp = t.checkInGateAt ?? t.checkInTime ?? t.createdAt ?? t.scheduledArrival;
+        if (!stamp) return false;
+        return stamp >= dayStart && stamp < dayEnd;
+      })
+      .sort((a, b) => {
+        const aDate = a.checkInGateAt ?? a.checkInTime ?? a.createdAt ?? a.scheduledArrival;
+        const bDate = b.checkInGateAt ?? b.checkInTime ?? b.createdAt ?? b.scheduledArrival;
+        return (bDate?.getTime() ?? 0) - (aDate?.getTime() ?? 0);
+      });
+  }, [historyDay, trucks]);
+
+  const historyStats = useMemo(() => {
+    const enPorteria = historyRows.filter((t) => t.status === 'en_porteria').length;
+    const enEspera = historyRows.filter((t) => t.status === 'en_espera').length;
+    const enCurso = historyRows.filter((t) => t.status === 'en_curso').length;
+    return {
+      total: historyRows.length,
+      enPorteria,
+      enEspera,
+      enCurso,
+    };
+  }, [historyRows]);
 
   const toggleSelect = (truckId: string) => {
     setSelectedIds((prev) =>
@@ -200,6 +327,13 @@ export const MonitorView = () => {
         setSelectedIds([]);
       }
       return !prev;
+    });
+  };
+
+  const shiftHistoryWeek = (delta: number) => {
+    setHistoryDay((prev) => {
+      const base = parseInputDate(prev) ?? new Date();
+      return toInputDate(addDays(base, delta * 7));
     });
   };
 
@@ -287,6 +421,7 @@ export const MonitorView = () => {
                     selectable={canFinalize && selectionMode}
                     selected={selectionMode && selectedSet.has(truck.id)}
                     onToggleSelect={selectionMode ? () => toggleSelect(truck.id) : undefined}
+                    priority={isCarryoverTruck(truck, todayStart)}
                   />
                 ))}
             </AnimatePresence>
@@ -381,8 +516,129 @@ export const MonitorView = () => {
         />
       </div>
 
-      {board('recepcion', activeRecepcionTrucks)}
-      {board('despacho', activeDespachoTrucks)}
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-panel">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Historico semanal</p>
+            <p className="text-sm text-slate-200">Selecciona un dia para ver los camiones.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+            <button
+              type="button"
+              onClick={() => shiftHistoryWeek(-1)}
+              className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80 hover:bg-white/15"
+            >
+              Semana anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryDay(toInputDate(new Date()))}
+              className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80 hover:bg-white/15"
+            >
+              Hoy
+            </button>
+            <button
+              type="button"
+              onClick={() => shiftHistoryWeek(1)}
+              className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80 hover:bg-white/15"
+            >
+              Semana siguiente
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-7 gap-2">
+          {historyWeekDays.map((day) => {
+            const key = toInputDate(day);
+            const isActive = key === historyDay;
+            const isToday = key === todayKey;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setHistoryDay(key)}
+                className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-2 text-center transition ${
+                  isActive
+                    ? 'border-amber-300 bg-amber-300 text-slate-950'
+                    : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'
+                }`}
+              >
+                <span
+                  className={`text-[10px] uppercase tracking-[0.2em] ${
+                    isActive ? 'text-slate-900/80' : 'text-slate-400'
+                  }`}
+                >
+                  {formatWeekday(day)}
+                </span>
+                <span className="text-lg font-semibold">
+                  {day.getDate().toString().padStart(2, '0')}
+                </span>
+                {isToday && (
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isActive ? 'bg-slate-900' : 'bg-emerald-400'
+                    }`}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+            Mostrando: {formatHistoryDay(historyDay)}
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+            Total: {historyStats.total}
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+            Porteria: {historyStats.enPorteria}
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+            Espera: {historyStats.enEspera}
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+            En curso: {historyStats.enCurso}
+          </span>
+        </div>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
+          <div className="grid grid-cols-[120px,1.2fr,1.2fr,140px,140px] bg-white/10 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-slate-300">
+            <span>Patente</span>
+            <span>Cliente</span>
+            <span>Empresa</span>
+            <span>Fec. bitacora</span>
+            <span>Hora bitacora</span>
+          </div>
+          <div className="max-h-[32vh] overflow-auto">
+            {historyRows.map((truck, idx) => {
+              const rowClass = idx % 2 === 0 ? 'bg-white/5' : 'bg-transparent';
+              const bitacoraDate = formatDate(truck.scheduledArrival ?? null);
+              const bitacoraHour = formatTime(truck.scheduledArrival ?? null);
+              return (
+                <div
+                  key={truck.id}
+                  className={`grid grid-cols-[120px,1.2fr,1.2fr,140px,140px] px-4 py-2 text-sm text-slate-200 ${rowClass}`}
+                >
+                  <span className="font-semibold text-white">
+                    {truck.plate ? truck.plate.toUpperCase() : 'N/A'}
+                  </span>
+                  <span className="text-slate-100">{truck.clientName || 'Sin cliente'}</span>
+                  <span className="text-slate-300">{truck.companyName || 'Sin empresa'}</span>
+                  <span className="text-slate-200">{bitacoraDate}</span>
+                  <span className="text-slate-200">{bitacoraHour}</span>
+                </div>
+              );
+            })}
+            {historyRows.length === 0 && (
+              <div className="px-4 py-6 text-center text-sm text-slate-400">
+                No hay registros para el dia seleccionado.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {board('recepcion', activeRecepcionSorted)}
+      {board('despacho', activeDespachoSorted)}
     </div>
   );
 };
