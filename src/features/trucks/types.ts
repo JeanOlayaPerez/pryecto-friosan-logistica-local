@@ -19,6 +19,34 @@ export type TruckHistoryEntry = {
   note?: string;
 };
 
+export type QualityOperation = 'carga' | 'descarga';
+export type QualityStage = 'ingreso' | 'salida';
+export type QualityCondition = 'bueno' | 'observado' | 'defectuoso';
+export type QualityDecision = 'pendiente' | 'acepta' | 'rechaza';
+
+export type QualityAttachment = {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedAt: Date;
+};
+
+export type QualityRecord = {
+  id: string;
+  createdAt: Date;
+  createdByUserId: string;
+  createdByRole?: string;
+  operation: QualityOperation;
+  stage: QualityStage;
+  condition: QualityCondition;
+  clientDecision?: QualityDecision;
+  cargoDescription?: string;
+  quantity?: string;
+  notes?: string;
+  attachments?: QualityAttachment[];
+};
+
 export interface Truck {
   id: string;
   companyName: string;
@@ -50,4 +78,5 @@ export interface Truck {
   kilos?: number;
   price?: number;
   cargoItems?: string[];
+  qualityRecords?: QualityRecord[];
 }

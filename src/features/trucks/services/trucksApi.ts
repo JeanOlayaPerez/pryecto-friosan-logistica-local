@@ -23,7 +23,13 @@ import {
 } from 'firebase/firestore/lite';
 import { db, dbLite } from '../../../shared/config/firebase';
 import type { UserRole } from '../../auth/AuthProvider';
-import type { DockType, Truck, TruckStatus } from '../types';
+import type {
+  DockType,
+  QualityAttachment,
+  QualityRecord,
+  Truck,
+  TruckStatus,
+} from '../types';
 
 export type CreateTruckInput = {
   companyName: string;
@@ -67,6 +73,48 @@ const toTimestamp = (value: Date | string) => {
   return Timestamp.fromDate(as);
 };
 
+const mapQualityAttachment = (value: any): QualityAttachment => ({
+  name: value?.name ?? 'archivo',
+  url: value?.url ?? '',
+  type: value?.type ?? '',
+  size: typeof value?.size === 'number' ? value.size : Number(value?.size ?? 0),
+  uploadedAt: asDate(value?.uploadedAt) ?? new Date(),
+});
+
+const mapQualityRecord = (value: any, index: number): QualityRecord => {
+  const operation = value?.operation === 'carga' ? 'carga' : 'descarga';
+  const stage =
+    value?.stage === 'salida'
+      ? 'salida'
+      : value?.stage === 'ingreso'
+        ? 'ingreso'
+        : operation === 'carga'
+          ? 'salida'
+          : 'ingreso';
+  const condition =
+    value?.condition === 'defectuoso'
+      ? 'defectuoso'
+      : value?.condition === 'observado'
+        ? 'observado'
+        : 'bueno';
+  return {
+    id: value?.id ?? `quality-${index}`,
+    createdAt: asDate(value?.createdAt) ?? new Date(),
+    createdByUserId: value?.createdByUserId ?? 'system',
+    createdByRole: value?.createdByRole,
+    operation,
+    stage,
+    condition,
+    clientDecision: value?.clientDecision ?? undefined,
+    cargoDescription: value?.cargoDescription ?? '',
+    quantity: value?.quantity ?? '',
+    notes: value?.notes ?? '',
+    attachments: Array.isArray(value?.attachments)
+      ? value.attachments.map(mapQualityAttachment)
+      : [],
+  };
+};
+
 const mapTruckData = (id: string, data: any): Truck => {
   return {
     id,
@@ -98,6 +146,9 @@ const mapTruckData = (id: string, data: any): Truck => {
     kilos: data.kilos,
     price: data.price,
     cargoItems: data.cargoItems ?? [],
+    qualityRecords: Array.isArray(data.qualityRecords)
+      ? data.qualityRecords.map(mapQualityRecord)
+      : [],
     history: (data.history ?? []).map((h: any) => ({
       status: h.status,
       changedAt: asDate(h.changedAt) ?? new Date(),
@@ -281,6 +332,7 @@ export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {
     kilos: input.kilos ?? null,
     price: input.price ?? null,
     cargoItems: input.cargoItems ?? [],
+    qualityRecords: [],
     checkInGateAt: status === 'en_porteria' ? now : null,
     checkInTime: status === 'en_espera' || status === 'en_curso' ? now : null,
     processStartTime: status === 'en_curso' ? now : null,

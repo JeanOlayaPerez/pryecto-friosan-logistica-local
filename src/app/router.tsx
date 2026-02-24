@@ -11,6 +11,7 @@ import { GeneralBoard } from '../features/trucks/components/GeneralBoard';
 import { GerenciaReports } from '../features/trucks/components/GerenciaReports';
 import { ClientsView } from '../features/clients/ClientsView';
 import { VisorTvView } from '../features/trucks/components/VisorTvView';
+import { QualityView } from '../features/trucks/components/QualityView';
 
 const HomeRoute = () => {
   const { role } = useAuth();
@@ -20,6 +21,7 @@ const HomeRoute = () => {
   if (role === 'gerencia') return <Navigate to="/gerencia" replace />;
   if (role === 'visor') return <Navigate to="/visor" replace />;
   if (role === 'clientes') return <Navigate to="/clientes" replace />;
+  if (role === 'calidad') return <Navigate to="/calidad" replace />;
   return <TruckBoard />;
 };
 
@@ -40,6 +42,7 @@ export const AppRouter = () => {
       <Route path="/comercial" element={<CommercialView />} />
       <Route path="/visor" element={<GeneralBoard />} />
       <Route path="/historial" element={<HistoryView />} />
+      <Route path="/calidad" element={<QualityView />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

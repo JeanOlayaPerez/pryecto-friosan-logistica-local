@@ -15,6 +15,7 @@ export type UserRole =
   | 'porteria'
   | 'recepcion'
   | 'operaciones'
+  | 'calidad'
   | 'comercial'
   | 'gerencia'
   | 'visor'
@@ -64,6 +65,7 @@ const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
     'porteria',
     'recepcion',
     'operaciones',
+    'calidad',
     'comercial',
     'gerencia',
     'visor',
@@ -75,6 +77,9 @@ const parseUserDoc = (data: any): { name: string; role: UserRole } | null => {
     porteria: 'porteria',
     recepcion: 'recepcion',
     operaciones: 'operaciones',
+    calidad: 'calidad',
+    quality: 'calidad',
+    qa: 'calidad',
     comercial: 'comercial',
     gerencia: 'gerencia',
     visor: 'visor',
@@ -100,6 +105,7 @@ const inferRoleFromEmail = (email?: string | null): UserRole | null => {
   if (e.includes('recepcion')) return 'recepcion';
   if (e.includes('comercial')) return 'comercial';
   if (e.includes('operaciones')) return 'operaciones';
+  if (e.includes('calidad') || e.includes('quality') || e.includes('qa')) return 'calidad';
   if (e.includes('gerencia')) return 'gerencia';
   if (e.includes('visor') || e.includes('pantalla') || e.includes('display')) return 'visor';
   if (e.includes('cliente') || e.includes('clientes') || e.includes('empresa')) return 'clientes';

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   deleteTruck,
   flagTruckDelay,
@@ -71,6 +72,7 @@ const prevStatus = (current: TruckStatus): TruckStatus | null => {
 
 export const TruckBoard = () => {
   const { user, role } = useAuth();
+  const navigate = useNavigate();
   const [selectedDock, setSelectedDock] = useState<DockType>('recepcion');
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [loading, setLoading] = useState(true);
@@ -355,6 +357,12 @@ export const TruckBoard = () => {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => navigate(`/calidad?dock=${selectedDock}`)}
+              className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15"
+            >
+              Vista calidad
+            </button>
             {role && role !== 'comercial' && role !== 'gerencia' && (
               <button
                 onClick={() => setViewOnly((prev) => !prev)}

@@ -19,6 +19,7 @@ export const ProtectedRoute = () => {
     if (email.includes('comercial')) return 'comercial';
     if (email.includes('cliente') || email.includes('clientes') || email.includes('empresa')) return 'clientes';
     if (email.includes('operaciones')) return 'operaciones';
+    if (email.includes('calidad') || email.includes('quality') || email.includes('qa')) return 'calidad';
     if (email.includes('gerencia')) return 'gerencia';
     if (email.includes('visor') || email.includes('pantalla') || email.includes('display')) return 'visor';
     if (email.includes('admin')) return 'admin';
@@ -36,6 +37,8 @@ export const ProtectedRoute = () => {
           ? '/recepcion'
           : effectiveRole === 'clientes'
             ? '/clientes'
+            : effectiveRole === 'calidad'
+              ? '/calidad'
             : effectiveRole === 'visor'
               ? '/visor'
               : effectiveRole === 'gerencia'
@@ -118,7 +121,14 @@ export const ProtectedRoute = () => {
     return <Navigate to="/clientes" replace />;
   }
 
-  if (effectiveRole === 'recepcion' && location.pathname !== '/recepcion') {
+  if (effectiveRole === 'calidad' && location.pathname !== '/calidad') {
+    return <Navigate to="/calidad" replace />;
+  }
+
+  if (
+    effectiveRole === 'recepcion' &&
+    !['/recepcion', '/calidad'].includes(location.pathname)
+  ) {
     return <Navigate to="/recepcion" replace />;
   }
 
@@ -138,7 +148,10 @@ export const ProtectedRoute = () => {
     return <Navigate to={defaultHome} replace />;
   }
 
-  if (effectiveRole === 'gerencia' && !['/gerencia', '/gerencia/reportes'].includes(location.pathname)) {
+  if (
+    effectiveRole === 'gerencia' &&
+    !['/gerencia', '/gerencia/reportes', '/calidad'].includes(location.pathname)
+  ) {
     return <Navigate to="/gerencia" replace />;
   }
 
