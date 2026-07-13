@@ -1,18 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { subscribeAllTrucks } from '../services/trucksApi';
-import { addQualityRecord, uploadQualityAttachments } from '../services/qualityApi';
+import { addQualityRecord, uploadQualityAttachments, uploadQualitySignature } from '../services/qualityApi';
 import type {
   DockType,
   QualityCondition,
   QualityDecision,
   QualityOperation,
+  QualityProductType,
+  QualityRecord,
   QualityStage,
   Truck,
   TruckStatus,
 } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
 import { formatDurationSince } from '../../../shared/utils/time';
+import { PRODUCT_TYPE_LABELS, TEMPERATURE_RANGES, evaluateTemperature } from '../utils/temperature';
+import { SignaturePad, type SignaturePadHandle } from './SignaturePad';
+import { QualityReportPrint } from './QualityReportPrint';
 
 const statusLabels: Record<TruckStatus, string> = {
   agendado: 'Agendado',
@@ -108,6 +113,8 @@ export const QualityView = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [reportTarget, setReportTarget] = useState<{ truck: Truck; record: QualityRecord } | null>(null);
+  const signaturePadRef = useRef<SignaturePadHandle>(null);
   const [formState, setFormState] = useState({
     recordId: buildRecordId(),
     operation: 'descarga' as QualityOperation,
@@ -117,6 +124,9 @@ export const QualityView = () => {
     cargoDescription: '',
     quantity: '',
     notes: '',
+    productType: 'refrigerado' as QualityProductType,
+    temperature: '',
+    receivedByName: '',
   });
 
   const canWrite = canWriteRoles.includes(role ?? '');
@@ -211,7 +221,11 @@ export const QualityView = () => {
       cargoDescription: truck.cargoItems?.join(', ') ?? '',
       quantity: '',
       notes: '',
+      productType: 'refrigerado',
+      temperature: '',
+      receivedByName: user?.name ?? '',
     });
+    signaturePadRef.current?.clear();
   };
 
   const closeForm = () => {
@@ -219,6 +233,7 @@ export const QualityView = () => {
     setSelectedFiles([]);
     setFormError(null);
     setFormSuccess(null);
+    signaturePadRef.current?.clear();
   };
 
   const handleSave = async (truck: Truck) => {
@@ -232,6 +247,17 @@ export const QualityView = () => {
         formState.recordId,
         selectedFiles,
       );
+      const temperatureC =
+        formState.temperature.trim() === '' ? undefined : Number(formState.temperature);
+      const temperatureStatus =
+        evaluateTemperature(formState.productType, temperatureC) ?? undefined;
+      let signatureUrl: string | undefined;
+      if (!signaturePadRef.current?.isEmpty()) {
+        const blob = await signaturePadRef.current?.toBlob();
+        if (blob) {
+          signatureUrl = await uploadQualitySignature(truck.id, formState.recordId, blob);
+        }
+      }
       const decision =
         formState.condition === 'bueno' ? 'acepta' : formState.clientDecision;
       await addQualityRecord(
@@ -245,6 +271,11 @@ export const QualityView = () => {
           cargoDescription: formState.cargoDescription,
           quantity: formState.quantity,
           notes: formState.notes,
+          productType: formState.productType,
+          temperatureC,
+          temperatureStatus,
+          receivedByName: formState.receivedByName.trim(),
+          signatureUrl,
           attachments,
         },
         { userId: user.id, role },
@@ -256,6 +287,7 @@ export const QualityView = () => {
         recordId: buildRecordId(),
         notes: '',
       }));
+      signaturePadRef.current?.clear();
     } catch (err) {
       console.error(err);
       setFormError('No se pudo guardar el registro. Revisa permisos o conexion.');
@@ -444,6 +476,25 @@ export const QualityView = () => {
                           {conditionLabels[latest.condition]} - {operationLabels[latest.operation]} ({stageLabels[latest.stage]})
                         </p>
                         <p className="text-xs text-slate-400">Registrado {formatDateTime(latest.createdAt)}</p>
+                        {latest.temperatureC !== undefined && (
+                          <p className="mt-1 text-xs text-slate-300">
+                            {latest.temperatureC}°C{' '}
+                            {latest.temperatureStatus && (
+                              <span
+                                className={`ml-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                                  latest.temperatureStatus === 'ok'
+                                    ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                                    : 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                                }`}
+                              >
+                                {latest.temperatureStatus === 'ok' ? 'Dentro de rango' : 'Fuera de rango'}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {latest.receivedByName && (
+                          <p className="mt-1 text-xs text-slate-400">Recibido por: {latest.receivedByName}</p>
+                        )}
                       </div>
                       <div className="text-right text-xs text-slate-300">
                         <p>Decision cliente</p>
@@ -479,6 +530,27 @@ export const QualityView = () => {
                             <p>Decision: {decisionLabels[record.clientDecision ?? 'pendiente']}</p>
                           </div>
                         </div>
+                        {record.temperatureC !== undefined && (
+                          <p className="mt-2 text-xs text-slate-300">
+                            Temperatura: {record.temperatureC}°C{' '}
+                            {record.temperatureStatus && (
+                              <span
+                                className={`ml-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                                  record.temperatureStatus === 'ok'
+                                    ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                                    : 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                                }`}
+                              >
+                                {record.temperatureStatus === 'ok' ? 'Dentro de rango' : 'Fuera de rango'}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {record.receivedByName && (
+                          <p className="mt-2 text-xs text-slate-300">
+                            Recibido por: {record.receivedByName}
+                          </p>
+                        )}
                         {(record.cargoDescription || record.quantity) && (
                           <p className="mt-2 text-xs text-slate-300">
                             {record.cargoDescription ? `Producto: ${record.cargoDescription}` : ''}
@@ -502,6 +574,15 @@ export const QualityView = () => {
                             ))}
                           </div>
                         )}
+                        <div className="mt-2 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setReportTarget({ truck, record })}
+                            className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] text-slate-100 hover:bg-white/20"
+                          >
+                            Ver informe
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -596,6 +677,67 @@ export const QualityView = () => {
                           <option value="rechaza">Rechaza</option>
                         </select>
                       </label>
+                      <label className="text-sm text-slate-300">
+                        Tipo de producto
+                        <select
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white"
+                          value={formState.productType}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              productType: e.target.value as QualityProductType,
+                            }))
+                          }
+                        >
+                          {(Object.keys(PRODUCT_TYPE_LABELS) as QualityProductType[]).map((type) => (
+                            <option key={type} value={type}>
+                              {PRODUCT_TYPE_LABELS[type]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-sm text-slate-300">
+                        Temperatura (°C)
+                        <input
+                          type="number"
+                          step="0.1"
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white"
+                          value={formState.temperature}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              temperature: e.target.value,
+                            }))
+                          }
+                          placeholder="Ej: -18"
+                        />
+                        {(() => {
+                          const liveStatus = evaluateTemperature(
+                            formState.productType,
+                            formState.temperature.trim() === ''
+                              ? undefined
+                              : Number(formState.temperature),
+                          );
+                          return (
+                            <>
+                              {liveStatus !== null && (
+                                <span
+                                  className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                                    liveStatus === 'ok'
+                                      ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                                      : 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                                  }`}
+                                >
+                                  {liveStatus === 'ok' ? 'Dentro de rango' : 'Fuera de rango'}
+                                </span>
+                              )}
+                              <span className="mt-1 block text-[11px] text-slate-400">
+                                Rango esperado: {TEMPERATURE_RANGES[formState.productType].description}
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </label>
                     </div>
 
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -625,6 +767,20 @@ export const QualityView = () => {
                             }))
                           }
                           placeholder="Ej: 24 pallets, 12.500 kg"
+                        />
+                      </label>
+                      <label className="text-sm text-slate-300">
+                        Recibido por
+                        <input
+                          className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white"
+                          value={formState.receivedByName}
+                          onChange={(e) =>
+                            setFormState((prev) => ({
+                              ...prev,
+                              receivedByName: e.target.value,
+                            }))
+                          }
+                          placeholder="Nombre de quien recibe"
                         />
                       </label>
                     </div>
@@ -687,6 +843,22 @@ export const QualityView = () => {
                       )}
                     </div>
 
+                    <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                          Firma del receptor
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => signaturePadRef.current?.clear()}
+                          className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-slate-200 hover:bg-white/20"
+                        >
+                          Limpiar firma
+                        </button>
+                      </div>
+                      <SignaturePad ref={signaturePadRef} className="mt-2" />
+                    </div>
+
                     <div className="mt-3 flex flex-wrap justify-end gap-2">
                       <button
                         type="button"
@@ -716,6 +888,14 @@ export const QualityView = () => {
             </div>
           )}
         </div>
+      )}
+
+      {reportTarget && (
+        <QualityReportPrint
+          truck={reportTarget.truck}
+          record={reportTarget.record}
+          onClose={() => setReportTarget(null)}
+        />
       )}
     </div>
   );

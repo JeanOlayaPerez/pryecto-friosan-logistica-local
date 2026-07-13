@@ -990,3 +990,21 @@ body {
     transform: translate3d(0, -12px, 0);
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #quality-report-print,
+  #quality-report-print * {
+    visibility: visible;
+  }
+  #quality-report-print {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

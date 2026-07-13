@@ -23,6 +23,7 @@ export type QualityOperation = 'carga' | 'descarga';
 export type QualityStage = 'ingreso' | 'salida';
 export type QualityCondition = 'bueno' | 'observado' | 'defectuoso';
 export type QualityDecision = 'pendiente' | 'acepta' | 'rechaza';
+export type QualityProductType = 'congelado' | 'refrigerado' | 'ambiente';
 
 export type QualityAttachment = {
   name: string;
@@ -44,6 +45,11 @@ export type QualityRecord = {
   cargoDescription?: string;
   quantity?: string;
   notes?: string;
+  productType?: QualityProductType;
+  temperatureC?: number;
+  temperatureStatus?: 'ok' | 'fuera_rango';
+  receivedByName?: string;
+  signatureUrl?: string;
   attachments?: QualityAttachment[];
 };
 

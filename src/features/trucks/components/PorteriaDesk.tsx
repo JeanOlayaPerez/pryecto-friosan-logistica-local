@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { createTruck, subscribeAllTrucks, updateTruckDetails, updateTruckStatus } from "../services/trucksApi";
+import {
+  createTruck,
+  subscribeAllTrucks,
+  updateTruckDetails,
+  updateTruckStatus,
+  uploadGuidePhoto,
+} from "../services/trucksApi";
 import type { DockType, Truck, TruckStatus } from "../types";
 import { useAuth } from "../../auth/AuthProvider";
 
@@ -102,6 +108,8 @@ export const PorteriaDesk = () => {
   });
   const [editSaving, setEditSaving] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [guidePhotoFile, setGuidePhotoFile] = useState<File | null>(null);
+  const [photoUploadingId, setPhotoUploadingId] = useState<string | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -259,6 +267,25 @@ export const PorteriaDesk = () => {
     }
   };
 
+  const handleUploadGuidePhoto = async (truckId: string, file: File) => {
+    setActionMsg(null);
+    setPhotoUploadingId(truckId);
+    try {
+      const url = await uploadGuidePhoto(truckId, file);
+      await updateTruckDetails(
+        truckId,
+        { guidePhotoUrl: url },
+        user ? { userId: user.id, role } : undefined,
+      );
+      setActionMsg("Foto de guia subida.");
+    } catch (err) {
+      console.error(err);
+      setActionMsg("No se pudo subir la foto de la guia (permiso/red).");
+    } finally {
+      setPhotoUploadingId(null);
+    }
+  };
+
   const handleSavePlate = async (truckId: string) => {
     setActionMsg(null);
     const plate = editForm.plate.trim().toUpperCase();
@@ -297,7 +324,7 @@ export const PorteriaDesk = () => {
         throw new Error("Selecciona un anden");
       }
 
-      await createTruck(
+      const truckId = await createTruck(
         {
           companyName: form.companyName,
           clientName: form.companyName,
@@ -315,7 +342,17 @@ export const PorteriaDesk = () => {
         },
         { userId: user.id, role },
       );
-      setMessage("Camion registrado");
+      let successMessage = "Camion registrado";
+      if (guidePhotoFile) {
+        try {
+          const url = await uploadGuidePhoto(truckId, guidePhotoFile);
+          await updateTruckDetails(truckId, { guidePhotoUrl: url }, { userId: user.id, role });
+        } catch (err) {
+          console.error(err);
+          successMessage = "Camion registrado, pero no se pudo subir la foto de la guia.";
+        }
+      }
+      setMessage(successMessage);
       setForm({
         companyName: "",
         clientName: "",
@@ -328,6 +365,7 @@ export const PorteriaDesk = () => {
       });
       setEntryType("conos");
       setDockNumber("");
+      setGuidePhotoFile(null);
     } catch (err) {
       console.error(err);
       setError("No se pudo registrar el camion. Revisa datos o conexion.");
@@ -515,6 +553,32 @@ export const PorteriaDesk = () => {
                             >
                               {missingDetails ? "Completar datos" : "Editar datos"}
                             </button>
+                            {t.guidePhotoUrl ? (
+                              <a
+                                href={t.guidePhotoUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block w-full rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-center text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                              >
+                                Ver foto guia
+                              </a>
+                            ) : (
+                              <label className="block w-full cursor-pointer rounded-full border border-dashed border-slate-300 px-3 py-1 text-center text-[11px] text-slate-600 hover:bg-slate-100">
+                                {photoUploadingId === t.id ? "Subiendo..." : "Subir foto guia"}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  className="hidden"
+                                  disabled={photoUploadingId === t.id}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) void handleUploadGuidePhoto(t.id, file);
+                                    e.target.value = "";
+                                  }}
+                                />
+                              </label>
+                            )}
                           </div>
                         )}
                       </td>
@@ -653,12 +717,13 @@ export const PorteriaDesk = () => {
                   />
                 </label>
                 <label className="text-sm text-slate-700">
-                  Rut
+                  Rut *
                   <input
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={form.driverRut}
                     onChange={(e) => setForm({ ...form, driverRut: e.target.value })}
                     placeholder="12.345.678-9"
+                    required
                   />
                 </label>
                 <label className="text-sm text-slate-700">
@@ -720,6 +785,16 @@ export const PorteriaDesk = () => {
                     </select>
                   </label>
                 )}
+                <label className="text-sm text-slate-700">
+                  Foto de la guia
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 file:mr-3 file:rounded-full file:border-0 file:bg-sky-100 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-sky-700"
+                    onChange={(e) => setGuidePhotoFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
               </div>
 
               <label className="text-sm text-slate-700">

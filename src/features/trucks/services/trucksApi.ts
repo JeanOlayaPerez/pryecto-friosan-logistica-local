@@ -21,7 +21,8 @@ import {
   orderBy as orderByLite,
   query as queryLite,
 } from 'firebase/firestore/lite';
-import { db, dbLite } from '../../../shared/config/firebase';
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { auth, db, dbLite, storage } from '../../../shared/config/firebase';
 import type { UserRole } from '../../auth/AuthProvider';
 import type {
   DockType,
@@ -109,6 +110,17 @@ const mapQualityRecord = (value: any, index: number): QualityRecord => {
     cargoDescription: value?.cargoDescription ?? '',
     quantity: value?.quantity ?? '',
     notes: value?.notes ?? '',
+    productType:
+      value?.productType === 'congelado' || value?.productType === 'refrigerado' || value?.productType === 'ambiente'
+        ? value.productType
+        : undefined,
+    temperatureC: typeof value?.temperatureC === 'number' ? value.temperatureC : undefined,
+    temperatureStatus:
+      value?.temperatureStatus === 'ok' || value?.temperatureStatus === 'fuera_rango'
+        ? value.temperatureStatus
+        : undefined,
+    receivedByName: value?.receivedByName || undefined,
+    signatureUrl: value?.signatureUrl || undefined,
     attachments: Array.isArray(value?.attachments)
       ? value.attachments.map(mapQualityAttachment)
       : [],
@@ -234,8 +246,16 @@ const fetchAllTrucksFromApi = async (): Promise<FetchTrucksResult> => {
   if (typeof fetch !== 'function' || typeof window === 'undefined') {
     throw new Error('fetch no soportado');
   }
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Sesion no disponible para la API');
+  }
+  const token = await currentUser.getIdToken();
   const url = `${window.location.origin}/api/visor-trucks?limit=200`;
-  const resp = await fetch(url, { cache: 'no-store' });
+  const resp = await fetch(url, {
+    cache: 'no-store',
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (!resp.ok) {
     throw new Error(`API status ${resp.status}`);
   }
@@ -307,11 +327,11 @@ export const fetchAllTrucksOnce = async (options?: {
   };
 };
 
-export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {
+export const createTruck = async (input: CreateTruckInput, actor?: Actor): Promise<string> => {
   const status: TruckStatus = input.initialStatus ?? 'en_porteria';
   const now = serverTimestamp();
 
-  await addDoc(trucksCol, {
+  const docRef = await addDoc(trucksCol, {
     companyName: input.companyName.trim(),
     clientName: input.clientName.trim(),
     plate: input.plate.trim().toUpperCase(),
@@ -343,6 +363,17 @@ export const createTruck = async (input: CreateTruckInput, actor?: Actor) => {
     updatedAt: now,
     history: [historyEntry(status, actor, input.notes ?? input.delayReason)],
   });
+  return docRef.id;
+};
+
+const normalizeFileName = (name: string) =>
+  name.trim().replace(/[^a-zA-Z0-9._-]/g, '_') || 'foto-guia';
+
+export const uploadGuidePhoto = async (truckId: string, file: File): Promise<string> => {
+  const safeName = normalizeFileName(file.name || 'foto-guia');
+  const fileRef = storageRef(storage, `guides/${truckId}/${Date.now()}-${safeName}`);
+  await uploadBytes(fileRef, file);
+  return getDownloadURL(fileRef);
 };
 
 export const updateTruckStatus = async (
@@ -406,6 +437,7 @@ export const updateTruckDetails = async (
     updatedAt: now,
   };
 
+  if (update.companyName !== undefined) payload.companyName = update.companyName.trim();
   if (update.clientName !== undefined) payload.clientName = update.clientName.trim();
   if (update.plate !== undefined) payload.plate = update.plate.trim().toUpperCase();
   if (update.driverName !== undefined) payload.driverName = update.driverName.trim();

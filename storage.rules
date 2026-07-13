@@ -1,0 +1,39 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userRole() {
+      let path = /databases/(default)/documents/users/$(request.auth.uid);
+      return isSignedIn() && firestore.exists(path)
+        ? firestore.get(path).data.role
+        : null;
+    }
+
+    function hasRole(list) {
+      return isSignedIn() && userRole() != null && userRole().lower() in list;
+    }
+
+    match /quality/{truckId}/{recordId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if hasRole(['calidad', 'recepcion', 'operaciones', 'admin', 'superadmin'])
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|application/pdf');
+      allow delete: if hasRole(['admin', 'superadmin']);
+    }
+
+    match /guides/{truckId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if hasRole(['porteria', 'recepcion', 'operaciones', 'admin', 'superadmin'])
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if hasRole(['admin', 'superadmin']);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

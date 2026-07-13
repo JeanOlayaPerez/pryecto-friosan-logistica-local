@@ -2,7 +2,15 @@ import { Timestamp, arrayUnion, doc, serverTimestamp, updateDoc } from 'firebase
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '../../../shared/config/firebase';
 import type { UserRole } from '../../auth/AuthProvider';
-import type { QualityAttachment, QualityCondition, QualityDecision, QualityOperation, QualityStage } from '../types';
+import type {
+  QualityAttachment,
+  QualityCondition,
+  QualityDecision,
+  QualityOperation,
+  QualityProductType,
+  QualityStage,
+} from '../types';
+import type { TemperatureStatus } from '../utils/temperature';
 
 type Actor = { userId: string; role: UserRole | null };
 
@@ -15,6 +23,11 @@ export type QualityRecordInput = {
   cargoDescription?: string;
   quantity?: string;
   notes?: string;
+  productType?: QualityProductType;
+  temperatureC?: number;
+  temperatureStatus?: TemperatureStatus;
+  receivedByName?: string;
+  signatureUrl?: string;
   attachments?: QualityAttachment[];
 };
 
@@ -47,6 +60,16 @@ export const uploadQualityAttachments = async (
   return Promise.all(uploads);
 };
 
+export const uploadQualitySignature = async (
+  truckId: string,
+  recordId: string,
+  blob: Blob,
+): Promise<string> => {
+  const storageRef = ref(storage, `quality/${truckId}/${recordId}/firma-${Date.now()}.png`);
+  await uploadBytes(storageRef, blob);
+  return getDownloadURL(storageRef);
+};
+
 export const addQualityRecord = async (
   truckId: string,
   input: QualityRecordInput,
@@ -74,6 +97,11 @@ export const addQualityRecord = async (
       cargoDescription: input.cargoDescription ?? '',
       quantity: input.quantity ?? '',
       notes: input.notes ?? '',
+      productType: input.productType ?? null,
+      temperatureC: typeof input.temperatureC === 'number' ? input.temperatureC : null,
+      temperatureStatus: input.temperatureStatus ?? null,
+      receivedByName: input.receivedByName ?? '',
+      signatureUrl: input.signatureUrl ?? '',
       attachments,
     }),
   });
