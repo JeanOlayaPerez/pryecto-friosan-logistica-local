@@ -61,6 +61,14 @@ const Shell = ({ children }: AppProps) => {
                 <p className="text-sm uppercase tracking-[0.28em] text-slate-200">Friosan SPA</p>
               </div>
               <div className="flex items-center gap-2">
+                {role === 'superadmin' && (
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200 hover:bg-white/10"
+                  >
+                    Panel Admin
+                  </button>
+                )}
                 <button
                   onClick={toggleFullscreen}
                   className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200 hover:bg-white/10"

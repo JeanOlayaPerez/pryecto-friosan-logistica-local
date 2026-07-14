@@ -12,6 +12,13 @@ import { GerenciaReports } from '../features/trucks/components/GerenciaReports';
 import { ClientsView } from '../features/clients/ClientsView';
 import { VisorTvView } from '../features/trucks/components/VisorTvView';
 import { QualityView } from '../features/trucks/components/QualityView';
+import { AdminPanel } from '../features/trucks/components/AdminPanel';
+import { MaintenanceNotice } from '../features/layout/MaintenanceNotice';
+
+// Modulos temporalmente fuera de servicio. Para poner uno en mantenimiento,
+// agrega su entrada aqui (el login nunca debe entrar aqui: bloquearia el
+// acceso de todos los roles).
+const MODULOS_EN_MANTENIMIENTO: Record<string, string> = {};
 
 const HomeRoute = () => {
   const { role } = useAuth();
@@ -22,6 +29,7 @@ const HomeRoute = () => {
   if (role === 'visor') return <Navigate to="/visor" replace />;
   if (role === 'clientes') return <Navigate to="/clientes" replace />;
   if (role === 'calidad') return <Navigate to="/calidad" replace />;
+  if (role === 'superadmin') return <Navigate to="/admin" replace />;
   return <TruckBoard />;
 };
 
@@ -33,16 +41,44 @@ export const AppRouter = () => {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomeRoute />} />
+      <Route path="/admin" element={<AdminPanel />} />
       <Route path="/monitor" element={<MonitorView />} />
       <Route path="/gerencia" element={<GerenciaReports />} />
       <Route path="/gerencia/reportes" element={<GerenciaReports />} />
       <Route path="/clientes" element={<ClientsView />} />
       <Route path="/porteria" element={<PorteriaDesk />} />
-      <Route path="/recepcion" element={<TruckBoard />} />
+      <Route
+        path="/recepcion"
+        element={
+          MODULOS_EN_MANTENIMIENTO.recepcion ? (
+            <MaintenanceNotice modulo={MODULOS_EN_MANTENIMIENTO.recepcion} />
+          ) : (
+            <TruckBoard />
+          )
+        }
+      />
       <Route path="/comercial" element={<CommercialView />} />
       <Route path="/visor" element={<GeneralBoard />} />
-      <Route path="/historial" element={<HistoryView />} />
-      <Route path="/calidad" element={<QualityView />} />
+      <Route
+        path="/historial"
+        element={
+          MODULOS_EN_MANTENIMIENTO.historial ? (
+            <MaintenanceNotice modulo={MODULOS_EN_MANTENIMIENTO.historial} />
+          ) : (
+            <HistoryView />
+          )
+        }
+      />
+      <Route
+        path="/calidad"
+        element={
+          MODULOS_EN_MANTENIMIENTO.calidad ? (
+            <MaintenanceNotice modulo={MODULOS_EN_MANTENIMIENTO.calidad} />
+          ) : (
+            <QualityView />
+          )
+        }
+      />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
