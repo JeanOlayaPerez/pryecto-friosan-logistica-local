@@ -85,6 +85,7 @@ export const TruckBoard = () => {
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [listenerError, setListenerError] = useState<string | null>(null);
+  const [showRecords, setShowRecords] = useState(false);
 
   const canRecep = role === 'recepcion' || role === 'admin' || role === 'superadmin';
   const canCreate = role === 'admin' || role === 'superadmin';
@@ -363,6 +364,12 @@ export const TruckBoard = () => {
             >
               Vista calidad
             </button>
+            <button
+              onClick={() => setShowRecords((prev) => !prev)}
+              className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15"
+            >
+              {showRecords ? 'Ocultar registros' : 'Ver registros'}
+            </button>
             {role && role !== 'comercial' && role !== 'gerencia' && (
               <button
                 onClick={() => setViewOnly((prev) => !prev)}
@@ -396,6 +403,91 @@ export const TruckBoard = () => {
       {(listenerError || actionError) && (
         <div className="rounded-xl border border-amber-400/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           {listenerError ?? actionError}
+        </div>
+      )}
+
+      {showRecords && (
+        <div className="glass rounded-2xl border border-white/10 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Registros</p>
+              <p className="text-xs text-slate-400">
+                Todos los camiones de {selectedDock === 'recepcion' ? 'Recepcion' : 'Despacho'} (
+                {filtered.length})
+              </p>
+            </div>
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
+            <table className="min-w-full border-collapse text-sm">
+              <thead className="sticky top-0 z-10 bg-surface-panel text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                <tr>
+                  <th className="border-b border-white/10 px-3 py-2 text-left">Empresa / Cliente</th>
+                  <th className="border-b border-white/10 px-3 py-2 text-left">Patente</th>
+                  <th className="border-b border-white/10 px-3 py-2 text-left">Conductor</th>
+                  <th className="border-b border-white/10 px-3 py-2 text-left">Estado</th>
+                  <th className="border-b border-white/10 px-3 py-2 text-left">Anden</th>
+                  <th className="border-b border-white/10 px-3 py-2 text-left">Ult. actualizacion</th>
+                  {canCreate && <th className="border-b border-white/10 px-3 py-2 text-left">Accion</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={canCreate ? 7 : 6} className="px-3 py-6 text-center text-sm text-slate-400">
+                      Sin registros para este filtro.
+                    </td>
+                  </tr>
+                )}
+                {filtered.map((truck, idx) => (
+                  <tr key={truck.id} className={idx % 2 === 0 ? 'bg-white/[0.02]' : 'bg-white/[0.05]'}>
+                    <td className="border-b border-white/5 px-3 py-2 text-slate-100">
+                      {truck.companyName || truck.clientName || 'Sin cliente'}
+                    </td>
+                    <td className="border-b border-white/5 px-3 py-2 font-semibold uppercase text-slate-100">
+                      {truck.plate || '--'}
+                    </td>
+                    <td className="border-b border-white/5 px-3 py-2 text-slate-300">
+                      {truck.driverName || '--'}
+                    </td>
+                    <td className="border-b border-white/5 px-3 py-2">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${statusChip[truck.status]}`}
+                      >
+                        {statusLabels[truck.status]}
+                      </span>
+                    </td>
+                    <td className="border-b border-white/5 px-3 py-2 text-slate-300">
+                      {truck.dockNumber ?? '--'}
+                    </td>
+                    <td className="border-b border-white/5 px-3 py-2 text-slate-400 whitespace-nowrap">
+                      {truck.updatedAt
+                        ? truck.updatedAt.toLocaleString('es-CL', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '--'}
+                    </td>
+                    {canCreate && (
+                      <td className="border-b border-white/5 px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingTruck(truck);
+                            setFormOpen(true);
+                          }}
+                          className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent hover:bg-accent/20"
+                        >
+                          Modificar
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -437,7 +529,7 @@ export const TruckBoard = () => {
                     </span>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
                     <AnimatePresence>
                       {list.map((truck) => (
                         <TruckCard
