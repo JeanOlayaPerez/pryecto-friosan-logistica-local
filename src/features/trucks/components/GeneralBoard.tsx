@@ -338,6 +338,145 @@ const TableRow = ({
   );
 };
 
+const MobileTruckCards = ({
+  rows,
+  now,
+  emptyMessage,
+  selectedSet,
+  onToggleSelect,
+  carryoverCutoff,
+  rowNumberMap,
+}: {
+  rows: Truck[];
+  now: Date;
+  emptyMessage: string;
+  selectedSet?: Set<string>;
+  onToggleSelect?: (truck: Truck) => void;
+  carryoverCutoff?: Date | null;
+  rowNumberMap?: Map<string, number>;
+}) => {
+  const showSelect = Boolean(onToggleSelect) && Boolean(selectedSet);
+
+  return (
+    <div className="space-y-3 md:hidden">
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-[#2f2f34] bg-[#1a1a1d] px-5 py-10 text-center text-sm text-[#cdbf86]">
+          {emptyMessage}
+        </div>
+      ) : (
+        <LayoutGroup>
+          {rows.map((truck, idx) => {
+            const isSelected = Boolean(selectedSet?.has(truck.id));
+            const isCarryover = Boolean(
+              carryoverCutoff && isCarryoverTruck(truck, carryoverCutoff),
+            );
+            const rowNumber = rowNumberMap?.get(truck.id) ?? idx + 1;
+            const ingreso = truck.checkInGateAt ?? truck.checkInTime ?? null;
+            const elapsed = formatElapsed(truck.checkInTime ?? truck.checkInGateAt, now);
+            const gate = truck.dockNumber ? gateFromTruck(truck) : 'N/A';
+
+            return (
+              <motion.article
+                key={truck.id}
+                layout
+                transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+                className={`overflow-hidden rounded-2xl border bg-[#1a1a1d] shadow-[0_14px_35px_rgba(0,0,0,0.38)] ${
+                  isCarryover ? 'border-rose-400/70' : 'border-[#39393f]'
+                } ${isSelected ? 'ring-2 ring-[#e6cf6a]/70' : ''}`}
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-[#2f2f34] bg-[#202024] px-4 py-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-[#e6cf6a] px-2 text-xs font-black text-[#18181b]">
+                        {rowNumber}
+                      </span>
+                      <h2 className="text-xl font-black uppercase tracking-[0.08em] text-[#e6cf6a]">
+                        {truck.plate ? truck.plate.toUpperCase() : 'Sin patente'}
+                      </h2>
+                    </div>
+                    {isCarryover && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-rose-300/60 bg-rose-500/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-rose-100">
+                        <ClockIcon className="h-3.5 w-3.5" />
+                        Prioridad / Ayer
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className="shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white"
+                    style={{ backgroundColor: statusTone(truck.status) }}
+                  >
+                    {statusLabel[truck.status]}
+                  </span>
+                </div>
+
+                <div className="space-y-4 px-4 py-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a99e71]">
+                      Empresa / cliente
+                    </p>
+                    <p className="mt-1 break-words text-base font-semibold text-[#f0e6b1]">
+                      {truck.clientName || 'Sin cliente'}
+                    </p>
+                    {truck.driverName && (
+                      <p className="mt-1 text-sm text-[#cdbf86]">Conductor: {truck.driverName}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="rounded-xl border border-[#303036] bg-[#202024] px-3 py-2.5">
+                      <p className="text-[9px] uppercase tracking-[0.16em] text-[#a99e71]">Proceso</p>
+                      <span
+                        className="mt-1.5 inline-flex rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white"
+                        style={{ backgroundColor: processTone(truck.loadType) }}
+                      >
+                        {typeDisplay(truck)}
+                      </span>
+                    </div>
+                    <div className="rounded-xl border border-[#303036] bg-[#202024] px-3 py-2.5">
+                      <p className="text-[9px] uppercase tracking-[0.16em] text-[#a99e71]">Anden</p>
+                      <p className="mt-1 text-lg font-black text-[#e6cf6a]">{gate}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#303036] bg-[#202024] px-3 py-2.5">
+                      <p className="text-[9px] uppercase tracking-[0.16em] text-[#a99e71]">Ingreso</p>
+                      <p className="mt-1 text-sm font-semibold text-[#e9dda1]">
+                        {formatDate(ingreso)} · {formatHour(ingreso)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[#303036] bg-[#202024] px-3 py-2.5">
+                      <p className="text-[9px] uppercase tracking-[0.16em] text-[#a99e71]">Tiempo</p>
+                      <p className="mt-1 text-sm font-black text-[#e6cf6a]">{elapsed}</p>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-[#a99e71]">
+                    Bitacora: {formatDate(truck.scheduledArrival ?? null)} ·{' '}
+                    {formatHour(truck.scheduledArrival ?? null)}
+                  </p>
+
+                  {showSelect && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleSelect?.(truck)}
+                      aria-pressed={isSelected}
+                      className={`w-full rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-[0.12em] transition ${
+                        isSelected
+                          ? 'border-[#e6cf6a] bg-[#e6cf6a] text-[#18181b]'
+                          : 'border-[#e6cf6a]/50 bg-[#242428] text-[#ded293]'
+                      }`}
+                    >
+                      {isSelected ? 'Quitar de seleccion' : 'Seleccionar para finalizar'}
+                    </button>
+                  )}
+                </div>
+              </motion.article>
+            );
+          })}
+        </LayoutGroup>
+      )}
+    </div>
+  );
+};
+
 const TvTable = ({
   rows,
   now,
@@ -615,9 +754,9 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     if (!q) return base;
     return base.filter(
       (t) =>
-        t.clientName.toLowerCase().includes(q) ||
-        t.plate.toLowerCase().includes(q) ||
-        t.driverName.toLowerCase().includes(q) ||
+        (t.clientName ?? '').toLowerCase().includes(q) ||
+        (t.plate ?? '').toLowerCase().includes(q) ||
+        (t.driverName ?? '').toLowerCase().includes(q) ||
         `${t.dockNumber}`.toLowerCase().includes(q) ||
         (t.notes ?? '').toLowerCase().includes(q),
     );
@@ -653,6 +792,21 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   }, [filtered, todayStart]);
 
   const boardRows = useMemo(() => sortedRows, [sortedRows]);
+  const terminalRowsCount = useMemo(
+    () => filtered.filter((truck) => truck.status === 'cerrado' || truck.status === 'terminado').length,
+    [filtered],
+  );
+  const emptyBoardMessage = useMemo(() => {
+    if (!dataLoaded) return 'Cargando camiones...';
+    if (boardRows.length > 0) return '';
+    if (filtered.length === 0 && trucks.length > 0) {
+      return 'No hay camiones activos que coincidan con los filtros actuales.';
+    }
+    if (terminalRowsCount > 0) {
+      return `${terminalRowsCount} ${terminalRowsCount === 1 ? 'camion finalizado esta' : 'camiones finalizados estan'} disponible${terminalRowsCount === 1 ? '' : 's'} en Ver historico.`;
+    }
+    return 'No hay camiones activos para mostrar en el tablero.';
+  }, [boardRows.length, dataLoaded, filtered.length, terminalRowsCount, trucks.length]);
   const carryoverRows = useMemo(
     () => boardRows.filter((truck) => isCarryoverTruck(truck, todayStart)),
     [boardRows, todayStart],
@@ -1176,17 +1330,31 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           </div>
         )}
 
-        <TvTable
-          rows={displayRows}
-          now={now}
-          projector={projectorMode}
-          onExitProjector={projectorMode ? () => setProjectorMode(false) : undefined}
-          emptyMessage="No hay camiones activos para mostrar en el tablero."
-          selectedSet={selectionMode ? selectedSet : undefined}
-          onToggleSelect={selectionMode ? toggleSelect : undefined}
-          carryoverCutoff={todayStart}
-          rowNumberMap={arrivalNumberMap}
-        />
+        {!projectorMode && (
+          <MobileTruckCards
+            rows={displayRows}
+            now={now}
+            emptyMessage={emptyBoardMessage}
+            selectedSet={selectionMode ? selectedSet : undefined}
+            onToggleSelect={selectionMode ? toggleSelect : undefined}
+            carryoverCutoff={todayStart}
+            rowNumberMap={arrivalNumberMap}
+          />
+        )}
+
+        <div className={projectorMode ? '' : 'hidden md:block'}>
+          <TvTable
+            rows={displayRows}
+            now={now}
+            projector={projectorMode}
+            onExitProjector={projectorMode ? () => setProjectorMode(false) : undefined}
+            emptyMessage={emptyBoardMessage}
+            selectedSet={selectionMode ? selectedSet : undefined}
+            onToggleSelect={selectionMode ? toggleSelect : undefined}
+            carryoverCutoff={todayStart}
+            rowNumberMap={arrivalNumberMap}
+          />
+        </div>
 
         {!projectorMode && canShowDiagnostics && (
           <div className="tv-card tv-diagnostics">
@@ -1477,12 +1645,24 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
           </div>
         )}
 
+        {!projectorMode && (
+          <MobileTruckCards
+            rows={displayRows}
+            now={now}
+            emptyMessage={emptyBoardMessage}
+            selectedSet={selectionMode ? selectedSet : undefined}
+            onToggleSelect={selectionMode ? toggleSelect : undefined}
+            carryoverCutoff={todayStart}
+            rowNumberMap={arrivalNumberMap}
+          />
+        )}
+
         <div
           ref={tableViewportRef}
           className={`visor-table relative overflow-hidden ${
             projectorMode
               ? 'h-screen rounded-none border-0 bg-[#1a1a1d] shadow-none'
-              : 'rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]'
+              : 'hidden rounded-3xl border border-[#2f2f34] bg-[#1a1a1d] shadow-[0_20px_60px_rgba(0,0,0,0.45)] md:block'
           }`}
         >
           {projectorMode && (
@@ -1538,7 +1718,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
 
               {displayRows.length === 0 && (
                 <div className="flex h-32 items-center justify-center text-sm text-[#cdbf86]">
-                  No hay camiones activos para mostrar en el tablero.
+                  {emptyBoardMessage}
                 </div>
               )}
             </div>
@@ -1586,11 +1766,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     </div>
   );
 };
-
-
-
-
-
 
 
 

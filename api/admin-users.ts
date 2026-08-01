@@ -50,9 +50,9 @@ const applyCors = (req: any, res: any) => {
 
 const initAdmin = () => {
   if (getApps().length) return;
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-  const rawKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+  const rawKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.trim();
 
   if (!projectId || !clientEmail || !rawKey) {
     throw new Error('Faltan variables FIREBASE_ADMIN_*');
