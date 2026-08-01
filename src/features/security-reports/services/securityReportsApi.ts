@@ -46,6 +46,14 @@ type TruckSyncStats = {
 const normalizeIdentifier = (value?: string) =>
   (value ?? '').trim().toUpperCase().replace(/[^0-9A-Z]/g, '');
 
+const hasUsablePlate = (value?: string) => {
+  const normalized = normalizeIdentifier(value);
+  return Boolean(
+    normalized &&
+    !['SINPATENTE', 'NOINFORMADO', 'SINDATO', 'NA'].includes(normalized),
+  );
+};
+
 const usableIdentifier = (value?: string) => {
   const normalized = normalizeIdentifier(value);
   return ['NOINFORMADO', 'SINRUT', 'SINDATO', 'NA'].includes(normalized) ? '' : normalized;
@@ -120,11 +128,10 @@ const syncTruckReports = async (items: SecurityReportSeed[]): Promise<TruckSyncS
   const truckEvents = truckItems
     .slice()
     .sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime() || a.order - b.order);
-  const latestEvents = truckEvents.filter((event) => event.calendarDay === latestCalendarDay);
 
   const emptyStats: TruckSyncStats = {
     calendarDay: latestCalendarDay,
-    events: latestEvents.length,
+    events: truckEvents.length,
     entries: 0,
     matched: 0,
     active: 0,
@@ -133,7 +140,7 @@ const syncTruckReports = async (items: SecurityReportSeed[]): Promise<TruckSyncS
     updated: 0,
     preservedTerminal: 0,
   };
-  if (!latestCalendarDay || latestEvents.length === 0) return emptyStats;
+  if (!latestCalendarDay || truckEvents.length === 0) return emptyStats;
 
   const visits: TruckVisit[] = [];
   const openVisits: TruckVisit[] = [];
@@ -157,22 +164,33 @@ const syncTruckReports = async (items: SecurityReportSeed[]): Promise<TruckSyncS
       }
     }
     if (matchingIndex < 0) {
-      if (event.calendarDay === latestCalendarDay) orphanExits += 1;
+      orphanExits += 1;
       return;
     }
     const [matchingVisit] = openVisits.splice(matchingIndex, 1);
     matchingVisit.exit = event;
   });
 
-  // Solo se materializan visitas relacionadas con el ultimo dia operativo. El
-  // emparejamiento usa el historial completo para soportar cruces de medianoche.
-  const targetVisits = visits.filter(
-    (visit) =>
+  // Los IDs derivados del informe de ingreso hacen la reconciliacion idempotente:
+  // una nueva importacion corrige el mismo camion en vez de crear otro documento.
+  // Se consultan todas las visitas para poder actualizar tambien un ingreso
+  // historico incompleto que ya haya sido materializado por una ejecucion previa.
+  const visitDocumentIds = visits.map((visit) => truckDocumentId(visit.entry.item.id));
+  const existingTrucks = await readExistingTrucks(visitDocumentIds);
+
+  // Se materializa todo viaje con salida confirmada, aunque no pertenezca al
+  // ultimo dia del lote. Los ingresos abiertos solo se crean para el dia
+  // operativo mas reciente; asi, un informe historico sin salida recuperada no
+  // reaparece como camion activo. Si ese documento ya existe, si se actualizan
+  // sus datos de origen (por ejemplo una patente corregida) sin forzar su estado.
+  const targetVisits = visits.filter((visit) => {
+    const documentIdValue = truckDocumentId(visit.entry.item.id);
+    return Boolean(
+      visit.exit ||
       visit.entry.calendarDay === latestCalendarDay ||
-      visit.exit?.calendarDay === latestCalendarDay,
-  );
-  const documentIds = targetVisits.map((visit) => truckDocumentId(visit.entry.item.id));
-  const existingTrucks = await readExistingTrucks(documentIds);
+      existingTrucks.has(documentIdValue),
+    );
+  });
   const terminalStatuses = new Set<TruckStatus>(['cerrado', 'terminado']);
   const isExistingTerminal = (visit: TruckVisit) => {
     const id = truckDocumentId(visit.entry.item.id);
@@ -198,6 +216,8 @@ const syncTruckReports = async (items: SecurityReportSeed[]): Promise<TruckSyncS
       const existing = existingTrucks.get(documentIdValue);
       const existingStatus = existing?.status as TruckStatus | undefined;
       const existingIsTerminal = Boolean(existingStatus && terminalStatuses.has(existingStatus));
+      const sourcePlate = entry.plate?.trim().toUpperCase();
+      const sourceDock = entry.dock?.trim();
       const activeStatus: TruckStatus = entry.dock ? 'en_curso' : 'en_espera';
       const initialHistory = {
         status: activeStatus,
@@ -209,12 +229,22 @@ const syncTruckReports = async (items: SecurityReportSeed[]): Promise<TruckSyncS
       const basePayload = {
         companyName: entry.company?.trim() || 'Sin empresa',
         clientName: entry.client?.trim() || entry.company?.trim() || 'Sin cliente',
-        plate: entry.plate?.trim().toUpperCase() || 'SIN PATENTE',
+        ...(
+          hasUsablePlate(sourcePlate) ||
+          !existing ||
+          !hasUsablePlate(String(existing.plate ?? ''))
+            ? { plate: hasUsablePlate(sourcePlate) ? sourcePlate : 'SIN PATENTE' }
+            : {}
+        ),
         driverName: entry.personName?.trim() || 'Conductor sin identificar',
         driverRut: entry.identifier?.trim() || '',
         dockType: entry.operation === 'carga' ? 'despacho' : 'recepcion',
-        dockNumber: entry.dock?.trim() || '0',
-        entryType: entry.dock ? 'anden' : 'conos',
+        ...(sourceDock || !existing
+          ? {
+              dockNumber: sourceDock || '0',
+              entryType: sourceDock ? 'anden' : 'conos',
+            }
+          : {}),
         scheduledArrival: entryTimestamp,
         checkInGateAt: entryTimestamp,
         checkInTime: entryTimestamp,

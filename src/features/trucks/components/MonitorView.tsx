@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { fetchAllTrucksOnce, subscribeAllTrucks, updateTruckStatus } from '../services/trucksApi';
+import { auth } from '../../../shared/config/firebase';
 import type { DockType, Truck, TruckStatus } from '../types';
 import { TruckCard } from './TruckCard';
 import { useAuth } from '../../auth/AuthProvider';
@@ -106,7 +107,7 @@ const sortTrucks = (list: Truck[], dayStart: Date) =>
     return aTime - bTime;
   });
 
-const useMonitorTrucks = () => {
+const useMonitorTrucks = (apiOnly: boolean) => {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [source, setSource] = useState<string | null>(null);
@@ -116,6 +117,7 @@ const useMonitorTrucks = () => {
 
   useEffect(() => {
     let unsub: (() => void) | null = null;
+    let pollId: ReturnType<typeof setInterval> | null = null;
     let watchdogId: ReturnType<typeof setInterval> | null = null;
     let active = true;
 
@@ -137,7 +139,7 @@ const useMonitorTrucks = () => {
       if (fetchInFlight.current) return;
       fetchInFlight.current = true;
       try {
-        const result = await fetchAllTrucksOnce({ preferApi: true, preferLite: true });
+        const result = await fetchAllTrucksOnce({ preferApi: true, preferLite: true, apiOnly });
         markUpdate(result.data, `fetch-${result.source}`, result.error ?? null);
       } catch (err) {
         console.error('Error cargando camiones para monitor', err);
@@ -147,25 +149,30 @@ const useMonitorTrucks = () => {
       }
     };
 
-    unsub = subscribeAllTrucks(
-      (data) => {
-        markUpdate(data, 'listener');
-      },
-      (err) => {
-        console.error('Error en listener de monitor', err);
-        setErrorOnly('Se perdio la conexion en vivo. Reintentando.');
-        void loadOnce();
-      },
-    );
+    if (apiOnly) {
+      void loadOnce();
+      pollId = setInterval(loadOnce, 15000);
+    } else {
+      unsub = subscribeAllTrucks(
+        (data) => {
+          markUpdate(data, 'listener');
+        },
+        (err) => {
+          console.error('Error en listener de monitor', err);
+          setErrorOnly('Se perdio la conexion en vivo. Reintentando.');
+          void loadOnce();
+        },
+      );
 
-    void loadOnce();
+      void loadOnce();
 
-    watchdogId = setInterval(() => {
-      const staleMs = Date.now() - lastUpdateRef.current;
-      if (!lastUpdateRef.current || staleMs > 45000) {
-        void loadOnce();
-      }
-    }, 15000);
+      watchdogId = setInterval(() => {
+        const staleMs = Date.now() - lastUpdateRef.current;
+        if (!lastUpdateRef.current || staleMs > 45000) {
+          void loadOnce();
+        }
+      }, 15000);
+    }
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -182,11 +189,12 @@ const useMonitorTrucks = () => {
     return () => {
       active = false;
       if (unsub) unsub();
+      if (pollId) clearInterval(pollId);
       if (watchdogId) clearInterval(watchdogId);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('online', handleOnline);
     };
-  }, []);
+  }, [apiOnly]);
 
   return { trucks, lastUpdatedAt, source, error };
 };
@@ -200,7 +208,8 @@ const SummaryCard = ({ title, value }: { title: string; value: number }) => (
 
 export const MonitorView = () => {
   const { role, user } = useAuth();
-  const { trucks, lastUpdatedAt, source, error } = useMonitorTrucks();
+  const apiOnly = auth.currentUser?.isAnonymous === true;
+  const { trucks, lastUpdatedAt, source, error } = useMonitorTrucks(apiOnly);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [historyDay, setHistoryDay] = useState(() => toInputDate(new Date()));
@@ -237,7 +246,9 @@ export const MonitorView = () => {
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const canFinalize =
-    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
+    Boolean(user) &&
+    auth.currentUser?.isAnonymous === false &&
+    ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
   const selectedHistoryDate = useMemo(
     () => parseInputDate(historyDay) ?? startOfDay(new Date()),
     [historyDay],

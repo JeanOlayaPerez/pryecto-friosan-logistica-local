@@ -12,6 +12,7 @@ import {
 } from "../../auth/adminUsersApi";
 import type { AdminUser } from "../../auth/adminUsersApi";
 import { TruckForm } from "./TruckForm";
+import { SuperAdminAnalytics } from "./SuperAdminAnalytics";
 
 const statusLabel: Record<TruckStatus, string> = {
   agendado: "Agendado",
@@ -109,14 +110,6 @@ const formatDate = (d?: Date | null) => {
 
 const dockLabel = (dockType: DockType) => (dockType === "recepcion" ? "Recepción" : "Despacho");
 
-const metricCard = (title: string, value: string, desc?: string) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
-    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{title}</p>
-    <p className="text-3xl font-semibold text-slate-900">{value}</p>
-    {desc && <p className="text-sm text-slate-500">{desc}</p>}
-  </div>
-);
-
 export const AdminPanel = () => {
   const { user, role, loading } = useAuth();
   const navigate = useNavigate();
@@ -172,23 +165,6 @@ export const AdminPanel = () => {
   useEffect(() => {
     if (role === "superadmin") void loadAccounts();
   }, [role]);
-
-  const stats = useMemo(() => {
-    const today = new Date();
-    const sameDay = (d?: Date | null) =>
-      d &&
-      d.getFullYear() === today.getFullYear() &&
-      d.getMonth() === today.getMonth() &&
-      d.getDate() === today.getDate();
-    const total = trucks.length;
-    const recepcion = trucks.filter((t) => t.dockType === "recepcion").length;
-    const despacho = trucks.filter((t) => t.dockType === "despacho").length;
-    const activos = trucks.filter((t) => t.status !== "cerrado" && t.status !== "terminado").length;
-    const hoy = trucks.filter(
-      (t) => sameDay(t.createdAt) || sameDay(t.checkInGateAt) || sameDay(t.checkInTime),
-    ).length;
-    return { total, recepcion, despacho, activos, hoy };
-  }, [trucks]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -385,14 +361,7 @@ export const AdminPanel = () => {
           </div>
         )}
 
-        {/* KPIs */}
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-          {metricCard("Total camiones", String(stats.total))}
-          {metricCard("En Recepción", String(stats.recepcion))}
-          {metricCard("En Despacho", String(stats.despacho))}
-          {metricCard("Activos", String(stats.activos), "No cerrados / terminados")}
-          {metricCard("Hoy", String(stats.hoy), "Creados o ingresados hoy")}
-        </div>
+        <SuperAdminAnalytics trucks={trucks} />
 
         {/* Gestión de camiones */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">

@@ -1,106 +1,139 @@
-# Friosan Logística · Tablero de Camiones (Demo local)
-Versión: DEMO local con datos en `localStorage` (sin backend). Lista para producción conectando Firebase u otra API.
+# Friosan Logística · Plataforma de operación de camiones
+
+**Versión funcional con autenticación, datos en línea y panel de Super Administración**
+**Actualización:** 1 de agosto de 2026
 
 ---
+
 ## 1. Propuesta de valor
-- **Control total de andenes (1-9)** con estado visible (libre/ocupado) y semáforos por columna (espera/curso/terminado).
-- **Priorización de retrasos** (temperatura, documentación, inspección, prioridad de carga) y botones de acción rápidos.
-- **Roles claros**: Operaciones/Admin (accionan), Comercial (solo lectura), modo “solo vista” para demo/TV.
-- **UI responsiva y animada**: funciona en TV, desktop, tablet, móvil. Fondo logístico y tarjetas con semáforo.
-- **Listo para terreno**: datos locales para demo; estructura preparada para conectar Auth + Firestore (SDK modular v9).
+
+- **Visibilidad del flujo completo:** agenda, portería, espera, proceso, recepción, almacenamiento, cierre y término.
+- **Coordinación por rol:** cada equipo recibe la pantalla y las acciones que corresponden a su trabajo.
+- **Datos compartidos en tiempo real:** los cambios operativos se almacenan en Firebase y se reflejan en las vistas conectadas.
+- **Control de andenes y retrasos:** búsqueda, estados, ubicación y tiempos visibles en tableros operativos.
+- **Supervisión ejecutiva:** reportes de Gerencia y analítica rápida para Super Admin.
+- **Operación en distintos formatos:** escritorio, tablet, teléfono, monitor y visor TV.
 
 ---
-## 2. Flujo funcional (con ejemplo real)
-1) **Login** (demo):  
-   - operaciones@friosan.com / comercial@friosan.com / admin@friosan.com — clave `demo123`.
-2) **Tab principal**  
-   - Tabs: Recepción / Despacho.  
-   - Columnas: En espera / En curso / Terminados (semáforo).  
-   - Buscador: cliente, patente, conductor, número de andén.
-3) **Acciones (ops/admin)**  
-   - Mover: Espera → En curso → Terminado; reabrir Terminado → En curso; devolver a Espera.  
-   - Marcar retraso: añade motivo y destaca en panel de retrasos.  
-   - Crear/editar camión; Reset datos locales (repuebla las semillas demo).
-4) **Andenes**  
-   - Tarjetas 1–9 con rojo/verde; muestra cuántos en espera por andén.
-5) **Retrasos**  
-   - Lista priorizada con motivo y tiempo en espera.
-6) **Historial del día**  
-   - Ingresos ordenados por hora (solo jornada actual).
-7) **Monitor (/monitor)**  
-   - Vista TV, solo lectura, contadores grandes y semáforo.
+
+## 2. Flujo operativo
+
+`Agendado → En portería → En espera → En curso → Recepcionado → Almacenado → Cerrado → Terminado`
+
+1. **Comercial** agenda el camión, la empresa, la fecha y el tipo de carga.
+2. **Portería** confirma la llegada, completa patente, conductor y RUT, adjunta la guía y asigna conos o andén.
+3. **Recepción** o **Despacho** avanza el proceso y controla su estado.
+4. **Calidad** registra condición, temperatura, evidencias y firma.
+5. **Gerencia** consulta indicadores, filtra información y exporta reportes.
+6. **Visor/TV** presenta el estado de la operación; la pantalla pública es de sólo lectura y la finalización exige una cuenta autenticada con permiso.
+
+Los camiones no previstos también pueden registrarse desde Portería, sin depender de una agenda previa.
 
 ---
-## 3. Datos de ejemplo cargados (8 camiones)
-- **En espera (4)**  
-  - Agrosuper · ABCJ45 · Andén 3 · “Pérdida de temperatura en ingreso”  
-  - Guayarauco · PTZL11 · Andén 7 · “Falta de documentación de exportación”  
-  - Polar Foods · MNTC33 · Andén 6 · “Retraso por inspección sanitaria”  
-  - Rich Products · GHJK12 · Andén 9 · “Esperando turno prioritario”
-- **En curso (2)**  
-  - Friosur · BHFZ21 · Andén 5 · “Control de calidad en proceso”  
-  - FrioTruck · XQRT22 · Andén 4 · “Carga de pallets mixtos”
-- **Terminados (2)**  
-  - RetailMax · DKLM98 · Andén 1 · “Descarga completa saludable”  
-  - Andes Cargo · RBLK77 · Andén 8 · “Despacho completado”
-- Persistencia: `localStorage` (clave `friosan-trucks-v2`). Botón “Reset datos locales” repuebla estas semillas.
+
+## 3. Módulos disponibles
+
+- **Comercial:** planificación diaria y consulta de mercadería.
+- **Portería:** bitácora, datos de acceso, fotografía de guía y camiones extra.
+- **Recepción/Despacho:** tablero, búsqueda, estados, andenes, retrasos y registros.
+- **Calidad:** controles, archivos de evidencia, firma e informe imprimible.
+- **Clientes:** directorio de empresas según los permisos del rol.
+- **Gerencia:** métricas, reportes personalizados, vista previa y exportación a PDF, Excel o Word.
+- **Historial:** consulta diaria por fecha y estado.
+- **Visor, Visor TV y Monitor:** seguimiento visual para operación y pantallas compartidas.
+- **Informes de seguridad:** bitácora protegida para Super Admin, con filtros, sincronización controlada y exportación CSV.
 
 ---
-## 4. Roles y permisos
-- **Operaciones**: crear/editar, mover estados, marcar retraso, reset local.
-- **Admin**: todo lo anterior.
-- **Comercial**: solo lectura (sin botones de acción).  
-- **Modo solo vista**: conmutador para desactivar acciones aunque seas ops/admin (útil en demo o TV).
-- Futuro (Firebase): roles desde colección `users` (`role`: operaciones/comercial/admin) + reglas Firestore (lectura auth; escritura solo operaciones/admin).
+
+## 4. Super Administración
+
+El rol `superadmin` dispone de un panel exclusivo con tres áreas principales:
+
+### Analítica operativa
+
+- Períodos de **7 días**, **30 días**, **90 días** o **Todo**.
+- Ingresos del período, ingresos de hoy y camiones activos.
+- Tasa de finalización y permanencia promedio cuando los registros tienen horas completas.
+- Cobertura de patentes y cantidad de registros pendientes de revisión.
+- Gráficos de volumen, empresas con más ingresos, Recepción vs. Despacho, estados e ingresos por hora.
+
+### Gestión de camiones
+
+- Búsqueda por empresa, patente, conductor o andén.
+- Filtros por área y estado.
+- Edición, cambio de estado y eliminación con confirmación.
+
+### Gestión de cuentas
+
+- Listado de empleados con rol, estado y último acceso.
+- Creación y edición de nombre, correo, rol y contraseña.
+- Habilitación o deshabilitación temporal del acceso.
+- Eliminación permanente con confirmación.
+- Protección de la cuenta en uso para impedir que se deshabilite o elimine a sí misma.
 
 ---
-## 5. UI/UX y responsividad
-- Tema oscuro con gradiente y convoy animado de camiones; semáforos por estado y andén.
-- Tarjetas con ETA estimada, tiempos de espera/proceso, notas y botones contextuales.
-- Grillas fluidas:  
-  - Badges superiores en 2–4 columnas según ancho.  
-  - Panel central 3 columnas (apila en tablet/móvil).  
-  - Andenes y retrasos en grilla adaptable.  
-  - Tipografía clamped para legibilidad en TV y móvil.
-- Animaciones: Framer Motion en tarjetas, contenedores y hover (micro-elevación).
+
+## 5. Roles y acceso
+
+La plataforma reconoce los roles `porteria`, `recepcion`, `operaciones`, `calidad`, `comercial`, `gerencia`, `visor`, `clientes`, `admin` y `superadmin`.
+
+- El inicio de sesión dirige a cada persona a su pantalla principal.
+- Las rutas y acciones se restringen de acuerdo con el rol.
+- La administración de cuentas sólo está disponible para Super Admin.
+- Las operaciones sobre cuentas pasan por un servicio administrativo autenticado que valida la sesión antes de aplicar cambios.
+- Las contraseñas nunca deben incorporarse a presentaciones, capturas ni archivos versionados.
 
 ---
-## 6. Stack técnico
-- React 18 + Vite + TypeScript.
-- Tailwind CSS (tema extendido y utilidades).
-- React Router (SPA) + `vercel.json` para rewrite a `index.html`.
-- Framer Motion (animaciones).
-- LocalStorage para demo; `src/shared/config/firebase.ts` listo para conectar Auth/Firestore modular v9.
+
+## 6. Datos, reportes y modo demostración
+
+- La operación normal usa Firebase Authentication, Firestore y Storage.
+- Los tableros reciben actualizaciones conectadas a los registros del sistema.
+- Gerencia dispone de un modo de demostración claramente identificado. Si aparece **Datos demo activos**, esa información no debe presentarse ni exportarse como operación real.
+- Las vistas analíticas muestran estados vacíos cuando no existe información suficiente; no inventan valores.
+- Antes de distribuir un reporte, se deben revisar el período, los filtros, la cantidad de filas y la presencia de datos personales.
 
 ---
-## 7. Despliegue en Vercel (SPA)
-- Build: `npm run build` · Output: `dist` · Framework: Vite.  
-- `vercel.json` ya incluye rewrite `/(.*) -> /index.html`.  
-- Pasos rápidos:  
-  1) `git init && git add . && git commit -m "chore: friosan demo local"`  
-  2) Subir a GitHub/GitLab.  
-  3) Importar repo en Vercel → seleccionar Vite → build/output por defecto.  
-  4) Sin variables de entorno en demo (si luego hay Firebase, se añaden `VITE_FIREBASE_*`).  
-- Rutas a probar: `/login`, `/`, `/monitor`. Si ves pocos camiones: botón “Reset datos locales”.
+
+## 7. Experiencia de uso
+
+- Diseño adaptable a escritorio, tablet, teléfono y pantallas de proyección.
+- Búsqueda por cliente, empresa, patente, conductor o andén según el módulo.
+- Indicadores y gráficos con etiquetas visibles y estados sin datos.
+- Modos de pantalla completa y proyección para monitores.
+- Confirmaciones antes de acciones sensibles como finalizar o eliminar registros.
 
 ---
-## 8. Operación diaria (ejemplo)
-- 08:00 Ingresan 4 camiones a Recepción (Agrosuper, Polar Foods, Rich Products, Friosur).  
-- 08:15 Semáforo muestra 4 en espera; dos con alerta de retraso por temperatura/inspección.  
-- 08:20 Operaciones marca retraso en Agrosuper y pasa Friosur a “En curso”.  
-- 09:00 RetailMax termina, libera andén 1; Andes Cargo en despacho finaliza a las 09:10.  
-- Monitor en TV muestra ocupación de andenes (rojo/verde) y contadores grandes.
+
+## 8. Escenario breve de demostración
+
+1. Crear una agenda ficticia desde Comercial.
+2. Completar patente y conductor en Portería y asignar un andén libre.
+3. Avanzar el camión desde En espera hasta En curso en Recepción.
+4. Registrar un control de Calidad con datos de prueba.
+5. Mostrar el cambio en Visor o Monitor.
+6. Abrir Gerencia para revisar filtros y exportación.
+7. Entrar como Super Admin, cambiar el período analítico y comparar volumen, empresas y horas.
+8. Mostrar la lista de cuentas sin revelar correos reales ni ejecutar eliminaciones.
 
 ---
-## 9. Roadmap a producción
-- Conectar Firebase (Auth + Firestore) con reglas por rol.
-- Historizar KPI: tiempos promedio por estado/andén, SLA, exportables CSV.
-- Alertas push/email para retrasos críticos.
-- Integración QR/escáner en gate y sello fotográfico de carga.
-- Branding Friosan definitivo (logo, paleta, tipografía corporativa).
+
+## 9. Próximas mejoras sugeridas
+
+- Alertas configurables para retrasos críticos.
+- Integración con lectura QR o escáner en el acceso.
+- Automatización de avisos y distribución de reportes.
+- Métricas adicionales de nivel de servicio y ocupación por andén.
+- Procedimientos de respaldo, recuperación y revisión periódica de accesos.
 
 ---
-## 10. CTA
-- **Aprobación** para conectar backend y definir reglas de seguridad.  
-- **Validación de branding** (logo/paleta Friosan).  
-- **Piloto** 1 semana con datos reales: medir tiempos y ajustar flujo.
+
+## 10. Checklist antes de presentar
+
+- Usar cuentas y registros de prueba sin datos personales reales.
+- Confirmar conexión, fecha y hora del equipo.
+- Preparar camiones en distintas etapas para que los gráficos sean representativos.
+- Verificar que Gerencia muestre datos reales o explicar de forma visible el modo demo.
+- Probar las vistas móvil, TV y pantalla completa.
+- No eliminar cuentas, clientes ni camiones reales durante la demostración.
+- No mostrar contraseñas, RUT, firmas, guías ni correos privados.
