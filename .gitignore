@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +23,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
+
+# Informes internos y entregables locales (no publicar en el repositorio público)
+docs/Cotizacion-Proyecto-Friosan.pdf
+docs/Funciones_y_Roles.md
+docs/Informe-Cambios-Ciberseguridad-Cliente.pdf
+docs/Informe-Estado-Proyecto-Friosan.pdf
+docs/Manual_Usuario.pdf
+docs/Observaciones_Tecnicas.md
+docs/imagenes/
+docs/informe-cambios-ciberseguridad-cliente.md
+docs/informe-ciberseguridad-plan.md
+docs/propuesta-cliente.html
+docs/propuesta-cliente.pdf
+scripts/generate-proposal-pdf.cjs

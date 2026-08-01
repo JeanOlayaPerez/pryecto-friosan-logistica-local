@@ -59,6 +59,7 @@ type Actor = { userId: string; role: UserRole | null };
 
 const trucksCol = collection(db, 'trucks');
 const trucksColLite = collectionLite(dbLite, 'trucks');
+const isAnonymousSession = () => auth.currentUser?.isAnonymous === true;
 
 const asDate = (value: any): Date | null => {
   if (!value) return null;
@@ -204,6 +205,11 @@ export const subscribeAllTrucks = (
   onUpdate: (trucks: Truck[]) => void,
   onError?: (error: unknown) => void,
 ) => {
+  if (isAnonymousSession()) {
+    queueMicrotask(() => onError?.(new Error('La sesion anonima debe usar la API publica sanitizada.')));
+    return () => undefined;
+  }
+
   const unsub = onSnapshot(
     trucksCol,
     (snap) => onUpdate(asSorted(snap.docs.map(mapTruck))),
@@ -270,7 +276,14 @@ const fetchAllTrucksFromApi = async (): Promise<FetchTrucksResult> => {
 export const fetchAllTrucksOnce = async (options?: {
   preferLite?: boolean;
   preferApi?: boolean;
+  apiOnly?: boolean;
 }): Promise<FetchTrucksResult> => {
+  // Las pantallas publicas nunca deben caer al SDK de Firestore: una respuesta
+  // vacia de la API es valida y no justifica intentar leer documentos privados.
+  if (options?.apiOnly || isAnonymousSession()) {
+    return fetchAllTrucksFromApi();
+  }
+
   const errors: string[] = [];
 
   if (options?.preferApi) {

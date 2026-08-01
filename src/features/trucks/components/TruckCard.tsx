@@ -176,7 +176,9 @@ export const TruckCard = ({
             <span className="rounded-lg bg-white/5 px-3 py-1 font-semibold text-white">
               {truck.plate}
             </span>
-            <span className="rounded-lg bg-white/5 px-3 py-1">{truck.driverName}</span>
+            {truck.driverName && (
+              <span className="rounded-lg bg-white/5 px-3 py-1">{truck.driverName}</span>
+            )}
             <span className="rounded-lg bg-white/5 px-3 py-1">
               {truck.entryType === 'conos' ? 'Conos' : `Anden ${truck.dockNumber}`}
             </span>

@@ -631,6 +631,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   const [tableScale, setTableScale] = useState(1);
   const [tableScaledSize, setTableScaledSize] = useState({ width: 0, height: 0 });
   const compatEnabled = forceCompat || isCompat;
+  const apiOnly = auth.currentUser?.isAnonymous === true;
   const todayKey = useMemo(() => toInputDate(now), [now]);
   const todayStart = useMemo(() => parseInputDate(todayKey) ?? startOfDay(new Date()), [todayKey]);
   const selectedHistoryDate = useMemo(
@@ -685,7 +686,11 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       if (fetchInFlight.current) return;
       fetchInFlight.current = true;
       try {
-        const result = await fetchAllTrucksOnce({ preferLite: compatEnabled, preferApi: compatEnabled });
+        const result = await fetchAllTrucksOnce({
+          preferLite: compatEnabled,
+          preferApi: compatEnabled,
+          apiOnly,
+        });
         if (!active) return;
         setListenerError(null);
         markUpdate(result.data, `fetch-${result.source}`, result.error ?? null);
@@ -700,7 +705,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       }
     };
 
-    if (compatEnabled) {
+    if (compatEnabled || apiOnly) {
       void loadOnce();
       intervalId = setInterval(loadOnce, 15000);
     } else {
@@ -746,7 +751,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('online', handleOnline);
     };
-  }, [compatEnabled]);
+  }, [apiOnly, compatEnabled]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -896,7 +901,9 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
   const historyRankMap = useMemo(() => buildRowNumberMap(historyRows), [historyRows]);
 
   const canFinalize =
-    Boolean(user) && ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
+    Boolean(user) &&
+    auth.currentUser?.isAnonymous === false &&
+    ['recepcion', 'comercial', 'admin', 'superadmin', 'visor'].includes(role ?? '');
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedRows = useMemo(
@@ -1766,8 +1773,6 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
     </div>
   );
 };
-
-
 
 
 
