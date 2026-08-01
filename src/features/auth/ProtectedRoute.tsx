@@ -29,7 +29,9 @@ export const ProtectedRoute = () => {
   const effectiveRole = guessRole();
 
   const defaultHome =
-    effectiveRole === 'porteria'
+    effectiveRole === 'superadmin'
+      ? '/admin'
+      : effectiveRole === 'porteria'
       ? '/porteria'
       : effectiveRole === 'comercial'
         ? '/comercial'
@@ -109,6 +111,10 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
+  if (location.pathname.startsWith('/admin') && effectiveRole !== 'superadmin') {
+    return <Navigate to={defaultHome} replace />;
+  }
+
   if (location.pathname === '/porteria' && !['porteria', 'admin', 'superadmin'].includes(effectiveRole ?? '')) {
     return <Navigate to="/" replace />;
   }
@@ -144,7 +150,7 @@ export const ProtectedRoute = () => {
     return <Navigate to="/visor" replace />;
   }
 
-  if (isGeneralPath && effectiveRole !== 'visor') {
+  if (isGeneralPath && !['visor', 'admin', 'superadmin'].includes(effectiveRole ?? '')) {
     return <Navigate to={defaultHome} replace />;
   }
 
