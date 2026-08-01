@@ -126,7 +126,12 @@ export const SecurityReportsView = () => {
         return;
       }
       const result = await importSecurityReports(stagedSeed);
-      setMessage(`${result.verified} de ${result.total} registros verificados en Firestore, sin duplicados.`);
+      const activeText = result.truckSync.active === 1
+        ? '1 camión activo sincronizado con el tablero'
+        : `${result.truckSync.active} camiones activos sincronizados con el tablero`;
+      setMessage(
+        `${result.verified} de ${result.total} informes verificados en Firestore, sin duplicados. ${activeText}; ${result.truckSync.matched} visitas finalizadas quedaron en el histórico.`,
+      );
     } catch (error) {
       console.error(error);
       setMessage(error instanceof Error ? error.message : 'No se pudo importar. Despliega primero las reglas de Firestore y confirma la sesión de Super Admin.');

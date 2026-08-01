@@ -130,10 +130,10 @@ const mapQualityRecord = (value: any, index: number): QualityRecord => {
 const mapTruckData = (id: string, data: any): Truck => {
   return {
     id,
-    companyName: data.companyName ?? data.clientName,
-    clientName: data.clientName,
-    plate: data.plate,
-    driverName: data.driverName,
+    companyName: String(data.companyName ?? data.clientName ?? 'Sin empresa'),
+    clientName: String(data.clientName ?? data.companyName ?? 'Sin cliente'),
+    plate: String(data.plate ?? ''),
+    driverName: String(data.driverName ?? ''),
     driverRut: data.driverRut,
     dockType: data.dockType,
     dockNumber: data.dockNumber,
@@ -204,10 +204,9 @@ export const subscribeAllTrucks = (
   onUpdate: (trucks: Truck[]) => void,
   onError?: (error: unknown) => void,
 ) => {
-  const q = query(trucksCol, orderBy('createdAt', 'desc'));
   const unsub = onSnapshot(
-    q,
-    (snap) => onUpdate(snap.docs.map(mapTruck)),
+    trucksCol,
+    (snap) => onUpdate(asSorted(snap.docs.map(mapTruck))),
     (err) => {
       console.error('Error en listener de trucks', err);
       onError?.(err);
@@ -222,18 +221,19 @@ export type FetchTrucksResult = {
   error?: string;
 };
 
-const asSorted = (data: Truck[]) =>
-  data.sort((a, b) => {
+function asSorted(data: Truck[]) {
+  return data.sort((a, b) => {
     const aTime = a.createdAt?.getTime() ?? 0;
     const bTime = b.createdAt?.getTime() ?? 0;
     return bTime - aTime;
   });
+}
 
 const fetchAllTrucksLite = async (): Promise<FetchTrucksResult> => {
   try {
     const q = queryLite(trucksColLite, orderByLite('createdAt', 'desc'));
     const snap = await getDocsLite(q);
-    return { data: snap.docs.map(mapTruck), source: 'lite-order' };
+    if (!snap.empty) return { data: snap.docs.map(mapTruck), source: 'lite-order' };
   } catch (err) {
     console.warn('Fallo lectura lite con orderBy', err);
   }
@@ -296,7 +296,8 @@ export const fetchAllTrucksOnce = async (options?: {
   try {
     const q = query(trucksCol, orderBy('createdAt', 'desc'));
     const snap = await getDocsFromServer(q);
-    return { data: snap.docs.map(mapTruck), source: 'server-order' };
+    if (!snap.empty) return { data: snap.docs.map(mapTruck), source: 'server-order' };
+    errors.push('server-order: sin datos');
   } catch (err) {
     console.warn('Fallo query server con orderBy, intentando cache/local', err);
     errors.push(err instanceof Error ? err.message : 'server-order error');
@@ -305,7 +306,8 @@ export const fetchAllTrucksOnce = async (options?: {
   try {
     const q = query(trucksCol, orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
-    return { data: snap.docs.map(mapTruck), source: 'cache-order' };
+    if (!snap.empty) return { data: snap.docs.map(mapTruck), source: 'cache-order' };
+    errors.push('cache-order: sin datos');
   } catch (err) {
     console.warn('Fallo query con orderBy, usando lectura simple', err);
     errors.push(err instanceof Error ? err.message : 'cache-order error');
