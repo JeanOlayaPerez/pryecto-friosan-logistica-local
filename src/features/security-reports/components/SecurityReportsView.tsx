@@ -125,11 +125,11 @@ export const SecurityReportsView = () => {
         setMessage('Selecciona primero un archivo JSON privado con los registros a importar.');
         return;
       }
-      const imported = await importSecurityReports(stagedSeed);
-      setMessage(`${imported} registros guardados o actualizados sin duplicados.`);
+      const result = await importSecurityReports(stagedSeed);
+      setMessage(`${result.verified} de ${result.total} registros verificados en Firestore, sin duplicados.`);
     } catch (error) {
       console.error(error);
-      setMessage('No se pudo importar. Despliega primero las reglas de Firestore y confirma la sesión de Super Admin.');
+      setMessage(error instanceof Error ? error.message : 'No se pudo importar. Despliega primero las reglas de Firestore y confirma la sesión de Super Admin.');
     } finally {
       setImporting(false);
     }
@@ -235,24 +235,24 @@ export const SecurityReportsView = () => {
             <div>
               <h2 className="text-lg font-semibold">Importación recuperada</h2>
               <p className="max-w-3xl text-sm text-slate-600">
-                Los registros históricos están separados de los camiones activos. Por privacidad, los nombres y RUT reales no se guardan en el repositorio público: se cargan desde un JSON privado y se envían directamente a Firestore.
+                El lote autorizado contiene {whatsappReportsSeed.length} ingresos, salidas e informes recuperados de WhatsApp. Se sincronizan por ID y se verifican en Firestore para evitar registros duplicados. También puedes agregar lotes posteriores desde un archivo JSON.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <label className="cursor-pointer rounded-full border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-100">
-                Seleccionar JSON privado
+                Agregar otro JSON
                 <input type="file" accept=".json,application/json" onChange={handlePrivateFile} className="sr-only" />
               </label>
               <button type="button" onClick={exportCsv} className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                 Exportar CSV ({filtered.length})
               </button>
               <button type="button" onClick={handleImport} disabled={importing || stagedSeed.length === 0} className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60">
-                {importing ? 'Importando…' : 'Importar / sincronizar en Firestore'}
+                {importing ? 'Importando…' : 'Sincronizar lote en Firestore'}
               </button>
             </div>
           </div>
           {(message || listenerError) && (
-            <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${message?.includes('guardados') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+            <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${message?.includes('verificados en Firestore') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
               {message ?? listenerError}
             </div>
           )}

@@ -1,11 +1,14 @@
 import {
   collection,
   doc,
+  documentId,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   Timestamp,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../../../shared/config/firebase';
@@ -67,19 +70,24 @@ export const subscribeSecurityReports = (
 };
 
 export const importSecurityReports = async (items: SecurityReportSeed[]) => {
+  const uniqueItems = [...new Map(items.map((item) => [item.id, item])).values()];
   const batchSize = 400;
   let imported = 0;
 
-  for (let start = 0; start < items.length; start += batchSize) {
+  for (let start = 0; start < uniqueItems.length; start += batchSize) {
     const batch = writeBatch(db);
-    const chunk = items.slice(start, start + batchSize);
+    const chunk = uniqueItems.slice(start, start + batchSize);
     chunk.forEach((item) => {
       const { occurredAt, ...payload } = item;
+      const parsedDate = new Date(occurredAt);
+      if (Number.isNaN(parsedDate.getTime())) {
+        throw new Error(`Fecha inválida en el registro ${item.id}.`);
+      }
       batch.set(
         doc(reportsCol, item.id),
         {
           ...payload,
-          occurredAt: Timestamp.fromDate(new Date(occurredAt)),
+          occurredAt: Timestamp.fromDate(parsedDate),
           importedAt: serverTimestamp(),
         },
         { merge: true },
@@ -89,5 +97,17 @@ export const importSecurityReports = async (items: SecurityReportSeed[]) => {
     imported += chunk.length;
   }
 
-  return imported;
+  const verifyBatchSize = 30;
+  const verifiedIds = new Set<string>();
+  for (let start = 0; start < uniqueItems.length; start += verifyBatchSize) {
+    const ids = uniqueItems.slice(start, start + verifyBatchSize).map((item) => item.id);
+    const snapshot = await getDocs(query(reportsCol, where(documentId(), 'in', ids)));
+    snapshot.docs.forEach((item) => verifiedIds.add(item.id));
+  }
+
+  if (verifiedIds.size !== uniqueItems.length) {
+    throw new Error(`Firestore confirmó ${verifiedIds.size} de ${uniqueItems.length} registros.`);
+  }
+
+  return { imported, verified: verifiedIds.size, total: uniqueItems.length };
 };
