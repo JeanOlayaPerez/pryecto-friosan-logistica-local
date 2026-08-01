@@ -3,6 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { deleteTruck, subscribeAllTrucks, updateTruckStatus } from "../services/trucksApi";
 import type { DockType, Truck, TruckStatus } from "../types";
 import { useAuth } from "../../auth/AuthProvider";
+import type { UserRole } from "../../auth/AuthProvider";
+import {
+  createAdminUser,
+  deleteAdminUser,
+  listAdminUsers,
+  updateAdminUser,
+} from "../../auth/adminUsersApi";
+import type { AdminUser } from "../../auth/adminUsersApi";
 import { TruckForm } from "./TruckForm";
 
 const statusLabel: Record<TruckStatus, string> = {
@@ -52,7 +60,34 @@ const allRoles = [
   "clientes",
   "admin",
   "superadmin",
-] as const;
+] as const satisfies readonly UserRole[];
+
+const roleLabel: Record<UserRole, string> = {
+  porteria: "Portería",
+  recepcion: "Recepción",
+  operaciones: "Operaciones",
+  calidad: "Calidad",
+  comercial: "Comercial",
+  gerencia: "Gerencia",
+  visor: "Visor",
+  clientes: "Clientes",
+  admin: "Admin",
+  superadmin: "Super Admin",
+};
+
+type AccountForm = {
+  name: string;
+  email: string;
+  role: UserRole;
+  password: string;
+};
+
+const emptyAccountForm: AccountForm = {
+  name: "",
+  email: "",
+  role: "porteria",
+  password: "",
+};
 
 const formatHour = (d?: Date | null) => {
   if (!d) return "--:--";
@@ -94,6 +129,25 @@ export const AdminPanel = () => {
   const [statusFilter, setStatusFilter] = useState<"todos" | TruckStatus>("todos");
   const [formOpen, setFormOpen] = useState(false);
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null);
+  const [accounts, setAccounts] = useState<AdminUser[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountMsg, setAccountMsg] = useState<string | null>(null);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [accountForm, setAccountForm] = useState<AccountForm>(emptyAccountForm);
+
+  const loadAccounts = async () => {
+    setAccountsLoading(true);
+    setAccountError(null);
+    try {
+      setAccounts(await listAdminUsers());
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "No se pudieron cargar las cuentas.");
+    } finally {
+      setAccountsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -101,6 +155,7 @@ export const AdminPanel = () => {
   }, []);
 
   useEffect(() => {
+    if (role !== "superadmin") return;
     const unsub = subscribeAllTrucks(
       (data) => {
         setListenerError(null);
@@ -112,7 +167,11 @@ export const AdminPanel = () => {
       },
     );
     return () => unsub();
-  }, []);
+  }, [role]);
+
+  useEffect(() => {
+    if (role === "superadmin") void loadAccounts();
+  }, [role]);
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -172,6 +231,101 @@ export const AdminPanel = () => {
     }
   };
 
+  const resetAccountForm = () => {
+    setEditingAccountId(null);
+    setAccountForm(emptyAccountForm);
+  };
+
+  const handleAccountSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAccountError(null);
+    setAccountMsg(null);
+    setAccountSaving(true);
+    try {
+      if (editingAccountId) {
+        const current = accounts.find((account) => account.uid === editingAccountId);
+        await updateAdminUser(editingAccountId, {
+          ...accountForm,
+          password: accountForm.password || undefined,
+          disabled: current?.disabled ?? false,
+        });
+        setAccountMsg("Cuenta actualizada correctamente.");
+      } else {
+        await createAdminUser(accountForm);
+        setAccountMsg("Cuenta creada correctamente. Ya puede iniciar sesión.");
+      }
+      resetAccountForm();
+      await loadAccounts();
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "No se pudo guardar la cuenta.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const startEditingAccount = (account: AdminUser) => {
+    setAccountError(null);
+    setAccountMsg(null);
+    setEditingAccountId(account.uid);
+    setAccountForm({
+      name: account.name,
+      email: account.email,
+      role: account.role ?? "porteria",
+      password: "",
+    });
+  };
+
+  const handleToggleAccount = async (account: AdminUser) => {
+    if (!account.role) {
+      setAccountError("Primero edita la cuenta y asígnale un rol válido.");
+      return;
+    }
+    const nextDisabled = !account.disabled;
+    if (
+      nextDisabled &&
+      !window.confirm(`¿Deshabilitar la cuenta de ${account.name}? No podrá iniciar sesión.`)
+    ) {
+      return;
+    }
+    setAccountSaving(true);
+    setAccountError(null);
+    setAccountMsg(null);
+    try {
+      await updateAdminUser(account.uid, {
+        name: account.name,
+        email: account.email,
+        role: account.role,
+        disabled: nextDisabled,
+      });
+      setAccountMsg(nextDisabled ? "Cuenta deshabilitada." : "Cuenta habilitada.");
+      await loadAccounts();
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "No se pudo cambiar el estado de la cuenta.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async (account: AdminUser) => {
+    const confirmed = window.confirm(
+      `¿Eliminar permanentemente la cuenta de ${account.name} (${account.email})? Esta acción no se puede deshacer.`,
+    );
+    if (!confirmed) return;
+    setAccountSaving(true);
+    setAccountError(null);
+    setAccountMsg(null);
+    try {
+      await deleteAdminUser(account.uid);
+      if (editingAccountId === account.uid) resetAccountForm();
+      setAccountMsg("Cuenta eliminada.");
+      await loadAccounts();
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : "No se pudo eliminar la cuenta.");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center text-slate-500">
@@ -192,6 +346,7 @@ export const AdminPanel = () => {
     { label: "Tablero", to: "/recepcion" },
     { label: "Visor general", to: "/visor" },
     { label: "Reportes", to: "/gerencia" },
+    { label: "Informes seguridad", to: "/admin/informes-seguridad" },
     { label: "Clientes", to: "/clientes" },
     { label: "Calidad", to: "/calidad" },
   ];
@@ -378,73 +533,232 @@ export const AdminPanel = () => {
           </div>
         </div>
 
-        {/* Gestión de cuentas de empleados (BETA) */}
+        {/* Gestión de cuentas de empleados */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Administración</p>
               <h3 className="text-lg font-semibold text-slate-900">Gestión de cuentas de empleados</h3>
+              <p className="text-xs text-slate-500">
+                Crea, edita, habilita o deshabilita el acceso de cada usuario.
+              </p>
             </div>
-            <span className="rounded-full bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1 text-xs font-semibold uppercase">
-              Beta · En desarrollo
-            </span>
+            <button
+              type="button"
+              onClick={() => void loadAccounts()}
+              disabled={accountsLoading || accountSaving}
+              className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {accountsLoading ? "Actualizando..." : "Actualizar lista"}
+            </button>
           </div>
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Esta función está en desarrollo y estará disponible próximamente. Por ahora, la creación
-            de cuentas de empleados se realiza manualmente desde Firebase Console (Authentication +
-            documento en Firestore con el rol correspondiente).
-          </div>
-          <div className="opacity-60 pointer-events-none" aria-disabled="true">
+
+          {accountError && (
+            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {accountError}
+            </div>
+          )}
+          {accountMsg && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {accountMsg}
+            </div>
+          )}
+
+          <form
+            onSubmit={(event) => void handleAccountSubmit(event)}
+            className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="font-semibold text-slate-900">
+                {editingAccountId ? "Editar cuenta" : "Nueva cuenta"}
+              </h4>
+              {editingAccountId && (
+                <button
+                  type="button"
+                  onClick={resetAccountForm}
+                  disabled={accountSaving}
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 disabled:opacity-60"
+                >
+                  Cancelar edición
+                </button>
+              )}
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Nombre
                 <input
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                   placeholder="Nombre del empleado"
-                  disabled
+                  value={accountForm.name}
+                  onChange={(event) =>
+                    setAccountForm((current) => ({ ...current, name: event.target.value }))
+                  }
+                  maxLength={100}
+                  disabled={accountSaving}
+                  required
                 />
               </label>
               <label className="text-sm text-slate-700">
                 Correo
                 <input
                   type="email"
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                   placeholder="correo@friosan.cl"
-                  disabled
+                  value={accountForm.email}
+                  onChange={(event) =>
+                    setAccountForm((current) => ({ ...current, email: event.target.value }))
+                  }
+                  maxLength={254}
+                  disabled={accountSaving}
+                  required
                 />
               </label>
               <label className="text-sm text-slate-700">
                 Rol
                 <select
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
-                  disabled
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                  value={accountForm.role}
+                  onChange={(event) =>
+                    setAccountForm((current) => ({
+                      ...current,
+                      role: event.target.value as UserRole,
+                    }))
+                  }
+                  disabled={accountSaving || editingAccountId === user?.id}
                 >
                   {allRoles.map((r) => (
                     <option key={r} value={r}>
-                      {r}
+                      {roleLabel[r]}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="text-sm text-slate-700">
-                Contraseña temporal
+                {editingAccountId ? "Nueva contraseña (opcional)" : "Contraseña temporal"}
                 <input
                   type="password"
-                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
-                  placeholder="********"
-                  disabled
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                  placeholder={editingAccountId ? "Dejar vacío para conservar" : "Mínimo 8 caracteres"}
+                  value={accountForm.password}
+                  onChange={(event) =>
+                    setAccountForm((current) => ({ ...current, password: event.target.value }))
+                  }
+                  minLength={8}
+                  maxLength={128}
+                  autoComplete="new-password"
+                  disabled={accountSaving}
+                  required={!editingAccountId}
                 />
               </label>
             </div>
             <div className="mt-4 flex justify-end">
               <button
-                type="button"
-                disabled
-                className="rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600"
+                type="submit"
+                disabled={accountSaving}
+                className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Próximamente
+                {accountSaving
+                  ? "Guardando..."
+                  : editingAccountId
+                    ? "Guardar cambios"
+                    : "Crear cuenta"}
               </button>
             </div>
+          </form>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr className="bg-slate-100 text-[11px] uppercase tracking-[0.14em] text-slate-600">
+                  <th className="border border-slate-200 px-3 py-2 text-left">Empleado</th>
+                  <th className="border border-slate-200 px-3 py-2 text-left">Rol</th>
+                  <th className="border border-slate-200 px-3 py-2 text-left">Estado</th>
+                  <th className="border border-slate-200 px-3 py-2 text-left">Último acceso</th>
+                  <th className="border border-slate-200 px-3 py-2 text-left">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accountsLoading && accounts.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-4 text-center text-sm text-slate-500">
+                      Cargando cuentas...
+                    </td>
+                  </tr>
+                )}
+                {!accountsLoading && accounts.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-4 text-center text-sm text-slate-500">
+                      No se encontraron cuentas registradas.
+                    </td>
+                  </tr>
+                )}
+                {accounts.map((account, index) => {
+                  const isCurrentAccount = account.uid === user?.id;
+                  return (
+                    <tr key={account.uid} className={index % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="border border-slate-200 px-3 py-2 align-top text-sm">
+                        <p className="font-semibold text-slate-900">
+                          {account.name} {isCurrentAccount && <span className="text-xs text-sky-700">(tú)</span>}
+                        </p>
+                        <p className="text-xs text-slate-500">{account.email || "Sin correo"}</p>
+                      </td>
+                      <td className="border border-slate-200 px-3 py-2 align-top text-sm text-slate-700">
+                        {account.role ? roleLabel[account.role] : (
+                          <span className="font-semibold text-rose-600">Sin rol válido</span>
+                        )}
+                      </td>
+                      <td className="border border-slate-200 px-3 py-2 align-top text-sm">
+                        <span
+                          className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold uppercase ${
+                            account.disabled
+                              ? "border-slate-300 bg-slate-100 text-slate-600"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          }`}
+                        >
+                          {account.disabled ? "Deshabilitada" : "Activa"}
+                        </span>
+                      </td>
+                      <td className="border border-slate-200 px-3 py-2 align-top text-xs text-slate-600 whitespace-nowrap">
+                        {account.lastSignInAt
+                          ? new Date(account.lastSignInAt).toLocaleString("es-CL", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
+                          : "Sin ingresos"}
+                      </td>
+                      <td className="border border-slate-200 px-3 py-2 align-top text-sm">
+                        <div className="flex min-w-[245px] flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEditingAccount(account)}
+                            disabled={accountSaving}
+                            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-60"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleToggleAccount(account)}
+                            disabled={accountSaving || isCurrentAccount || !account.role}
+                            className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {account.disabled ? "Habilitar" : "Deshabilitar"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteAccount(account)}
+                            disabled={accountSaving || isCurrentAccount}
+                            className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 

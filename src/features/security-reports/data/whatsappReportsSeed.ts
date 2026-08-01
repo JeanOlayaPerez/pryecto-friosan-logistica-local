@@ -1,0 +1,207 @@
+import type {
+  SecurityReportCategory,
+  SecurityReportOperation,
+  SecurityReportSeed,
+  SecurityReportTimePrecision,
+} from '../types';
+
+type Extra = Partial<
+  Pick<
+    SecurityReportSeed,
+    | 'personName'
+    | 'identifier'
+    | 'company'
+    | 'client'
+    | 'plate'
+    | 'dock'
+    | 'hasEvidence'
+    | 'review'
+    | 'timePrecision'
+  >
+>;
+
+const make = (
+  id: string,
+  occurredAt: string,
+  category: SecurityReportCategory,
+  title: string,
+  details: string,
+  reporter: string,
+  sourceText: string,
+  extra: Extra = {},
+): SecurityReportSeed => ({
+  id,
+  occurredAt,
+  category,
+  title,
+  details,
+  reporter,
+  sourceText,
+  source: 'WhatsApp',
+  sourceChat: 'GGSS-ReporteSeguridadFriosan',
+  review: extra.review ?? 'verified',
+  timePrecision: extra.timePrecision ?? 'minute',
+  ...extra,
+});
+
+const truck = (
+  id: string,
+  occurredAt: string,
+  direction: 'entry' | 'exit',
+  name: string,
+  identifier: string,
+  company: string,
+  operation: SecurityReportOperation,
+  reporter: string,
+  extra: Extra & { details?: string; sourceText?: string } = {},
+): SecurityReportSeed => {
+  const action = direction === 'entry' ? 'Ingreso' : 'Salida';
+  const details = extra.details ?? `${action} de camión para ${operation}.`;
+  const sourceText =
+    extra.sourceText ??
+    `${direction === 'entry' ? 'Ingresa' : 'Se retira'} ${name} ${identifier} ${company} ${operation}`;
+  return {
+    ...make(
+      id,
+      occurredAt,
+      direction === 'entry' ? 'truck_entry' : 'truck_exit',
+      `${action}: ${name}`,
+      details,
+      reporter,
+      sourceText,
+      extra,
+    ),
+    personName: name,
+    identifier,
+    company,
+    operation,
+  };
+};
+
+const dated = (date: string): SecurityReportTimePrecision => (date.includes('T00:00') ? 'date' : 'minute');
+
+export const whatsappReportsSeed: SecurityReportSeed[] = [
+  make('wa-20260602-2207-jose-dugarte', '2026-06-02T22:07:00-04:00', 'personnel', 'Ingreso de operario nocturno', 'José Dugarte ingresa como operario nocturno Friosan, sin novedad.', '+56 9 8250 5669', 'Ingresa José Dugarte operario nocturno Friosan sin novedad', { personName: 'José Dugarte' }),
+  make('wa-20260602-2324-ignacio-serrano', '2026-06-02T23:24:00-04:00', 'personnel', 'Ingreso de operario nocturno', 'Ignacio Serrano ingresa como operario nocturno, sin novedad.', '+56 9 8250 5669', 'Ingresa Ignacio Serrano operario nocturno sin novedad', { personName: 'Ignacio Serrano' }),
+  make('wa-20260603-0836-shift', '2026-06-03T08:36:00-04:00', 'shift_change', 'Cambio de guardia', 'Ingresa GGSS Miguel Bello y se retira GGSS Sergio Velásquez.', 'Miguel Friosan', 'Se realiza cambio de turno ingresa ggss Miguel bello y se retira ggss Sergio Velásquez'),
+  make('wa-20260603-1047-alan-in', '2026-06-03T10:47:00-04:00', 'personnel', 'Ingreso de gerencia general', 'Ingresa Alan Denton, gerente general de Friosan.', 'Miguel Friosan', 'Ingresa Alan Denton gerente general'),
+  make('wa-20260603-1049-ricardo-in', '2026-06-03T10:49:00-04:00', 'personnel', 'Ingreso de jefatura de seguridad', 'Ingresa Ricardo, jefe de seguridad.', 'Miguel Friosan', 'Ingresa Ricardo jefe de seguridad'),
+  make('wa-20260603-1714-bus-in', '2026-06-03T17:14:00-04:00', 'transport', 'Ingreso de bus de acercamiento', 'Ingresa bus de acercamiento del personal Friosan.', 'Miguel Friosan', 'Ingresa bus de acercamiento personal friosan'),
+  make('wa-20260603-1729-personnel-out', '2026-06-03T17:29:00-04:00', 'personnel', 'Salida de personal', 'Comienza la salida del personal Friosan.', 'Miguel Friosan', 'Comienza a retirarse personal friosan'),
+  make('wa-20260603-1748-bus-out', '2026-06-03T17:48:00-04:00', 'transport', 'Salida de bus de acercamiento', 'Se retira el bus de acercamiento del personal Friosan.', 'Miguel Friosan', 'Se retira bus de acercamiento personal friosan'),
+  make('wa-20260603-1819-alan-out', '2026-06-03T18:19:00-04:00', 'personnel', 'Salida de gerencia general', 'Se retira Alan Denton, gerente general de Friosan.', 'Miguel Friosan', 'Se retira Alan Denton gerente general friosan'),
+  make('wa-20260603-1822-lights', '2026-06-03T18:22:00-04:00', 'facility', 'Apertura de luces', 'Se inicia la apertura de luces de la instalación.', 'Miguel Friosan', 'Inicia Apertura de luces friosan'),
+  make('wa-20260603-2000-shift', '2026-06-03T20:00:00-04:00', 'shift_change', 'Cambio de guardia sin novedad', 'Sale Miguel Bello e ingresa Sergio Velásquez; guardia sin novedad.', '+56 9 8250 5669', 'Cambio de guardia sale Miguel bello ingresa Sergio Velasquez guardia sin novedad'),
+  make('wa-20260603-2128-ricardo-out', '2026-06-03T21:28:00-04:00', 'personnel', 'Salida de jefatura de seguridad', 'Se retira Ricardo, jefe de seguridad, sin novedad.', '+56 9 8250 5669', 'Se retira señor Ricardo jefe de seguridad friosan sin novedad'),
+  make('wa-20260603-2202-victor-in', '2026-06-03T22:02:00-04:00', 'personnel', 'Ingreso de operario nocturno', 'Ingresa Víctor Silva como operario nocturno Friosan, sin novedad.', '+56 9 8250 5669', 'Ingresa Victor silva operario nocturno friosan sin novedad'),
+  make('wa-20260603-2229-night-team', '2026-06-03T22:29:00-04:00', 'personnel', 'Ingreso de operarios nocturnos', 'Ingresan José Dugarte e Ignacio Serrano, sin novedad.', '+56 9 8250 5669', 'Ingresa José Dugarte e Ignacio serrano operarios nocturnos friosan sin novedad'),
+
+  truck('wa-20260604-0212-sinforozos-out', '2026-06-04T02:12:00-04:00', 'exit', 'Sinforozos Cabezas', '10.486.486-6', 'Agrosuper San Vicente', 'carga', '+56 9 8250 5669', { hasEvidence: true, review: 'review', details: 'Salida registrada con guía. El ingreso aparece citado, pero su hora no fue recuperada.', sourceText: 'Salida Sinforozos Cabezas carga se adjunta guía' }),
+  truck('wa-20260604-0213-leonardo-out', '2026-06-04T02:13:00-04:00', 'exit', 'Leonardo Pardo', '9.389.650-5', 'Agrosuper Doñihue', 'carga', '+56 9 8250 5669', { hasEvidence: true, review: 'review', details: 'Salida con guía; el ingreso citado corresponde a un bloque anterior.', sourceText: 'Salida Leonardo Pardo carga se adjunta guía' }),
+  truck('wa-20260604-0354-leonardo-in', '2026-06-04T03:54:00-04:00', 'entry', 'Leonardo Pardo', '9.389.650-5', 'Agrosuper Doñihue', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260604-0436-felix-out', '2026-06-04T04:36:00-04:00', 'exit', 'Félix Urra', '8.617.397-2', 'Agrosuper San Vicente', 'carga', '+56 9 8250 5669', { hasEvidence: true, review: 'review', details: 'Salida con guía; la hora del ingreso citado no fue recuperada.' }),
+  make('wa-20260604-0544-juan-rojas', '2026-06-04T05:44:00-04:00', 'personnel', 'Ingreso de operario', 'Ingresa Juan Rojas, RUT 18.737.012-4, empresa Aventura 74.', '+56 9 8250 5669', 'Ingresa Juan Rojas 18 737 012 4 Operario Aventura 74', { personName: 'Juan Rojas', identifier: '18.737.012-4', company: 'Aventura 74', hasEvidence: true }),
+  truck('wa-20260604-0644-fabian-in', '2026-06-04T06:44:00-04:00', 'entry', 'Fabián Cano', '25.921.496-3', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260604-0705-ulices-in', '2026-06-04T07:05:00-04:00', 'entry', 'Ulices Flores', '14.412.031-0', 'Aventura 74', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260604-0711-cristian-in', '2026-06-04T07:11:00-04:00', 'entry', 'Cristian Álvarez', '12.738.952-7', 'Aventura 74', 'carga', 'Friosan', { hasEvidence: true }),
+  truck('wa-20260604-0727-fabian-out', '2026-06-04T07:27:00-04:00', 'exit', 'Fabián Cano', '25.921.496-3', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260604-0728-ulices-out', '2026-06-04T07:28:00-04:00', 'exit', 'Ulices Flores', '14.412.031-0', 'Aventura 74', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  make('wa-20260604-0738-shift', '2026-06-04T07:38:00-04:00', 'shift_change', 'Cambio de guardia', 'Ingresa GGSS Miguel Bello y se retira GGSS Sergio Velásquez.', 'Miguel Friosan', 'Se realiza cambio de turno ingresa ggss Miguel bello y se retira ggss Sergio Velásquez'),
+  truck('wa-20260604-0738-emerson-in', '2026-06-04T07:38:00-04:00', 'entry', 'Emerson da Silva', '49.753.239', 'Transporte Silva', 'descarga', '+56 9 8250 5669', { client: 'Sopraval', hasEvidence: true, review: 'review', details: 'Ingreso para descarga de cliente Sopraval. Identificador extranjero o sin dígito verificador.' }),
+  truck('wa-20260604-0743-armir-in', '2026-06-04T07:43:00-04:00', 'entry', 'Armir Granja', '4.100.498.478', 'B2', 'descarga', 'Miguel Friosan', { client: 'Sopraval', hasEvidence: true, review: 'review', details: 'Ingreso para descarga de cliente Sopraval. Identificador requiere validación.' }),
+  truck('wa-20260604-0746-carlos-in', '2026-06-04T07:46:00-04:00', 'entry', 'Carlos Sprin', '6.619.015-3', 'Agrosuper Doñihue', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  make('wa-20260604-0757-bus-in', '2026-06-04T07:57:00-04:00', 'transport', 'Ingreso de bus de acercamiento', 'Ingresa bus de acercamiento del personal Friosan.', 'Miguel Friosan', 'Ingresa bus de acercamiento personal friosan'),
+  make('wa-20260604-0800-bus-out', '2026-06-04T08:00:00-04:00', 'transport', 'Salida de bus de acercamiento', 'Se retira bus de acercamiento del personal Friosan.', 'Miguel Friosan', 'Se retira bus de acercamiento personal friosan'),
+  truck('wa-20260604-0808-pablo-in', '2026-06-04T08:08:00-04:00', 'entry', 'Pablo Tapia', '20.568.065-9', 'Transportes Fuente', 'descarga', 'Miguel Friosan', { client: 'J.A. Limitada', hasEvidence: true }),
+  truck('wa-20260604-0826-luis-in', '2026-06-04T08:26:00-04:00', 'entry', 'Luis Poblete', '11.654.918-2', 'Gastronomía CF', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-0900-claudio-in', '2026-06-04T09:00:00-04:00', 'entry', 'Claudio Sid', '17.508.500-9', 'Rich', 'carga', 'Miguel Friosan', { hasEvidence: true, review: 'review', details: 'Ingreso recuperado; no se encontró su salida en el bloque sincronizado.' }),
+  truck('wa-20260604-0911-leonardo-out', '2026-06-04T09:11:00-04:00', 'exit', 'Leonardo Pardo', '9.389.650-5', 'Agrosuper Doñihue', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-0911-carlos-out', '2026-06-04T09:11:00-04:00', 'exit', 'Carlos Sprin', '6.619.015-3', 'Agrosuper Doñihue', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-0935-fernando-in', '2026-06-04T09:35:00-04:00', 'entry', 'Fernando Sanhueza', '11.978.299-6', 'Rich', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-0939-pablo-out', '2026-06-04T09:39:00-04:00', 'exit', 'Pablo Tapia', '20.568.065-9', 'Transportes Fuente', 'descarga', 'Miguel Friosan', { client: 'J.A. Limitada', hasEvidence: true }),
+  truck('wa-20260604-0956-jeremy-in', '2026-06-04T09:56:00-04:00', 'entry', 'Jeremy Gutiérrez', '19.001.774-5', 'Rich', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1004-fernando-out', '2026-06-04T10:04:00-04:00', 'exit', 'Fernando Sanhueza', '11.978.299-6', 'Rich', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1009-oscar-in', '2026-06-04T10:09:00-04:00', 'entry', 'Oscar Sepúlveda', '13.791.806-4', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1009-matias-in', '2026-06-04T10:09:00-04:00', 'entry', 'Matías Orellana', '19.991.936-9', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1009-jose-in', '2026-06-04T10:09:00-04:00', 'entry', 'José Osorio', '18.095.080-K', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1033-luis-out', '2026-06-04T10:33:00-04:00', 'exit', 'Luis Poblete', '11.654.918-2', 'Gastronomía CF', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1033-jeremy-out', '2026-06-04T10:33:00-04:00', 'exit', 'Jeremy Gutiérrez', '19.001.774-5', 'Rich', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1047-armir-out', '2026-06-04T10:47:00-04:00', 'exit', 'Armir Granja', '4.100.498.478', 'B2', 'descarga', 'Miguel Friosan', { client: 'Sopraval', hasEvidence: true, review: 'review' }),
+  truck('wa-20260604-1100-patricio-in', '2026-06-04T11:00:00-04:00', 'entry', 'Patricio Celis', '13.461.424-2', 'Europastry', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1121-emerson-out', '2026-06-04T11:21:00-04:00', 'exit', 'Emerson da Silva', '49.753.239', 'Transporte Silva', 'descarga', 'Miguel Friosan', { client: 'Sopraval', hasEvidence: true, review: 'review' }),
+  truck('wa-20260604-1122-patricio-out', '2026-06-04T11:22:00-04:00', 'exit', 'Patricio Celis', '13.461.424-2', 'Europastry', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1148-oscar-out', '2026-06-04T11:48:00-04:00', 'exit', 'Oscar Sepúlveda', '13.791.806-4', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1148-jose-out', '2026-06-04T11:48:00-04:00', 'exit', 'José Osorio', '18.095.080-K', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1148-matias-out', '2026-06-04T11:48:00-04:00', 'exit', 'Matías Orellana', '19.991.936-9', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true }),
+  truck('wa-20260604-1402-matias-in-2', '2026-06-04T14:02:00-04:00', 'entry', 'Matías Orellana', '19.991.936-9', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true, details: 'Segundo viaje del día.' }),
+  truck('wa-20260604-1422-matias-out-2', '2026-06-04T14:22:00-04:00', 'exit', 'Matías Orellana', '19.991.936-9', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true, details: 'Salida del segundo viaje del día.' }),
+  make('wa-20260604-1617-bus-in', '2026-06-04T16:17:00-04:00', 'transport', 'Ingreso de bus de acercamiento', 'Ingresa bus de acercamiento del personal Friosan.', 'Miguel Friosan', 'Ingresa bus de acercamiento personal friosan'),
+  truck('wa-20260604-1628-matias-in-3', '2026-06-04T16:28:00-04:00', 'entry', 'Matías Orellana', '19.991.936-9', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true, details: 'Tercer viaje del día.' }),
+  truck('wa-20260604-1637-matias-out-3', '2026-06-04T16:37:00-04:00', 'exit', 'Matías Orellana', '19.991.936-9', 'Carnes Lucar', 'carga', 'Miguel Friosan', { hasEvidence: true, details: 'Salida del tercer viaje del día.' }),
+  make('wa-20260604-1700-bus-out', '2026-06-04T17:00:00-04:00', 'transport', 'Salida de bus de acercamiento', 'Se retira bus de acercamiento del personal Friosan.', 'Miguel Friosan', 'Se retira bus de acercamiento personal friosan'),
+  make('wa-20260604-1725-bus-policy', '2026-06-04T17:25:00-04:00', 'facility', 'Instrucción para ingreso del bus', 'Desde esta fecha se permite el ingreso del bus del personal cinco minutos antes de la hora de salida, hasta nuevo aviso.', 'Ricardo Friosan', 'Desde hoy en adelante el bus del personal se permitirá el ingreso 05 minutos antes a la hora de salida'),
+  make('wa-20260604-1825-lights', '2026-06-04T18:25:00-04:00', 'facility', 'Apertura de luces', 'Se inicia la apertura de luces de la instalación.', 'Miguel Friosan', 'Inicia Apertura luces friosan'),
+  make('wa-20260604-1958-shift', '2026-06-04T19:58:00-04:00', 'shift_change', 'Cambio de guardia sin novedad', 'Sale Miguel Bello e ingresa Sergio Velásquez; guardia sin novedad.', '+56 9 8250 5669', 'Cambio de guardia sale Miguel bello ingresa Sergio Velasquez guardia sin novedad'),
+  truck('wa-20260604-1958-ricardo-cisterna-in', '2026-06-04T19:58:00-04:00', 'entry', 'Ricardo Cisterna', '17.391.281-1', 'Transportes Soto', 'descarga', 'Miguel Friosan', { client: 'Europastry', hasEvidence: true }),
+  truck('wa-20260604-2014-saul-in', '2026-06-04T20:14:00-04:00', 'entry', 'Saúl Giraldo', '27.734.378-9', 'Transportes Soto', 'descarga', '+56 9 8250 5669', { client: 'Europastry', hasEvidence: true, review: 'review', sourceText: 'Ingresa Saúl girando 27 734 378 9 Transporte Soto Europastry Descarga', details: 'El apellido fue escrito como “girando” en el ingreso y “Giraldo” en la salida; requiere confirmación.' }),
+  truck('wa-20260604-2036-ricardo-cisterna-out', '2026-06-04T20:36:00-04:00', 'exit', 'Ricardo Cisterna', '17.391.281-1', 'Transportes Soto', 'descarga', '+56 9 8250 5669', { client: 'Europastry', hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260604-2039-antonio-in', '2026-06-04T20:39:00-04:00', 'entry', 'Antonio Sánchez', '13.895.095', 'Transportes Soto', 'descarga', '+56 9 8250 5669', { client: 'Europastry', hasEvidence: true, review: 'review', details: 'Ingreso para descarga; identificador sin dígito verificador visible.' }),
+  truck('wa-20260604-2130-saul-out', '2026-06-04T21:30:00-04:00', 'exit', 'Saúl Giraldo', '27.734.378-9', 'Transportes Soto', 'descarga', '+56 9 8250 5669', { client: 'Europastry', hasEvidence: true, review: 'review', details: 'Salida con guía; apellido requiere confirmación contra el ingreso.' }),
+  truck('wa-20260604-2130-antonio-out', '2026-06-04T21:30:00-04:00', 'exit', 'Antonio Sánchez', '13.895.095', 'Transportes Soto', 'descarga', '+56 9 8250 5669', { client: 'Europastry', hasEvidence: true, review: 'review', details: 'Salida con guía; identificador sin dígito verificador visible.' }),
+  make('wa-20260604-2211-jose-dugarte', '2026-06-04T22:11:00-04:00', 'personnel', 'Ingreso de operario nocturno', 'Ingresa José Dugarte como operario nocturno Friosan, sin novedad.', '+56 9 8250 5669', 'Ingresa José Dugarte operario nocturno friosan sin novedad', { personName: 'José Dugarte' }),
+  make('wa-20260604-2243-daniel', '2026-06-04T22:43:00-04:00', 'personnel', 'Ingreso de supervisor', 'Ingresa Daniel Cifuentes, supervisor Friosan, sin novedad.', '+56 9 8250 5669', 'Ingresa Daniel Cifuentes supervisor friosan sin novedad', { personName: 'Daniel Cifuentes', hasEvidence: true }),
+  truck('wa-20260604-2257-sinforozos-in', '2026-06-04T22:57:00-04:00', 'entry', 'Sinforozos Cabezas', '10.486.486-6', 'Agrosuper San Vicente', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  make('wa-20260604-2304-ricardo-out', '2026-06-04T23:04:00-04:00', 'personnel', 'Salida de jefatura de seguridad', 'Se retira Ricardo, jefe de seguridad, sin novedad.', '+56 9 8250 5669', 'Se retira señor Ricardo jefe de seguridad sin novedad'),
+  make('wa-20260604-2304-cristofer-in', '2026-06-04T23:04:00-04:00', 'personnel', 'Ingreso de operario nocturno', 'Ingresa Cristofer Rubio como operario de turno noche, sin novedad.', '+56 9 8250 5669', 'Ingresa Cristofer Rubio operario turno noche sin novedad', { personName: 'Cristofer Rubio', hasEvidence: true }),
+
+  truck('wa-20260605-0315-sinforozos-out', '2026-06-05T03:15:00-04:00', 'exit', 'Sinforozos Cabezas', '10.486.486-6', 'Agrosuper San Vicente', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260605-0630-fabian-in', '2026-06-05T06:30:00-04:00', 'entry', 'Fabián Cano', '25.921.496-3', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260605-0706-fabian-out', '2026-06-05T07:06:00-04:00', 'exit', 'Fabián Cano', '25.921.496-3', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260605-0747-carlos-in', '2026-06-05T07:47:00-04:00', 'entry', 'Carlos Sprin', '6.619.015-3', 'Agrosuper Doñihue', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260605-0759-vidni-in', '2026-06-05T07:59:00-04:00', 'entry', 'Vidni Aravena', '17.374.153-4', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260605-0841-leonardo-in', '2026-06-05T08:41:00-04:00', 'entry', 'Leonardo Pardo', '9.389.650-5', 'Agrosuper Doñihue', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260605-0855-rogelio-in', '2026-06-05T08:55:00-04:00', 'entry', 'Rogelio Arias', '16.857.769-9', 'Marejada Marina', 'carga', '+56 9 8250 5669', { hasEvidence: true, review: 'review', details: 'Ingreso recuperado; la hora de salida no estaba visible.' }),
+  truck('wa-20260605-0919-javier-in', '2026-06-05T09:19:00-04:00', 'entry', 'Javier de Melo', 'B073687', 'Cordenosi', 'descarga', '+56 9 8250 5669', { client: 'Sopraval', hasEvidence: true, review: 'review', details: 'Ingreso con identificador extranjero; la hora de salida no estaba visible.' }),
+  truck('wa-20260605-1006-vidni-out', '2026-06-05T10:06:00-04:00', 'exit', 'Vidni Aravena', '17.374.153-4', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260605-1007-jeremy-in', '2026-06-05T10:07:00-04:00', 'entry', 'Jeremy Gutiérrez', '19.001.774-5', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260605-1018-matias-in', '2026-06-05T10:18:00-04:00', 'entry', 'Matías Orellana', '19.991.936-9', 'Carnes Lucar', 'carga', '+56 9 8250 5669', { hasEvidence: true }),
+  truck('wa-20260605-1018-jose-in', '2026-06-05T10:18:00-04:00', 'entry', 'José Osorio', '18.095.080-K', 'Carnes Lucar', 'carga', '+56 9 8250 5669', { hasEvidence: true, review: 'review', details: 'Ingreso recuperado; la hora de salida no estaba visible.' }),
+  truck('wa-20260605-1019-carlos-out', '2026-06-05T10:19:00-04:00', 'exit', 'Carlos Sprin', '6.619.015-3', 'Agrosuper Doñihue', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260605-1022-leonardo-out', '2026-06-05T10:22:00-04:00', 'exit', 'Leonardo Pardo', '9.389.650-5', 'Agrosuper Doñihue', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260605-1024-jeremy-out', '2026-06-05T10:24:00-04:00', 'exit', 'Jeremy Gutiérrez', '19.001.774-5', 'Rich', 'carga', '+56 9 8250 5669', { hasEvidence: true, details: 'Salida con guía adjunta.' }),
+  truck('wa-20260605-1047-jorge-in', '2026-06-05T10:47:00-04:00', 'entry', 'Jorge Ubilla', '10.565.922-9', 'Agrosuper', 'descarga', '+56 9 8250 5669', { hasEvidence: true, review: 'review', details: 'Ingreso recuperado; la hora de salida no estaba visible.' }),
+  make('wa-20260605-date-andres', '2026-06-05T00:00:00-04:00', 'truck_entry', 'Ingreso: Andrés Acevedo', 'Ingreso para descarga de Grupo Logístico/Agrosuper. Hora no recuperada.', 'Resultado de búsqueda de WhatsApp', 'Andrés Acevedo RUT 13.546.376-0 Grupo Logístico Agrosuper Descarga', { personName: 'Andrés Acevedo', identifier: '13.546.376-0', company: 'Grupo Logístico', client: 'Agrosuper', hasEvidence: true, review: 'review', timePrecision: dated('2026-06-05T00:00') }),
+  make('wa-20260605-date-julio', '2026-06-05T00:00:00-04:00', 'truck_entry', 'Ingreso: Julio de Jesús', 'Ingreso para descarga de Veneza, cliente Agrosuper. Hora no recuperada.', 'Resultado de búsqueda de WhatsApp', 'Julio de Jesús 972.567.300-04 Veneza cliente Agrosuper Descarga', { personName: 'Julio de Jesús', identifier: '972.567.300-04', company: 'Veneza', client: 'Agrosuper', hasEvidence: true, review: 'review', timePrecision: 'date' }),
+  make('wa-20260605-date-pending-trucks', '2026-06-05T00:00:00-04:00', 'security_round', 'Ronda y camiones pendientes', 'Ronda por la instalación: contenedor operativo, dos camiones pendientes de descarga para el lunes y un conductor presente. Se indicó contacto para el segundo conductor.', 'Resultado de búsqueda de WhatsApp', 'Se realiza ronda por instalación; contenedor funcionando; 2 camiones pendientes descarga lunes; 1 conductor en instalación', { review: 'review', timePrecision: 'date', hasEvidence: true }),
+  make('wa-20260605-date-truck-power', '2026-06-05T00:00:00-04:00', 'facility', 'Camión conectado a energía', 'Camión conectado a la energía de la instalación; conductor se retira y el contenedor queda operativo. Contacto informado: Andrés Acevedo, 9 7614 2235.', 'Resultado de búsqueda de WhatsApp', 'Camión conectado a corriente de la instalación; conductor se retira; contenedor operativo; contacto Andrés Acevedo 9 7614 2235', { review: 'review', timePrecision: 'date', hasEvidence: true }),
+
+  make('wa-20260606-date-parking', '2026-06-06T00:00:00-04:00', 'security_round', 'Control de camiones en estacionamiento', 'Se informa estado de camiones estacionados y carga de baterías, con instrucción a conductores para reportar incidentes.', 'Resultado de búsqueda de WhatsApp', 'Camiones en estacionamiento cargando baterías; conductores informados de reportar incidentes', { timePrecision: 'date', hasEvidence: true, review: 'review' }),
+  make('wa-20260606-date-cold-chain', '2026-06-06T00:00:00-04:00', 'security_round', 'Control de cadena de frío', 'Se verifica que los camiones en carga mantengan la cadena de frío.', 'Resultado de búsqueda de WhatsApp', 'Se revisa estado de camiones cargando y que mantengan la cadena de frío', { timePrecision: 'date', hasEvidence: true, review: 'review' }),
+  make('wa-20260606-date-perimeter', '2026-06-06T00:00:00-04:00', 'security_round', 'Ronda perimetral y cierre de accesos', 'Ronda perimetral: acceso vehicular cerrado, casino y estacionamiento en uso por carga eléctrica, andenes posteriores a la salida despejados.', 'Resultado de búsqueda de WhatsApp', 'Ronda perimetral; entrada vehicular cerrada; casino/estacionamiento en uso por carga; andenes post salida despejados', { timePrecision: 'date', hasEvidence: true, review: 'review' }),
+
+  truck('wa-20260607-date-ricardo-parra', '2026-06-07T00:00:00-04:00', 'entry', 'Ricardo Parra', '5.428.265-6', 'Rich', 'descarga', 'Resultado de búsqueda de WhatsApp', { timePrecision: 'date', hasEvidence: true, review: 'review', details: 'Ingreso recuperado sin hora visible.' }),
+  make('wa-20260607-date-waiting', '2026-06-07T00:00:00-04:00', 'security_round', 'Revisión de camiones en espera', 'Se revisan camiones que se mantienen en espera para descarga.', 'Miguel Friosan', 'Se revisa camiones en espera a descarga', { timePrecision: 'date', hasEvidence: true, review: 'review' }),
+  make('wa-20260607-date-temperature', '2026-06-07T00:00:00-04:00', 'security_round', 'Revisión de temperatura de camiones', 'Se verifica la temperatura de los camiones para mantener la cadena de frío.', 'Miguel Friosan', 'Se revisa la temperatura de los camiones que mantengan la cadena de frío', { timePrecision: 'date', hasEvidence: true, review: 'review' }),
+
+  truck('wa-20260731-0853-benny-out', '2026-07-31T08:53:00-04:00', 'exit', 'Benny Aravena', 'No informado', 'Ruiz', 'carga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Salida registrada. El ingreso aparece citado, pero no se recuperaron su hora ni RUT.' }),
+  truck('wa-20260731-0923-manuel-in', '2026-07-31T09:23:00-04:00', 'entry', 'Manuel Gutiérrez', '3.153.923-3', 'Los Copihues', 'carga', '+56 9 6716 3860', { dock: '7', details: 'Ingreso a cargar en andén 7.' }),
+  truck('wa-20260731-0936-manuel-out', '2026-07-31T09:36:00-04:00', 'exit', 'Manuel Gutiérrez', '3.153.923-3', 'Los Copihues', 'carga', '+56 9 6716 3860'),
+  truck('wa-20260731-0956-david-in', '2026-07-31T09:56:00-04:00', 'entry', 'David Lugo', '27.032.648-K', 'Savia', 'descarga', '+56 9 6716 3860', { hasEvidence: true, details: 'A las 09:57 se informa que permanece en espera de conos.' }),
+  make('wa-20260731-0957-david-wait', '2026-07-31T09:57:00-04:00', 'facility', 'Camión en espera de conos', 'David Lugo permanece en espera de conos.', '+56 9 6716 3860', 'En espera de los conos', { personName: 'David Lugo', company: 'Savia' }),
+  truck('wa-20260731-0958-victor-out', '2026-07-31T09:58:00-04:00', 'exit', 'Víctor Sierra', '15.955.967-K', 'Savia', 'descarga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Salida correspondiente a un ingreso anterior cuya hora no se recuperó. Operación no indicada explícitamente.' }),
+  truck('wa-20260731-1007-luis-in', '2026-07-31T10:07:00-04:00', 'entry', 'Luis Carreño', '13.047.042-4', 'Savia', 'descarga', '+56 9 6716 3860', { plate: 'FX-HF-38', hasEvidence: true, details: 'Patente FX-HF-38 verificada visualmente en la fotografía de ingreso.' }),
+  truck('wa-20260731-1010-jeremy-in', '2026-07-31T10:10:00-04:00', 'entry', 'Jeremy Gutiérrez', '19.001.774-5', 'Rich', 'carga', '+56 9 6716 3860', { dock: '1', hasEvidence: true, review: 'review', sourceText: '19001774.5 ingresa señor jirene Gutiérrez empresa Rich a cargar. Andén 1.', details: 'Ingreso a cargar en andén 1. El mensaje escribe “Jirene”; se normalizó por coincidencia de RUT con Jeremy Gutiérrez.' }),
+  truck('wa-20260731-1019-patricio-in', '2026-07-31T10:19:00-04:00', 'entry', 'Patricio Celis', '13.461.424-2', 'Europastry', 'carga', '+56 9 6716 3860', { dock: '04', hasEvidence: true, details: 'Ingreso a cargar en andén 04.' }),
+  truck('wa-20260731-1022-ramon-in', '2026-07-31T10:22:00-04:00', 'entry', 'Ramón Rodríguez', '16.829.139', 'Fortaleza', 'descarga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Ingreso para descarga; RUT sin dígito verificador visible. A las 10:23 se informó que esperaba conos.' }),
+  make('wa-20260731-1023-ramon-wait', '2026-07-31T10:23:00-04:00', 'facility', 'Camión en espera de conos', 'Ramón Rodríguez permanece en espera de conos.', '+56 9 6716 3860', 'En espera de los conos', { personName: 'Ramón Rodríguez', company: 'Fortaleza', review: 'review' }),
+  truck('wa-20260731-1043-david-out', '2026-07-31T10:43:00-04:00', 'exit', 'David Lugo', '27.032.648-K', 'Savia', 'descarga', '+56 9 6716 3860', { hasEvidence: true }),
+  truck('wa-20260731-1049-sergio-in', '2026-07-31T10:49:00-04:00', 'entry', 'Sergio Torres', '13.293.895', 'Karmac', 'descarga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Ingreso para descarga; texto “descargar el rock” y RUT mal formado. En espera de conos.' }),
+  truck('wa-20260731-1053-patricio-out', '2026-07-31T10:53:00-04:00', 'exit', 'Patricio Celis', '13.461.424-2', 'Europastry', 'carga', '+56 9 6716 3860', { hasEvidence: true }),
+  truck('wa-20260731-1104-luis-out', '2026-07-31T11:04:00-04:00', 'exit', 'Luis Carreño', '13.047.042-4', 'Savia', 'descarga', '+56 9 6716 3860', { hasEvidence: true }),
+  truck('wa-20260731-1105-jeremy-out', '2026-07-31T11:05:00-04:00', 'exit', 'Jeremy Gutiérrez', '19.001.774-5', 'Rich', 'carga', '+56 9 6716 3860', { hasEvidence: true }),
+  truck('wa-20260731-1118-leonardo-in', '2026-07-31T11:18:00-04:00', 'entry', 'Leonardo Pardo', '9.387.650-5', 'Agrosuper Doñihue', 'carga', '+56 9 6716 3860', { dock: '5', hasEvidence: true, review: 'review', details: 'Ingreso a cargar en andén 5. El RUT difiere en dos dígitos de registros anteriores y requiere validación.' }),
+  truck('wa-20260731-1222-leonardo-out', '2026-07-31T12:22:00-04:00', 'exit', 'Leonardo Pardo', '9.387.650-5', 'Agrosuper Doñihue', 'carga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Salida; RUT requiere validación contra registros anteriores.' }),
+  truck('wa-20260731-1259-sergio-out', '2026-07-31T12:59:00-04:00', 'exit', 'Sergio Torres', '13.293.895', 'Karmac', 'descarga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Salida; identificador requiere validación.' }),
+  truck('wa-20260731-1314-victor-in', '2026-07-31T13:14:00-04:00', 'entry', 'Víctor Sierra', '15.955.967-K', 'Savia', 'descarga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Ingreso en espera de conos. El mensaje no indica explícitamente carga/descarga; se marcó descarga para revisión.' }),
+  truck('wa-20260731-1411-ramon-out', '2026-07-31T14:11:00-04:00', 'exit', 'Ramón Rodríguez', '16.829.139', 'Fortaleza', 'descarga', '+56 9 6716 3860', { hasEvidence: true, review: 'review', details: 'Salida informada a las 14:11. RUT sin dígito verificador visible.' }),
+];

@@ -14,6 +14,7 @@ import { VisorTvView } from '../features/trucks/components/VisorTvView';
 import { QualityView } from '../features/trucks/components/QualityView';
 import { AdminPanel } from '../features/trucks/components/AdminPanel';
 import { MaintenanceNotice } from '../features/layout/MaintenanceNotice';
+import { SecurityReportsView } from '../features/security-reports/components/SecurityReportsView';
 
 // Modulos temporalmente fuera de servicio. Para poner uno en mantenimiento,
 // agrega su entrada aqui (el login nunca debe entrar aqui: bloquearia el
@@ -42,6 +43,7 @@ export const AppRouter = () => {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomeRoute />} />
       <Route path="/admin" element={<AdminPanel />} />
+      <Route path="/admin/informes-seguridad" element={<SecurityReportsView />} />
       <Route path="/monitor" element={<MonitorView />} />
       <Route path="/gerencia" element={<GerenciaReports />} />
       <Route path="/gerencia/reportes" element={<GerenciaReports />} />

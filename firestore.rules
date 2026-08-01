@@ -56,6 +56,11 @@ service cloud.firestore {
       allow create, update, delete: if hasRole(['comercial', 'operaciones', 'admin', 'superadmin']);
     }
 
+    match /securityReports/{reportId} {
+      allow read: if hasRole(['gerencia', 'admin', 'superadmin']);
+      allow create, update, delete: if hasRole(['admin', 'superadmin']);
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
