@@ -256,7 +256,6 @@ const updateUser = async (req: any, res: any, actor: { uid: string; email: strin
 
   const auth = getAuth();
   const db = getFirestore();
-  const target = await auth.getUser(uid);
   const profileRef = db.collection('users').doc(uid);
   const previousProfile = await profileRef.get();
   const previousData = previousProfile.data() ?? {};
