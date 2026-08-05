@@ -2,6 +2,16 @@ import { defineConfig } from 'vite';
 import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
+  server: {
+    host: '0.0.0.0',
+    port: 4173,
+    strictPort: true,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+    strictPort: true,
+  },
   plugins: [
     legacy({
       targets: ['chrome 56'],
