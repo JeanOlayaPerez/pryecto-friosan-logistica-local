@@ -38,6 +38,7 @@ export type CreateTruckInput = {
   plate: string;
   driverName: string;
   driverRut?: string;
+  guideNumber?: string;
   dockType: DockType;
   dockNumber: string | number;
   entryType?: 'conos' | 'anden';
@@ -135,6 +136,7 @@ const mapTruckData = (id: string, data: any): Truck => {
     plate: String(data.plate ?? ''),
     driverName: String(data.driverName ?? ''),
     driverRut: data.driverRut,
+    guideNumber: data.guideNumber,
     dockType: data.dockType,
     dockNumber: data.dockNumber,
     entryType: data.entryType,
@@ -339,6 +341,7 @@ export const createTruck = async (input: CreateTruckInput, actor?: Actor): Promi
     plate: input.plate.trim().toUpperCase(),
     driverName: input.driverName.trim(),
     driverRut: input.driverRut?.trim() ?? '',
+    guideNumber: input.guideNumber?.trim() ?? '',
     dockType: input.dockType,
     dockNumber: String(input.dockNumber),
     entryType: input.entryType ?? 'conos',
@@ -444,6 +447,7 @@ export const updateTruckDetails = async (
   if (update.plate !== undefined) payload.plate = update.plate.trim().toUpperCase();
   if (update.driverName !== undefined) payload.driverName = update.driverName.trim();
   if (update.driverRut !== undefined) payload.driverRut = update.driverRut.trim();
+  if (update.guideNumber !== undefined) payload.guideNumber = update.guideNumber.trim();
   if (update.dockType !== undefined) payload.dockType = update.dockType;
   if (update.dockNumber !== undefined) payload.dockNumber = String(update.dockNumber);
   if (update.entryType !== undefined) payload.entryType = update.entryType;

@@ -60,6 +60,7 @@ export interface Truck {
   plate: string;
   driverName: string;
   driverRut?: string;
+  guideNumber?: string;
   dockType: DockType;
   dockNumber: string | number;
   entryType?: EntryType;
