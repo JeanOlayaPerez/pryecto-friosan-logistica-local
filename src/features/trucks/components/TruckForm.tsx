@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { createTruck, updateTruckDetails } from '../services/trucksApi';
-import type { DockType, Truck } from '../types';
+import type { DockType, EntryType, Truck } from '../types';
 import { useAuth } from '../../auth/AuthProvider';
 
 type TruckFormProps = {
@@ -16,6 +16,7 @@ const initialState = {
   plate: '',
   driverName: '',
   driverRut: '',
+  guideNumber: '',
   dockType: 'recepcion' as DockType,
   dockNumber: '',
   entryType: 'anden' as 'anden' | 'conos',
@@ -39,8 +40,13 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
         plate: initialTruck.plate,
         driverName: initialTruck.driverName,
         driverRut: initialTruck.driverRut ?? '',
+        guideNumber: initialTruck.guideNumber ?? '',
         dockType: initialTruck.dockType,
-        dockNumber: String(initialTruck.dockNumber),
+        dockNumber:
+          initialTruck.entryType !== 'conos' &&
+          /^[1-9]$/.test(String(initialTruck.dockNumber))
+            ? String(initialTruck.dockNumber)
+            : '',
         entryType: initialTruck.entryType ?? 'anden',
         scheduledArrival: initialTruck.scheduledArrival
           ? new Date(initialTruck.scheduledArrival).toISOString().slice(0, 16)
@@ -64,9 +70,18 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
     setLoading(true);
 
     try {
-      if (!form.clientName || !form.plate || !form.driverName || !form.scheduledArrival) {
+      if (
+        !form.clientName ||
+        !form.plate ||
+        !form.driverName ||
+        !form.guideNumber.trim() ||
+        !form.scheduledArrival ||
+        (form.entryType === 'anden' && !form.dockNumber)
+      ) {
         throw new Error('Completa los campos obligatorios');
       }
+
+      const dockNumber = form.entryType === 'anden' ? form.dockNumber : '0';
 
       if (mode === 'create') {
         await createTruck(
@@ -76,8 +91,9 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
             plate: form.plate,
             driverName: form.driverName,
             driverRut: form.driverRut,
+            guideNumber: form.guideNumber,
             dockType: form.dockType,
-            dockNumber: form.dockNumber,
+            dockNumber,
             entryType: form.entryType,
             scheduledArrival: form.scheduledArrival,
             notes: form.notes,
@@ -95,8 +111,9 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
             plate: form.plate,
             driverName: form.driverName,
             driverRut: form.driverRut,
+            guideNumber: form.guideNumber,
             dockType: form.dockType,
-            dockNumber: form.dockNumber,
+            dockNumber,
             entryType: form.entryType,
             scheduledArrival: form.scheduledArrival,
             notes: form.notes,
@@ -177,17 +194,17 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
             </label>
 
             <label className="text-sm text-slate-300">
-              Dock *
+              Número de guía *
               <input
                 className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
-                value={form.dockNumber}
-                onChange={(e) => setForm({ ...form, dockNumber: e.target.value })}
+                value={form.guideNumber}
+                onChange={(e) => setForm({ ...form, guideNumber: e.target.value })}
                 required
               />
             </label>
 
             <label className="text-sm text-slate-300">
-              Tipo de dock *
+              Área de operación *
               <select
                 className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
                 value={form.dockType}
@@ -203,12 +220,36 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
               <select
                 className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
                 value={form.entryType}
-                onChange={(e) => setForm({ ...form, entryType: e.target.value as any })}
+                onChange={(e) => {
+                  const entryType = e.target.value as EntryType;
+                  setForm({
+                    ...form,
+                    entryType,
+                    dockNumber: entryType === 'anden' ? '' : '0',
+                  });
+                }}
               >
                 <option value="anden">Anden</option>
                 <option value="conos">Conos</option>
               </select>
             </label>
+
+            {form.entryType === 'anden' && (
+              <label className="text-sm text-slate-300">
+                Andén *
+                <select
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  value={form.dockNumber}
+                  onChange={(e) => setForm({ ...form, dockNumber: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>Selecciona un andén</option>
+                  {Array.from({ length: 9 }, (_, index) => String(index + 1)).map((dock) => (
+                    <option key={dock} value={dock}>Andén {dock}</option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <label className="text-sm text-slate-300">
               Tipo de carga
