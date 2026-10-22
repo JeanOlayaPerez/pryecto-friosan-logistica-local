@@ -1,6 +1,5 @@
 import {
   Timestamp,
-  addDoc,
   arrayUnion,
   collection,
   deleteDoc,
@@ -12,7 +11,6 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -349,54 +347,60 @@ export const fetchAllTrucksOnce = async (options?: {
 
 export const createTruck = async (
   input: CreateTruckInput,
-  actor?: Actor,
+  _actor?: Actor,
   requestId?: string,
 ): Promise<string> => {
-  const status: TruckStatus = input.initialStatus ?? 'en_porteria';
-  const now = serverTimestamp();
-
-  const payload = {
-    companyName: input.companyName.trim(),
-    clientName: input.clientName.trim(),
-    plate: input.plate.trim().toUpperCase(),
-    driverName: input.driverName.trim(),
-    driverRut: input.driverRut?.trim() ?? '',
-    guideNumber: input.guideNumber?.trim() ?? '',
-    dockType: input.dockType,
-    dockNumber: String(input.dockNumber),
-    entryType: input.entryType ?? 'conos',
-    status,
-    scheduledArrival: toTimestamp(input.scheduledArrival),
-    hasBitacora: input.hasBitacora ?? true,
-    loadType: input.loadType ?? 'carga',
-    notes: input.notes ?? '',
-    delayReason: input.delayReason ?? '',
-    guidePhotoUrl: input.guidePhotoUrl ?? '',
-    pallets: input.pallets ?? null,
-    boxes: input.boxes ?? null,
-    kilos: input.kilos ?? null,
-    price: input.price ?? null,
-    cargoItems: input.cargoItems ?? [],
-    qualityRecords: [],
-    checkInGateAt: status === 'en_porteria' ? now : null,
-    checkInTime: status === 'en_espera' || status === 'en_curso' ? now : null,
-    processStartTime: status === 'en_curso' ? now : null,
-    processEndTime: null,
-    storedAt: null,
-    closedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    history: [historyEntry(status, actor, input.notes ?? input.delayReason)],
-  };
-
-  if (requestId) {
-    const docRef = doc(trucksCol, requestId);
-    await setDoc(docRef, payload);
-    return docRef.id;
+  const currentUser = auth.currentUser;
+  if (!currentUser || currentUser.isAnonymous) {
+    throw Object.assign(new Error('Inicia sesiÃ³n con una cuenta para registrar camiones.'), {
+      code: 'unauthenticated',
+    });
   }
 
-  const docRef = await addDoc(trucksCol, payload);
-  return docRef.id;
+  const token = await currentUser.getIdToken();
+  const truckRequestId = requestId ?? createTruckRequestId();
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 18000);
+
+  try {
+    const response = await fetch('/api/create-truck', {
+      method: 'POST',
+      cache: 'no-store',
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ...input, requestId: truckRequestId }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw Object.assign(
+        new Error(result?.error ?? `No se pudo registrar el camiÃ³n (HTTP ${response.status}).`),
+        { code: result?.code ?? `http-${response.status}` },
+      );
+    }
+    if (typeof result?.id !== 'string' || result.id !== truckRequestId) {
+      throw Object.assign(new Error('El servidor respondiÃ³ sin confirmar el registro.'), {
+        code: 'invalid-server-response',
+      });
+    }
+    return result.id;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw Object.assign(new Error('El servidor de registro tardÃ³ demasiado en responder.'), {
+        code: 'server-timeout',
+      });
+    }
+    if (error instanceof TypeError) {
+      throw Object.assign(new Error('No se pudo conectar con el servidor de registro. Comprueba tu conexiÃ³n.'), {
+        code: 'network-error',
+      });
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 };
 
 const normalizeFileName = (name: string) =>
@@ -514,3 +518,4 @@ export const deleteTruck = async (truckId: string) => {
   const ref = doc(trucksCol, truckId);
   await deleteDoc(ref);
 };
+
