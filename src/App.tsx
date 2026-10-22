@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './features/auth/AuthProvider';
+import { TruckForm } from './features/trucks/components/TruckForm';
 
 type AppProps = {
   children: ReactNode;
@@ -9,9 +10,11 @@ type AppProps = {
 const Shell = ({ children }: AppProps) => {
   const { user, role, logout } = useAuth();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [truckFormOpen, setTruckFormOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isVisor = location.pathname === '/visor' || location.pathname === '/visortv';
+  const canRegisterTruck = Boolean(user && user.email && role);
   const mainClassName = isVisor ? 'flex-1 px-0 pb-0' : 'flex-1 px-4 pb-10 sm:px-8';
   const contentClassName = isVisor ? 'mx-auto w-full max-w-none' : 'mx-auto w-full max-w-screen-2xl';
 
@@ -61,6 +64,15 @@ const Shell = ({ children }: AppProps) => {
                 <p className="text-sm uppercase tracking-[0.28em] text-slate-200">Friosan SPA</p>
               </div>
               <div className="flex items-center gap-2">
+                {canRegisterTruck && (
+                  <button
+                    type="button"
+                    onClick={() => setTruckFormOpen(true)}
+                    className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-slate-900 hover:brightness-110"
+                  >
+                    + Registrar camión
+                  </button>
+                )}
                 {role === 'superadmin' && (
                   <button
                     onClick={() => navigate('/admin')}
@@ -93,6 +105,9 @@ const Shell = ({ children }: AppProps) => {
         <main className={mainClassName}>
           <div className={contentClassName}>{children}</div>
         </main>
+        {canRegisterTruck && truckFormOpen && (
+          <TruckForm open onClose={() => setTruckFormOpen(false)} />
+        )}
       </div>
     </div>
   );

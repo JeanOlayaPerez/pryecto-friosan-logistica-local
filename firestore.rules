@@ -39,9 +39,9 @@ service cloud.firestore {
 
     match /trucks/{truckId} {
       allow read: if request.auth != null && !isAnonymous();
-      // Porteria, comercial (agenda diaria) y operaciones (camion no previsto en
-      // porteria) crean; Recepcion actualiza estados; Admin todo.
-      allow create: if hasRole(['porteria', 'comercial', 'operaciones', 'admin', 'superadmin']);
+      // Temporalmente, cualquier cuenta autenticada puede registrar camiones.
+      // Las sesiones anonimas del visor y usuarios sin iniciar sesion siguen excluidos.
+      allow create: if request.auth != null && !isAnonymous();
       // "porteria" tambien actualiza (estado, anden, datos de conductor, foto
       // de guia) desde su propio panel (PorteriaDesk), por eso esta en la lista.
       allow update: if hasRole(['porteria', 'recepcion', 'comercial', 'operaciones', 'calidad', 'admin', 'superadmin'])
