@@ -29,7 +29,7 @@ const initialState = {
 const withTimeout = <T,>(operation: Promise<T>, timeoutMs: number): Promise<T> =>
   new Promise((resolve, reject) => {
     const timeoutId = window.setTimeout(
-      () => reject(new Error('La conexiÃ³n con Firebase tardÃ³ demasiado. Comprueba internet y vuelve a guardar.')),
+      () => reject(new Error('La conexión con Firebase tardó demasiado. Comprueba internet y vuelve a guardar.')),
       timeoutMs,
     );
     operation.then(resolve, reject).finally(() => window.clearTimeout(timeoutId));
@@ -146,10 +146,10 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
       const code = (err as { code?: string } | null)?.code;
       const message = err instanceof Error ? err.message : '';
       setError(
-        message.includes('tardÃ³ demasiado')
+        message.includes('tardó demasiado')
           ? message
           : code
-            ? `${message || 'No se pudo guardar el camiÃ³n.'} (cÃ³digo: ${code})`
+            ? `${message || 'No se pudo guardar el camión.'} (código: ${code})`
             : message || 'No se pudo guardar. Revisa los datos y vuelve a intentar.',
       );
     } finally {
@@ -223,7 +223,7 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
             </label>
 
             <label className="text-sm text-slate-300">
-              NÃºmero de guÃ­a *
+              Número de guía *
               <input
                 className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
                 value={form.guideNumber}
@@ -234,7 +234,7 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
             </label>
 
             <label className="text-sm text-slate-300">
-              Ãrea de operaciÃ³n *
+              Área de operación *
               <select
                 className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
                 value={form.dockType}
@@ -268,7 +268,7 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
 
             {form.entryType === 'anden' && (
               <label className="text-sm text-slate-300">
-                AndÃ©n *
+                Andén *
                 <select
                   className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white focus:border-accent focus:ring-2 focus:ring-accent/30"
                   value={form.dockNumber}
@@ -276,9 +276,9 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
                   required
                   name="dockNumber"
                 >
-                  <option value="" disabled>Selecciona un andÃ©n</option>
+                  <option value="" disabled>Selecciona un andén</option>
                   {Array.from({ length: 9 }, (_, index) => String(index + 1)).map((dock) => (
-                    <option key={dock} value={dock}>AndÃ©n {dock}</option>
+                    <option key={dock} value={dock}>Andén {dock}</option>
                   ))}
                 </select>
               </label>
@@ -363,4 +363,3 @@ export const TruckForm = ({ open, onClose, initialTruck }: TruckFormProps) => {
     </div>
   );
 };
-
