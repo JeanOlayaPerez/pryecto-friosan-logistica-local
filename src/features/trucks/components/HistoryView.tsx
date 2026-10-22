@@ -88,6 +88,7 @@ export const HistoryView = () => {
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(e.target.value)}
                 className="mt-1 rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white"
+                name="selectedDay"
               />
             </label>
             <button
@@ -110,6 +111,7 @@ export const HistoryView = () => {
                 className="mt-1 rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
+                name="statusFilter"
               >
                 <option value="todos">Todos</option>
                 <option value="agendado">Agendado</option>

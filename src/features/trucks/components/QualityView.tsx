@@ -367,6 +367,7 @@ export const QualityView = () => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar cliente, patente, conductor o anden"
               className="w-full rounded-full border border-white/10 bg-surface-panel px-4 py-2 text-sm text-white outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+              name="search" aria-label="Buscar cliente, patente, conductor o anden"
             />
           </div>
           <label className="text-sm text-slate-300">
@@ -375,6 +376,7 @@ export const QualityView = () => {
               className="mt-1 rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
+              name="statusFilter"
             >
               <option value="activos">Activos</option>
               <option value="todos">Todos</option>
@@ -391,6 +393,7 @@ export const QualityView = () => {
               className="mt-1 rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white"
               value={loadFilter}
               onChange={(e) => setLoadFilter(e.target.value as any)}
+              name="loadFilter"
             >
               <option value="todos">Todas</option>
               <option value="carga">Carga</option>
@@ -615,6 +618,7 @@ export const QualityView = () => {
                               stage: e.target.value === 'descarga' ? 'ingreso' : 'salida',
                             }))
                           }
+                          name="operation"
                         >
                           <option value="descarga">Descarga</option>
                           <option value="carga">Carga</option>
@@ -631,6 +635,7 @@ export const QualityView = () => {
                               stage: e.target.value as QualityStage,
                             }))
                           }
+                          name="stage"
                         >
                           <option value="ingreso">Ingreso</option>
                           <option value="salida">Salida</option>
@@ -653,6 +658,7 @@ export const QualityView = () => {
                                     : prev.clientDecision,
                             }))
                           }
+                          name="condition"
                         >
                           <option value="bueno">Bueno</option>
                           <option value="observado">Observado</option>
@@ -671,6 +677,7 @@ export const QualityView = () => {
                             }))
                           }
                           disabled={formState.condition === 'bueno'}
+                          name="clientDecision"
                         >
                           <option value="pendiente">Pendiente</option>
                           <option value="acepta">Acepta</option>
@@ -688,6 +695,7 @@ export const QualityView = () => {
                               productType: e.target.value as QualityProductType,
                             }))
                           }
+                          name="productType"
                         >
                           {(Object.keys(PRODUCT_TYPE_LABELS) as QualityProductType[]).map((type) => (
                             <option key={type} value={type}>
@@ -710,6 +718,7 @@ export const QualityView = () => {
                             }))
                           }
                           placeholder="Ej: -18"
+                          name="temperature"
                         />
                         {(() => {
                           const liveStatus = evaluateTemperature(
@@ -753,6 +762,7 @@ export const QualityView = () => {
                             }))
                           }
                           placeholder="Ej: pollo congelado, cajas, pallets"
+                          name="cargoDescription"
                         />
                       </label>
                       <label className="text-sm text-slate-300">
@@ -767,6 +777,7 @@ export const QualityView = () => {
                             }))
                           }
                           placeholder="Ej: 24 pallets, 12.500 kg"
+                          name="quantity"
                         />
                       </label>
                       <label className="text-sm text-slate-300">
@@ -781,6 +792,7 @@ export const QualityView = () => {
                             }))
                           }
                           placeholder="Nombre de quien recibe"
+                          name="receivedByName"
                         />
                       </label>
                     </div>
@@ -795,6 +807,7 @@ export const QualityView = () => {
                           setFormState((prev) => ({ ...prev, notes: e.target.value }))
                         }
                         placeholder="Detalle de embalajes, temperatura, daños, etc."
+                        name="notes"
                       />
                     </label>
 
@@ -812,6 +825,7 @@ export const QualityView = () => {
                               const files = Array.from(e.target.files ?? []);
                               setSelectedFiles(files);
                             }}
+                            name="file"
                           />
                           Subir archivos
                         </label>

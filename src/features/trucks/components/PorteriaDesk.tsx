@@ -492,6 +492,7 @@ export const PorteriaDesk = () => {
                               value={editForm.plate}
                               onChange={(e) => setEditForm({ ...editForm, plate: e.target.value })}
                               disabled={editSaving}
+                              name="plate" aria-label="Patente"
                             />
                             <button
                               type="button"
@@ -515,6 +516,7 @@ export const PorteriaDesk = () => {
                               onChange={(e) => setEditForm({ ...editForm, driverName: e.target.value })}
                               placeholder="Nombre conductor"
                               disabled={editSaving}
+                              name="driverName" aria-label="Nombre conductor"
                             />
                             <input
                               className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
@@ -522,6 +524,7 @@ export const PorteriaDesk = () => {
                               onChange={(e) => setEditForm({ ...editForm, driverRut: e.target.value })}
                               placeholder="RUT conductor"
                               disabled={editSaving}
+                              name="driverRut" aria-label="RUT conductor"
                             />
                             <div className="flex flex-wrap gap-2">
                               <button
@@ -576,6 +579,7 @@ export const PorteriaDesk = () => {
                                     if (file) void handleUploadGuidePhoto(t.id, file);
                                     e.target.value = "";
                                   }}
+                                  name="file"
                                 />
                               </label>
                             )}
@@ -601,6 +605,7 @@ export const PorteriaDesk = () => {
                             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800 shadow-sm"
                             value={t.status}
                             onChange={(e) => handleStatusChange(t, e.target.value as TruckStatus)}
+                            name="status" aria-label="Status"
                           >
                             {!statusOptions.includes(t.status) && (
                               <option value={t.status} disabled>
@@ -631,6 +636,7 @@ export const PorteriaDesk = () => {
                                   className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] text-slate-800"
                                   value={dockSelectionValue}
                                   onChange={(e) => setDockSelectionValue(e.target.value)}
+                                  name="dockSelectionValue" aria-label="Anden"
                                 >
                                   <option value="">Elegir...</option>
                                   {dockNumbers.map((dock) => (
@@ -643,6 +649,7 @@ export const PorteriaDesk = () => {
                                   className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] text-slate-800"
                                   value={dockSelectionLoadType}
                                   onChange={(e) => setDockSelectionLoadType(e.target.value)}
+                                  name="dockSelectionLoadType" aria-label="Operacion"
                                 >
                                   <option value="">Operacion...</option>
                                   <option value="carga">Carga</option>
@@ -714,6 +721,7 @@ export const PorteriaDesk = () => {
                     value={form.driverName}
                     onChange={(e) => setForm({ ...form, driverName: e.target.value })}
                     required
+                    name="driverName"
                   />
                 </label>
                 <label className="text-sm text-slate-700">
@@ -724,6 +732,7 @@ export const PorteriaDesk = () => {
                     onChange={(e) => setForm({ ...form, driverRut: e.target.value })}
                     placeholder="12.345.678-9"
                     required
+                    name="driverRut"
                   />
                 </label>
                 <label className="text-sm text-slate-700">
@@ -733,6 +742,7 @@ export const PorteriaDesk = () => {
                     value={form.plate}
                     onChange={(e) => setForm({ ...form, plate: e.target.value })}
                     required
+                    name="plate"
                   />
                 </label>
                 <label className="text-sm text-slate-700">
@@ -742,6 +752,7 @@ export const PorteriaDesk = () => {
                     value={form.companyName}
                     onChange={(e) => setForm({ ...form, companyName: e.target.value, clientName: e.target.value })}
                     required
+                    name="companyName"
                   />
                 </label>
                 <label className="text-sm text-slate-700">
@@ -750,6 +761,7 @@ export const PorteriaDesk = () => {
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={form.loadType}
                     onChange={(e) => setForm({ ...form, loadType: e.target.value as any })}
+                    name="loadType"
                   >
                     <option value="carga">Carga</option>
                     <option value="descarga">Descarga</option>
@@ -762,6 +774,7 @@ export const PorteriaDesk = () => {
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
                     value={entryType}
                     onChange={(e) => setEntryType(e.target.value as "conos" | "anden")}
+                    name="entryType"
                   >
                     <option value="conos">Conos</option>
                     <option value="anden">Anden</option>
@@ -775,6 +788,7 @@ export const PorteriaDesk = () => {
                       value={dockNumber}
                       onChange={(e) => setDockNumber(e.target.value)}
                       required
+                      name="dockNumber"
                     >
                       <option value="">Selecciona...</option>
                       {Array.from({ length: 9 }, (_, i) => `${i + 1}`).map((n) => (
@@ -793,6 +807,7 @@ export const PorteriaDesk = () => {
                     capture="environment"
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 file:mr-3 file:rounded-full file:border-0 file:bg-sky-100 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-sky-700"
                     onChange={(e) => setGuidePhotoFile(e.target.files?.[0] ?? null)}
+                    name="file"
                   />
                 </label>
               </div>
@@ -804,6 +819,7 @@ export const PorteriaDesk = () => {
                   rows={3}
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  name="notes"
                 />
               </label>
 

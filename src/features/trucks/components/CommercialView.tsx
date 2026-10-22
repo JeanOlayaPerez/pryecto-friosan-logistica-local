@@ -190,6 +190,7 @@ export const CommercialView = () => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por cliente, notas o anden"
               className="w-full rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-sky-100 outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20"
+              name="search" aria-label="Buscar por cliente, notas o anden"
             />
           </div>
         </div>
@@ -225,6 +226,7 @@ export const CommercialView = () => {
                     setPlanDate(d);
                   }
                 }}
+                name="date"
               />
             </label>
             <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs text-slate-700">
@@ -242,6 +244,7 @@ export const CommercialView = () => {
                 value={createForm.clientName}
                 onChange={(e) => setCreateForm({ ...createForm, clientName: e.target.value })}
                 required
+                name="clientName"
               />
             </label>
             <label className="text-xs text-slate-600">
@@ -254,6 +257,7 @@ export const CommercialView = () => {
                   value={createForm.scheduledArrival}
                   onChange={(e) => setCreateForm({ ...createForm, scheduledArrival: e.target.value })}
                   required
+                  name="scheduledArrival"
                 />
                 <button
                   type="button"
@@ -277,6 +281,7 @@ export const CommercialView = () => {
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
                 value={createForm.hasBitacora ? "con" : "sin"}
                 onChange={(e) => setCreateForm({ ...createForm, hasBitacora: e.target.value === "con" })}
+                name="select-276"
               >
                 <option value="con">Con bitacora</option>
                 <option value="sin">Sin bitacora</option>
@@ -288,6 +293,7 @@ export const CommercialView = () => {
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
                 value={createForm.loadType}
                 onChange={(e) => setCreateForm({ ...createForm, loadType: e.target.value })}
+                name="loadType"
               >
                 <option value="carga">Carga</option>
                 <option value="descarga">Descarga</option>
@@ -301,6 +307,7 @@ export const CommercialView = () => {
                 rows={2}
                 value={createForm.notes}
                 onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+                name="notes"
               />
             </label>
           </div>

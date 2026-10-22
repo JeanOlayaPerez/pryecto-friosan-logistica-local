@@ -113,30 +113,34 @@ export const LoginPage = () => {
             <div className="border-t border-slate-200 bg-white px-6 py-5">
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
-                  <label className="text-sm text-slate-700">Usuario (correo)</label>
+                  <label htmlFor="login-email" className="text-sm text-slate-700">Usuario (correo)</label>
                   <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
                     <span className="pr-2 text-slate-500">@</span>
                     <input
+                      id="login-email"
                       type="email"
                       className="w-full bg-transparent text-sm text-slate-900 outline-none"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      name="email"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm text-slate-700">Contraseña</label>
+                  <label htmlFor="login-password" className="text-sm text-slate-700">Contraseña</label>
                   <div className="mt-1 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/30">
                     <span className="pr-2 text-slate-500">🔒</span>
                     <input
+                      id="login-password"
                       type={showPassword ? 'text' : 'password'}
                       className="w-full bg-transparent text-sm text-slate-900 outline-none"
                       value={password}
                       autoComplete="current-password"
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      name="password"
                     />
                     <button
                       type="button"

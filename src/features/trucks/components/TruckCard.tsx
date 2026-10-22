@@ -202,6 +202,7 @@ export const TruckCard = ({
                 className="h-4 w-4"
                 style={{ accentColor: '#e6cf6a' }}
                 aria-label={`Seleccionar camion ${truck.plate || truck.clientName}`}
+                name="selected"
               />
               Lote
             </label>

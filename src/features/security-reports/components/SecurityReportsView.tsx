@@ -246,7 +246,7 @@ export const SecurityReportsView = () => {
             <div className="flex flex-wrap gap-2">
               <label className="cursor-pointer rounded-full border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-100">
                 Agregar otro JSON
-                <input type="file" accept=".json,application/json" onChange={handlePrivateFile} className="sr-only" />
+                <input type="file" accept=".json,application/json" onChange={handlePrivateFile} className="sr-only" name="file" />
               </label>
               <button type="button" onClick={exportCsv} className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                 Exportar CSV ({filtered.length})
@@ -265,14 +265,14 @@ export const SecurityReportsView = () => {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/50">
           <div className="grid gap-3 md:grid-cols-4">
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar persona, RUT, empresa o detalle…" className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" />
-            <select value={category} onChange={(event) => setCategory(event.target.value as 'all' | SecurityReportCategory)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100">
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar persona, RUT, empresa o detalle…" className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" name="search" aria-label="Buscar persona, RUT, empresa o detalle…" />
+            <select value={category} onChange={(event) => setCategory(event.target.value as 'all' | SecurityReportCategory)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" name="category" aria-label="Categoria" >
               <option value="all">Todas las categorías</option>
               {Object.entries(categoryLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
-            <input type="date" value={selectedDay} onChange={(event) => setSelectedDay(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" />
+            <input type="date" value={selectedDay} onChange={(event) => setSelectedDay(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100" name="selectedDay" aria-label="Fecha" />
             <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
-              <input type="checkbox" checked={onlyReview} onChange={(event) => setOnlyReview(event.target.checked)} className="h-4 w-4 accent-amber-600" />
+              <input type="checkbox" checked={onlyReview} onChange={(event) => setOnlyReview(event.target.checked)} className="h-4 w-4 accent-amber-600" name="onlyReview" />
               Solo requiere revisión
             </label>
           </div>

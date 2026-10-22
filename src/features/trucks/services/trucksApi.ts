@@ -12,6 +12,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -61,6 +62,8 @@ type Actor = { userId: string; role: UserRole | null };
 const trucksCol = collection(db, 'trucks');
 const trucksColLite = collectionLite(dbLite, 'trucks');
 const isAnonymousSession = () => auth.currentUser?.isAnonymous === true;
+
+export const createTruckRequestId = () => doc(trucksCol).id;
 
 const asDate = (value: any): Date | null => {
   if (!value) return null;
@@ -344,11 +347,15 @@ export const fetchAllTrucksOnce = async (options?: {
   };
 };
 
-export const createTruck = async (input: CreateTruckInput, actor?: Actor): Promise<string> => {
+export const createTruck = async (
+  input: CreateTruckInput,
+  actor?: Actor,
+  requestId?: string,
+): Promise<string> => {
   const status: TruckStatus = input.initialStatus ?? 'en_porteria';
   const now = serverTimestamp();
 
-  const docRef = await addDoc(trucksCol, {
+  const payload = {
     companyName: input.companyName.trim(),
     clientName: input.clientName.trim(),
     plate: input.plate.trim().toUpperCase(),
@@ -380,7 +387,15 @@ export const createTruck = async (input: CreateTruckInput, actor?: Actor): Promi
     createdAt: now,
     updatedAt: now,
     history: [historyEntry(status, actor, input.notes ?? input.delayReason)],
-  });
+  };
+
+  if (requestId) {
+    const docRef = doc(trucksCol, requestId);
+    await setDoc(docRef, payload);
+    return docRef.id;
+  }
+
+  const docRef = await addDoc(trucksCol, payload);
   return docRef.id;
 };
 

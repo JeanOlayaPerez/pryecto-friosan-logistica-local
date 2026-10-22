@@ -314,6 +314,7 @@ const TableRow = ({
               className="h-4 w-4"
               style={{ accentColor: '#e6cf6a' }}
               aria-label={`Seleccionar camion ${truck.plate || truck.clientName}`}
+              name="checkbox"
             />
           )}
           <span
@@ -572,6 +573,7 @@ const TvTable = ({
                           className="h-4 w-4"
                           style={{ accentColor: '#e6cf6a' }}
                           aria-label={`Seleccionar camion ${truck.plate || truck.clientName}`}
+                          name="isSelected"
                         />
                         Lote
                       </label>
@@ -1234,6 +1236,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar cliente, patente, conductor o anden"
                 className="tv-search"
+                name="search" aria-label="Buscar cliente, patente, conductor o anden"
               />
               <button
                 type="button"
@@ -1494,6 +1497,7 @@ export const GeneralBoard = ({ forceCompat = false }: GeneralBoardProps = {}) =>
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar cliente, patente, conductor o anden"
                 className="flex-1 min-w-[260px] rounded-full border border-[#e6cf6a]/30 bg-[#1c1c20] px-4 py-1.5 text-sm text-[#e9dda1] outline-none focus:border-[#e6cf6a] focus:ring-2 focus:ring-[#e6cf6a]/40"
+                name="search" aria-label="Buscar cliente, patente, conductor o anden"
               />
               <button
                 type="button"

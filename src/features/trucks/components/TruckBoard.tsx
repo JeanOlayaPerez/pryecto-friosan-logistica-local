@@ -355,6 +355,7 @@ export const TruckBoard = () => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar cliente, patente, conductor o anden"
               className="w-full rounded-full border border-white/10 bg-surface-panel px-4 py-2 text-sm text-white outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+              name="search" aria-label="Buscar cliente, patente, conductor o anden"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">

@@ -384,11 +384,13 @@ export const AdminPanel = () => {
               placeholder="Buscar cliente, patente, conductor o andén..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              name="search" aria-label="Buscar cliente, patente, conductor o andén..."
             />
             <select
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
               value={areaFilter}
               onChange={(e) => setAreaFilter(e.target.value as "todos" | DockType)}
+              name="areaFilter" aria-label="Area"
             >
               <option value="todos">Todas las áreas</option>
               <option value="recepcion">Recepción</option>
@@ -398,6 +400,7 @@ export const AdminPanel = () => {
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "todos" | TruckStatus)}
+              name="statusFilter" aria-label="Estado"
             >
               <option value="todos">Todos los estados</option>
               {allStatuses.map((s) => (
@@ -467,6 +470,7 @@ export const AdminPanel = () => {
                           className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-slate-800 shadow-sm"
                           value={t.status}
                           onChange={(e) => void handleStatusChange(t, e.target.value as TruckStatus)}
+                          name="status" aria-label="Status"
                         >
                           {allStatuses.map((s) => (
                             <option key={s} value={s}>
@@ -565,6 +569,7 @@ export const AdminPanel = () => {
                   maxLength={100}
                   disabled={accountSaving}
                   required
+                  name="name"
                 />
               </label>
               <label className="text-sm text-slate-700">
@@ -580,6 +585,7 @@ export const AdminPanel = () => {
                   maxLength={254}
                   disabled={accountSaving}
                   required
+                  name="email"
                 />
               </label>
               <label className="text-sm text-slate-700">
@@ -594,6 +600,7 @@ export const AdminPanel = () => {
                     }))
                   }
                   disabled={accountSaving || editingAccountId === user?.id}
+                  name="role"
                 >
                   {allRoles.map((r) => (
                     <option key={r} value={r}>
@@ -617,6 +624,7 @@ export const AdminPanel = () => {
                   autoComplete="new-password"
                   disabled={accountSaving}
                   required={!editingAccountId}
+                  name="password"
                 />
               </label>
             </div>

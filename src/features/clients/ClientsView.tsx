@@ -136,6 +136,7 @@ export const ClientsView = () => {
                 value={form.razonSocial}
                 onChange={(e) => setForm({ ...form, razonSocial: e.target.value })}
                 required
+                name="razonSocial"
               />
             </label>
             <label className="text-sm text-slate-700">
@@ -145,6 +146,7 @@ export const ClientsView = () => {
                 value={form.nombreEmpresa}
                 onChange={(e) => setForm({ ...form, nombreEmpresa: e.target.value })}
                 required
+                name="nombreEmpresa"
               />
             </label>
             <label className="text-sm text-slate-700">
@@ -154,6 +156,7 @@ export const ClientsView = () => {
                 type="email"
                 value={form.correoContacto}
                 onChange={(e) => setForm({ ...form, correoContacto: e.target.value })}
+                name="correoContacto"
               />
             </label>
           </div>
@@ -196,6 +199,7 @@ export const ClientsView = () => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por razón social, nombre o correo"
               className="w-full max-w-sm rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+              name="search" aria-label="Buscar por razón social, nombre o correo"
             />
           </div>
 

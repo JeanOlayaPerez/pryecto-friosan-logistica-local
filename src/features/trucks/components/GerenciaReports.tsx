@@ -1378,6 +1378,7 @@ export const GerenciaReports = () => {
                     value={bitacoraFilter}
                     onChange={(e) => setBitacoraFilter(e.target.value as 'con' | 'sin')}
                     className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-800 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                    name="bitacoraFilter" aria-label="Bitacora Filter"
                   >
                     <option value="con">Con bitacora</option>
                     <option value="sin">Sin bitacora</option>
@@ -1392,6 +1393,7 @@ export const GerenciaReports = () => {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cliente, patente o conductor"
                 className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                name="search" aria-label="Cliente, patente o conductor"
               />
             </div>
             <div className="space-y-1">
@@ -1401,6 +1403,7 @@ export const GerenciaReports = () => {
                 onChange={(e) => setDock(e.target.value)}
                 placeholder="1-9"
                 className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                name="dock" aria-label="1-9"
               />
             </div>
             <div className="space-y-1">
@@ -1425,6 +1428,7 @@ export const GerenciaReports = () => {
                 value={customRange}
                 onChange={(e) => setCustomRange(e.target.value as CustomRange)}
                 className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                name="customRange" aria-label="Rango de fechas"
               >
                 <option value="dia">Dia</option>
                 <option value="semana">Semana</option>
@@ -1438,6 +1442,7 @@ export const GerenciaReports = () => {
                 value={customMetric}
                 onChange={(e) => setCustomMetric(e.target.value as CustomMetric)}
                 className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
+                name="customMetric" aria-label="Metrica"
               >
                 <option value="empresa">Camiones por empresa</option>
                 <option value="total">Camiones en total</option>
@@ -1452,6 +1457,7 @@ export const GerenciaReports = () => {
                 onChange={(e) => setCustomCompany(e.target.value)}
                 disabled={customMetric !== 'empresa'}
                 className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
+                name="customCompany" aria-label="Empresa"
               >
                 <option value="">Selecciona empresa</option>
                 {companyOptions.map((name) => (
@@ -1498,7 +1504,7 @@ export const GerenciaReports = () => {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">M+®tricas r+ípidas</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">M+ï¿½tricas r+ï¿½pidas</p>
             <div className="mt-3 space-y-2">
               <BarRow label="Retrasos" value={metrics.delayed} max={Math.max(1, metrics.total)} tone="sky" />
               <BarRow label="En curso" value={metrics.enCurso} max={Math.max(1, metrics.total)} tone="emerald" />
@@ -1546,7 +1552,7 @@ export const GerenciaReports = () => {
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" id="gerencia-report-header">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Informe log+¡stico</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Informe log+ï¿½stico</p>
               <h3 className="text-xl font-semibold text-slate-900">Vista previa</h3>
               <p className="text-sm text-slate-600">Hasta 50 filas, mismo formato que el PDF.</p>
             </div>
@@ -1557,6 +1563,7 @@ export const GerenciaReports = () => {
                 placeholder="correo@empresa.com"
                 className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200"
                 type="email"
+                name="emailTo" aria-label="correo@empresa.com"
               />
               <button
                 type="button"
@@ -1609,21 +1616,21 @@ export const GerenciaReports = () => {
             <table className="min-w-full table-fixed border-collapse text-sm text-slate-800">
               <thead className="bg-slate-100 text-[11px] uppercase tracking-[0.12em] text-slate-700">
                 <tr>
-                  <th className="border border-slate-200 px-3 py-2">C+¦d. Usuario</th>
+                  <th className="border border-slate-200 px-3 py-2">C+ï¿½d. Usuario</th>
                   <th className="border border-slate-200 px-3 py-2">Empresa</th>
                   <th className="border border-slate-200 px-3 py-2">
                     <span className="block">C/S</span>
                     <span className="block">Bitacora</span>
                   </th>
-                  <th className="border border-slate-200 px-3 py-2">F. Bit+ícora</th>
-                  <th className="border border-slate-200 px-3 py-2">H. Bit+ícora</th>
+                  <th className="border border-slate-200 px-3 py-2">F. Bit+ï¿½cora</th>
+                  <th className="border border-slate-200 px-3 py-2">H. Bit+ï¿½cora</th>
                   <th className="border border-slate-200 px-3 py-2">F. Ingreso</th>
                   <th className="border border-slate-200 px-3 py-2">H. Ingreso</th>
                   <th className="border border-slate-200 px-3 py-2">F. Salida</th>
                   <th className="border border-slate-200 px-3 py-2">H. Salida</th>
                   <th className="border border-slate-200 px-3 py-2">Proceso</th>
                   <th className="border border-slate-200 px-3 py-2">Patente</th>
-                  <th className="border border-slate-200 px-3 py-2">And+®n</th>
+                  <th className="border border-slate-200 px-3 py-2">And+ï¿½n</th>
                   <th className="border border-slate-200 px-3 py-2">Hrs Totales</th>
                 </tr>
               </thead>
