@@ -352,7 +352,7 @@ export const createTruck = async (
 ): Promise<string> => {
   const currentUser = auth.currentUser;
   if (!currentUser || currentUser.isAnonymous) {
-    throw Object.assign(new Error('Inicia sesiÃ³n con una cuenta para registrar camiones.'), {
+    throw Object.assign(new Error('Inicia sesión con una cuenta para registrar camiones.'), {
       code: 'unauthenticated',
     });
   }
@@ -371,29 +371,33 @@ export const createTruck = async (
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...input, requestId: truckRequestId }),
+      body: JSON.stringify({
+        ...input,
+        scheduledArrival: toTimestamp(input.scheduledArrival).toDate().toISOString(),
+        requestId: truckRequestId,
+      }),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw Object.assign(
-        new Error(result?.error ?? `No se pudo registrar el camiÃ³n (HTTP ${response.status}).`),
+        new Error(result?.error ?? `No se pudo registrar el camión (HTTP ${response.status}).`),
         { code: result?.code ?? `http-${response.status}` },
       );
     }
     if (typeof result?.id !== 'string' || result.id !== truckRequestId) {
-      throw Object.assign(new Error('El servidor respondiÃ³ sin confirmar el registro.'), {
+      throw Object.assign(new Error('El servidor respondió sin confirmar el registro.'), {
         code: 'invalid-server-response',
       });
     }
     return result.id;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw Object.assign(new Error('El servidor de registro tardÃ³ demasiado en responder.'), {
+      throw Object.assign(new Error('El servidor de registro tardó demasiado en responder.'), {
         code: 'server-timeout',
       });
     }
     if (error instanceof TypeError) {
-      throw Object.assign(new Error('No se pudo conectar con el servidor de registro. Comprueba tu conexiÃ³n.'), {
+      throw Object.assign(new Error('No se pudo conectar con el servidor de registro. Comprueba tu conexión.'), {
         code: 'network-error',
       });
     }
@@ -518,4 +522,3 @@ export const deleteTruck = async (truckId: string) => {
   const ref = doc(trucksCol, truckId);
   await deleteDoc(ref);
 };
-
