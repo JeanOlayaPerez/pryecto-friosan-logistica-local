@@ -1,6 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getFirestore as getFirestoreLite } from 'firebase/firestore/lite';
 import { getStorage } from 'firebase/storage';
 
@@ -35,7 +35,9 @@ export const db = useLongPolling
   ? initializeFirestore(app, {
       experimentalForceLongPolling: true,
     })
-  : getFirestore(app);
+  : initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    });
 
 export const dbLite = getFirestoreLite(app);
 export const storage = getStorage(app);
